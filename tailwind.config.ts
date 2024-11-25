@@ -16,6 +16,9 @@ module.exports = {
         'pinkred': 'rgb(255, 88, 98)'
       },
     }, 
+    aspectRatio: {
+      '4/5': '4 / 5',
+    },
   },
   plugins: [require("daisyui")], // Add DaisyUI as a plugin
 };

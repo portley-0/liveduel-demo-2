@@ -218,7 +218,7 @@ const MatchList: React.FC = () => {
       {matches.map((match) => (
         <div
           key={match.fixture.id}
-          className="bg-greyblue text-white rounded-lg shadow-md p-6 flex flex-col relative h-[260px]"
+          className="bg-greyblue text-white rounded-lg shadow-md p-6 flex flex-col relative w-full h-auto aspect-[6/5]"
         >
           <div className="flex justify-between items-center mb-4">
             <div
@@ -226,14 +226,18 @@ const MatchList: React.FC = () => {
                 isShortName(match.teams.home.name) ? 'items-center' : 'items-start'
               }`}
             >
-              <img src={match.teams.home.logo} alt={match.teams.home.name} className="w-14 h-14 object-contain mb-1" />
-              <span className="text-xs font-[Lato-Bold] mt-2">{match.teams.home.name}</span>
+              <img
+                src={match.teams.home.logo}
+                alt={match.teams.home.name}
+                className="object-contain mb-1 w-20 h-20 sm:w-14 sm:h-14"
+              />
+              <span className="text-lg sm:text-xs font-[Lato-Bold] mt-1">{match.teams.home.name}</span>
             </div>
-            <div className="text-center absolute left-1/2 -translate-x-1/2 -translate-y-2">
-              <div className="text-2xl font-[Quicksand Bold] text-pinkred">
+            <div className="flex flex-col justify-center items-center absolute top-8 left-1/2 transform -translate-x-1/2">
+              <div className="text-4xl sm:text-2xl font-[Quicksand Bold] text-pinkred">
                 {match.goals.home ?? 0}:{match.goals.away ?? 0}
               </div>
-              <div className="text-xs font-[Quicksand Bold] text-pinkred">
+              <div className="text-base sm:text-xs font-[Quicksand Bold] text-pinkred">
                 {match.fixture.status.short === 'LIVE'
                   ? `In Progress (${match.fixture.status.elapsed ?? 0}')`
                   : 'Upcoming'}
@@ -244,12 +248,16 @@ const MatchList: React.FC = () => {
                 isShortName(match.teams.away.name) ? 'items-center' : 'items-end'
               }`}
             >
-              <img src={match.teams.away.logo} alt={match.teams.away.name} className="w-14 h-14 object-contain mb-1" />
-              <span className="text-xs font-[Lato-Bold] mt-2">{match.teams.away.name}</span>
+              <img
+                src={match.teams.away.logo}
+                alt={match.teams.away.name}
+                className="object-contain mb-1 w-20 h-20 sm:w-14 sm:h-14"
+              />
+              <span className="text-lg sm:text-xs font-[Lato-Bold] mt-1">{match.teams.away.name}</span>
             </div>
           </div>
 
-          <div className="overflow-hidden bg-lightgreyblue h-[80px]">
+          <div className="mt-2 overflow-hidden bg-lightgreyblue h-[110px] sm:h-[80px]">
             <Chart
               type="line"
               data={generateOddsChartData()}
@@ -258,11 +266,11 @@ const MatchList: React.FC = () => {
           </div>
 
           <div className="flex justify-between items-end mt-3">
-            <div className="text-[10px] font-[Quicksand Bold]">
+            <div className="text-sm sm:text-xs font-[Quicksand Bold]">
               <span className="block">Volume</span>
               <div className="text-white">$72,542</div>
             </div>
-            <div className="flex space-x-4 text-[10px] font-[Quicksand Bold]">
+            <div className="flex space-x-4 text-sm sm:text-xs font-[Quicksand Bold]">
               <div className="flex flex-col items-center">
                 <span className="text-blue-400">$HOME</span>
                 <span className="text-blue-400 ">0.5</span>
