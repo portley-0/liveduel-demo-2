@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["app/*"]
+    }
+  },
+  "include": [
+    "contracts/**/*",
+    "scripts/**/*",
+    "test/**/*",
+    "hardhat.config.ts",
+    "./node_modules/.pnpm/@nomiclabs+hardhat-ethers@*/node_modules/@nomiclabs/hardhat-ethers/src/internal/type-extensions.d.ts"
+  ]
+}
