@@ -36,3 +36,4 @@ typechain/
 # Subgraph
 subgraph/generated/
 subgraph/build/
+node_modules/
