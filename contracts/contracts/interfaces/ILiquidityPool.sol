@@ -2,11 +2,12 @@
 pragma solidity ^0.8.20;
 
 interface ILiquidityPool {
-    event RewardsClaimed(uint256 amount);
+    event RewardsClaimed(address indexed staker, uint256 amount);
     event FeeReceived(uint256 amount);
     event FundsWithdrawn(address indexed market, uint256 amount);
     event FundsReturned(address indexed market, uint256 amount);
     event DuelPurchased(address indexed account, uint256 amount);
+    event RewardsPoolUpdated(uint256 newAmount); // Added event for rewards pool updates
 
     function usdc() external view returns (address);
     function duelToken() external view returns (address);
@@ -32,4 +33,6 @@ interface ILiquidityPool {
     function returnLiquidity(uint256 _amount) external;
     function getSwapAmount(uint256 _inputAmount, uint256 _inputReserve, uint256 _outputReserve) 
         external pure returns (uint256);
+
+    function getReserves() external view returns (uint256, uint256); // Added function to view reserves
 }

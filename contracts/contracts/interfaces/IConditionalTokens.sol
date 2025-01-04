@@ -100,10 +100,10 @@ interface IConditionalTokens {
     function getOutcomeSlotCount(bytes32 conditionId) external view returns (uint);
 
     /// @dev Gets the numerator used in payout fractions for a specific outcome in a condition.
-    function payoutNumerators(bytes32 conditionId, uint256 indexSet) external view returns (uint256);
+    function payoutNumerators(bytes32 conditionId) external view returns (uint[] memory);
 
     /// @dev Gets the denominator used in payout fractions for a condition.
-    function payoutDenominator(bytes32 conditionId) external view returns (uint256);
+    function payoutDenominator(bytes32 conditionId) external view returns (uint);
 
     /// @dev Checks if a given interface is supported.
     function supportsInterface(bytes4 interfaceId) external view returns (bool);

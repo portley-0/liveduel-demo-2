@@ -145,13 +145,13 @@ contract ConditionalTokensWrapper {
     }
 
     // Wrapper for payoutDenominator
-    function payoutDenominator(bytes32 conditionId) external view returns (uint256) {
+    function payoutDenominator(bytes32 conditionId) external view returns (uint) {
         return conditionalTokens.payoutDenominator(conditionId);
     }
 
     // Wrapper for payoutNumerators
-    function payoutNumerators(bytes32 conditionId, uint256 indexSet) external view returns (uint256) {
-        return conditionalTokens.payoutNumerators(conditionId, indexSet);
+    function payoutNumerators(bytes32 conditionId) external view returns (uint[] memory) {
+        return conditionalTokens.payoutNumerators(conditionId);
     }
 
     // Wrapper for supportsInterface

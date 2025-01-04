@@ -9,8 +9,10 @@
     "@nomiclabs/hardhat-waffle": "^2.0.6",
     "@typechain/hardhat": "^9.1.0",
     "@types/node": "^22.10.2",
+    "chai": "^4.3.7",
     "ethers": "^5.7.2",
     "hardhat": "^2.22.17",
+    "hardhat-contract-sizer": "^2.10.0",
     "openzeppelin-solidity": "2.3.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
@@ -20,5 +22,8 @@
     "@gnosis.pm/conditional-tokens-market-makers": "^1.8.1",
     "@openzeppelin/contracts": "^5.1.0",
     "solc": "0.8.20"
+  },
+  "peerDependencies": {
+    "chai": "^4.3.7"
   }
 }
