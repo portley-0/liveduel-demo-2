@@ -16,27 +16,27 @@ async function deploy() {
 
 
     const functionsRouterAddress = "0xA9d587a00A31A52Ed70D6026794a8FC5E2F5dCb0";
-    let donId = "fun-avalanche-fuji-1"
+    let donId = "fun-avalanche-fuji-1";
 
     const source = fs.readFileSync("./API-request.js").toString();
 
-    const subscriptionId = 12346
+    const subscriptionId = 12321;
 
-    const secretsManager = new SecretsManager({ signer, functionsRouterAddress, donId})
-    await secretsManager.initialize()
+    const secretsManager = new SecretsManager({ signer, functionsRouterAddress, donId});
+    await secretsManager.initialize();
 
 
-    let encryptedSecretsReference = []
-    let gistUrl
+    let encryptedSecretsReference = [];
+    let gistUrl;
 
-    const encryptedSecrets = await secretsManager.encryptSecrets({ apiKey: process.env.API_KEY ?? "" })
+    const encryptedSecrets = await secretsManager.encryptSecrets({ apiKey: process.env.API_KEY ?? "" });
 
-    gistUrl = await createGist(process.env["GITHUB_API_TOKEN"], JSON.stringify(encryptedSecrets))
-    encryptedSecretsReference = await secretsManager.encryptSecretsUrls([gistUrl])
+    gistUrl = await createGist(process.env["GITHUB_API_TOKEN"], JSON.stringify(encryptedSecrets));
+    encryptedSecretsReference = await secretsManager.encryptSecretsUrls([gistUrl]);
 
-    const secrets = encryptedSecretsReference
+    const secrets = encryptedSecretsReference;
 
-    const router = functionsRouterAddress
+    const router = functionsRouterAddress;
 
     const ResultsConsumerFactory = await ethers.getContractFactory("ResultsConsumer");
 

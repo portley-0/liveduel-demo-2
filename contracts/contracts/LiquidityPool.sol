@@ -17,7 +17,7 @@ contract LiquidityPool is Ownable {
     uint256 public totalStaked;
     uint256 public stakingRewardsPool;
 
-    uint256 public constant MIN_REWARDS_THRESHOLD = 1000; // Minimum rewards threshold for claiming
+    uint256 public constant MIN_REWARDS_THRESHOLD = 100; // Minimum rewards threshold for claiming
 
     mapping(address => uint256) public stakedBalances;
     mapping(address => uint256) public rewardsClaimed;
@@ -69,7 +69,7 @@ contract LiquidityPool is Ownable {
     function stake(uint256 _amount) external {
         require(_amount > 0, "Stake amount must be greater than zero");
 
-        duelToken.safeTransferFrom(msg.sender, address(this), _amount);
+        duelToken.transferFrom(msg.sender, address(this), _amount);
         stakedBalances[msg.sender] += _amount;
         totalStaked += _amount;
     }
@@ -80,7 +80,7 @@ contract LiquidityPool is Ownable {
         stakedBalances[msg.sender] -= _amount;
         totalStaked -= _amount;
 
-        duelToken.safeTransfer(msg.sender, _amount);
+        duelToken.transfer(msg.sender, _amount);
     }
 
     function claimRewards() external {

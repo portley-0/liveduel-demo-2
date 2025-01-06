@@ -11,6 +11,7 @@
       "@/*": ["app/*"]
     }
   },
+    "typeRoots": ["node_modules/@types"],
   "include": [
     "contracts/**/*",
     "scripts/**/*",

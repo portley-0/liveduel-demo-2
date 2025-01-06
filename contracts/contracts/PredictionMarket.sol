@@ -93,7 +93,7 @@ contract PredictionMarket is Ownable {
             liquidityPool.withdrawLiquidity(shortfall);
 
             // Approve and use the `changeFunding` method to add funds to the market maker
-            usdc.safeApprove(address(marketMaker), shortfall);
+            usdc.approve(address(marketMaker), shortfall);
             marketMaker.changeFunding(int(shortfall));
 
             // Resume the market maker
@@ -104,7 +104,7 @@ contract PredictionMarket is Ownable {
         usdc.safeTransferFrom(msg.sender, address(this), totalCost);
 
         // Approve the MarketMaker to spend the funds
-        usdc.safeApprove(address(marketMaker), uint256(netCost));
+        usdc.approve(address(marketMaker), uint256(netCost));
 
         // Execute the trade
         marketMaker.trade(tradeAmounts, int(netCost));
@@ -176,7 +176,7 @@ contract PredictionMarket is Ownable {
         if (excessCollateral > 0) {
 
             usdc.safeTransferFrom(address(marketMaker), address(this), excessCollateral);
-            usdc.safeApprove(address(liquidityPool), excessCollateral);
+            usdc.approve(address(liquidityPool), excessCollateral);
             liquidityPool.returnLiquidity(excessCollateral);
         }
 

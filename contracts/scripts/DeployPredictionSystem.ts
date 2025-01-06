@@ -4,14 +4,14 @@ async function main() {
     const [deployer] = await ethers.getSigners();
 
     // Hardcoded Gnosis contract addresses
-    const CONDITIONAL_TOKENS_ADDRESS = "0xYourConditionalTokensAddress";
-    const LMSR_MARKET_MAKER_FACTORY_ADDRESS = "0xYourLMSRMarketMakerFactoryAddress";
+    const CONDITIONAL_TOKENS_ADDRESS = "0xD6824aaeaf8a42EacdE96D931c5712519fD06103";
+    const LMSR_MARKET_MAKER_FACTORY_ADDRESS = "0x3143a32AD5d927217EB493A17A4B99C5Bd5C4A54";
 
     // Hardcoded Whitelist address
-    const WHITELIST_ADDRESS = "0xYourWhitelistContractAddress";
+    const WHITELIST_ADDRESS = "0x74290391d8035b1F0b99E4C9B7F22dD490703600";
     
     // Hardcoded ResultsConsumer address 
-    const RESULTS_CONSUMER_ADDRESS = "0xYourResultsConsumerAddressHere";
+    const RESULTS_CONSUMER_ADDRESS = "0x798DB79459CD33fF7B09a8e7D0B5EA85b89bEdD1";
 
     console.log("Deploying contracts with deployer address:", deployer.address);
 

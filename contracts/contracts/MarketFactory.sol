@@ -36,7 +36,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     IConditionalTokens public conditionalTokens;
     ILMSRMarketMakerFactory public lmsrFactory;
 
-    uint256 public constant MATCH_DURATION = 120 * 60; // Soccer match duration in seconds (120 minutes)
+    uint256 public constant MATCH_DURATION = 120 * 60; // (120 minutes)
 
     event PredictionMarketDeployed(uint256 matchId, address marketAddress, uint256 matchTimestamp);
     event PredictionMarketResolved(uint256 matchId, uint8 outcome);
