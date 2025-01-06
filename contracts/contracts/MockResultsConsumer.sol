@@ -10,7 +10,7 @@ contract MockResultsConsumer {
 
     function requestMatchResult(uint256 matchId) external returns (bytes32) {
         // Simulate the behavior of _sendRequest by creating a unique requestId
-        bytes32 requestId = keccak256(abi.encodePacked(matchId, block.timestamp, block.prevrandao));
+        bytes32 requestId = keccak256(abi.encodePacked(matchId, block.timestamp, block.difficulty));
         pendingRequests[requestId] = matchId;
         emit RequestedResult(matchId, requestId);
         return requestId;

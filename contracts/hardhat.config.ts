@@ -16,6 +16,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 1000, 
           },
+          evmVersion: "istanbul",
         },
       },
       {
@@ -38,6 +39,8 @@ const config: HardhatUserConfig = {
     avalancheFuji: {
       url: "https://api.avax-test.network/ext/bc/C/rpc",
       accounts: [process.env.PRIVATE_KEY ?? ""],
+      gas: 10000000, // Custom gas limit
+      gasPrice: 25000000000, // 25 gwei
     },
   },
   paths: {

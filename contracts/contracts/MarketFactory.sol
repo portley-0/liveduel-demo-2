@@ -38,6 +38,8 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
 
     uint256 public constant MATCH_DURATION = 120 * 60; // (120 minutes)
 
+    bool private initialized;
+
     event PredictionMarketDeployed(uint256 matchId, address marketAddress, uint256 matchTimestamp);
     event PredictionMarketResolved(uint256 matchId, uint8 outcome);
 
@@ -63,11 +65,18 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         conditionalTokens = IConditionalTokens(_conditionalTokensWrapper);
         lmsrFactory = ILMSRMarketMakerFactory(_lmsrFactoryWrapper);
 
+    }
+
+    function initialize() external onlyOwner {
+        require(!initialized, "Already initialized");
+        initialized = true;
+
         // Authorize the MarketFactory in the LiquidityPool
         liquidityPool.authorizeMarket(address(this));
 
         address[] memory whitelistArray = new address[](1);
-        whitelistArray[0] = address(this);
+        whitelistArray[0] = address(this); 
+        
         // Authorize the MarketFactory in the Whitelist
         whitelist.addToWhitelist(whitelistArray);
     }
