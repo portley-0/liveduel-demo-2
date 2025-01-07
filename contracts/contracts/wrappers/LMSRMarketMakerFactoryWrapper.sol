@@ -14,7 +14,7 @@ contract LMSRMarketMakerFactoryWrapper {
     function createLMSRMarketMaker(
         address conditionalTokens,
         address collateralToken,
-        bytes32[] calldata conditionIds,
+        bytes32[] memory conditionIds,
         uint fee,
         address whitelist,
         uint initialFunding

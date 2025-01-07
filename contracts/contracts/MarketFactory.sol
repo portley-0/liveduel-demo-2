@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "./interfaces/ILiquidityPool.sol";
+import "./interfaces/ILMSRMarketMaker.sol";
 import "./PredictionMarket.sol";
 import "./interfaces/IResultsConsumer.sol";
 import "./interfaces/IConditionalTokens.sol";
@@ -150,6 +151,9 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         address[] memory whitelistArray = new address[](1);
         whitelistArray[0] = address(predictionMarket);
         whitelist.addToWhitelist(whitelistArray);
+
+        // Transfer ownership of the LMSRMarketMaker to the PredictionMarket
+        ILMSRMarketMaker(marketMaker).transferOwnership(address(predictionMarket));
 
         // Authorize the PredictionMarket in the LiquidityPool
         liquidityPool.authorizeMarket(address(predictionMarket));

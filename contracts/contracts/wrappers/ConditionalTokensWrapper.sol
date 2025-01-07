@@ -32,7 +32,7 @@ contract ConditionalTokensWrapper {
     // Wrapper for reportPayouts
     function reportPayouts(
         bytes32 questionId,
-        uint256[] calldata payouts
+        uint256[] memory payouts
     ) external {
         conditionalTokens.reportPayouts(questionId, payouts);
     }
@@ -42,7 +42,7 @@ contract ConditionalTokensWrapper {
         IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint256[] calldata indexSets
+        uint256[] memory indexSets
     ) external {
         conditionalTokens.redeemPositions(collateralToken, parentCollectionId, conditionId, indexSets);
     }
@@ -52,7 +52,7 @@ contract ConditionalTokensWrapper {
         IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint256[] calldata partition,
+        uint256[] memory partition,
         uint256 amount
     ) external {
         conditionalTokens.splitPosition(collateralToken, parentCollectionId, conditionId, partition, amount);
@@ -63,7 +63,7 @@ contract ConditionalTokensWrapper {
         IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint256[] calldata partition,
+        uint256[] memory partition,
         uint256 amount
     ) external {
         conditionalTokens.mergePositions(collateralToken, parentCollectionId, conditionId, partition, amount);
@@ -103,8 +103,8 @@ contract ConditionalTokensWrapper {
 
     // ERC-1155 helper: balanceOfBatch
     function balanceOfBatch(
-        address[] calldata accounts,
-        uint256[] calldata ids
+        address[] memory accounts,
+        uint256[] memory ids
     ) external view returns (uint256[] memory) {
         return conditionalTokens.balanceOfBatch(accounts, ids);
     }
@@ -115,7 +115,7 @@ contract ConditionalTokensWrapper {
         address to,
         uint256 id,
         uint256 amount,
-        bytes calldata data
+        bytes memory data
     ) external {
         conditionalTokens.safeTransferFrom(from, to, id, amount, data);
     }
@@ -124,9 +124,9 @@ contract ConditionalTokensWrapper {
     function safeBatchTransferFrom(
         address from,
         address to,
-        uint256[] calldata ids,
-        uint256[] calldata amounts,
-        bytes calldata data
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
     ) external {
         conditionalTokens.safeBatchTransferFrom(from, to, ids, amounts, data);
     }

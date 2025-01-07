@@ -22,6 +22,7 @@
     "ethers": "^5.7.2",
     "hardhat": "^2.22.17",
     "hardhat-contract-sizer": "^2.10.0",
+    "hardhat-gas-reporter": "^2.2.2",
     "openzeppelin-solidity": "2.3.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
@@ -35,5 +36,4 @@
   "peerDependencies": {
     "chai": "^4.3.7"
   }
-
 }

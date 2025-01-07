@@ -14,7 +14,7 @@ interface IConditionalTokens {
     /// @dev Reports the payouts for a condition by the oracle.
     function reportPayouts(
         bytes32 questionId,
-        uint256[] calldata payouts
+        uint256[] memory payouts
     ) external;
 
     /// @dev Splits positions based on the specified condition and partition.
@@ -22,7 +22,7 @@ interface IConditionalTokens {
         IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint256[] calldata partition,
+        uint256[] memory partition,
         uint256 amount
     ) external;
 
@@ -31,7 +31,7 @@ interface IConditionalTokens {
         IERC20 collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint256[] calldata partition,
+        uint256[] memory partition,
         uint256 amount
     ) external;
 
@@ -40,7 +40,7 @@ interface IConditionalTokens {
         IERC20 collateralToken, 
         bytes32 parentCollectionId,
         bytes32 conditionId,
-        uint256[] calldata indexSets
+        uint256[] memory indexSets
     ) external;
 
     /// @dev Gets the balance of an ERC-1155 token for a given account and token ID.
@@ -48,8 +48,8 @@ interface IConditionalTokens {
 
     /// @dev Gets the balances of multiple ERC-1155 tokens for multiple accounts.
     function balanceOfBatch(
-        address[] calldata accounts,
-        uint256[] calldata ids
+        address[] memory accounts,
+        uint256[] memory ids
     ) external view returns (uint256[] memory);
 
     /// @dev Transfers an ERC-1155 token from one account to another.
@@ -58,16 +58,16 @@ interface IConditionalTokens {
         address to,
         uint256 id,
         uint256 amount,
-        bytes calldata data
+        bytes memory data
     ) external;
 
     /// @dev Transfers multiple ERC-1155 tokens from one account to another.
     function safeBatchTransferFrom(
         address from,
         address to,
-        uint256[] calldata ids,
-        uint256[] calldata amounts,
-        bytes calldata data
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
     ) external;
 
     /// @dev Approves or revokes approval for an operator to manage all of the caller's ERC-1155 tokens.

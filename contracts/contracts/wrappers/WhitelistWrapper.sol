@@ -16,11 +16,11 @@ contract WhitelistWrapper is Ownable {
         return whitelist.isWhitelisted(user);
     }
 
-    function addToWhitelist(address[] calldata users) external onlyOwner {
+    function addToWhitelist(address[] memory users) external onlyOwner {
         whitelist.addToWhitelist(users);
     }
 
-    function removeFromWhitelist(address[] calldata users) external onlyOwner {
+    function removeFromWhitelist(address[] memory users) external onlyOwner {
         whitelist.removeFromWhitelist(users);
     }
 }

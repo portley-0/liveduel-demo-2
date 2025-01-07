@@ -5,6 +5,7 @@ require("@chainlink/env-enc").config();
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomiclabs/hardhat-ethers";
 import "@typechain/hardhat";
+require("hardhat-gas-reporter");
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -39,7 +40,7 @@ const config: HardhatUserConfig = {
     avalancheFuji: {
       url: "https://api.avax-test.network/ext/bc/C/rpc",
       accounts: [process.env.PRIVATE_KEY ?? ""],
-      gas: 10000000, // Custom gas limit
+      gas: 13000000, // Custom gas limit
       gasPrice: 25000000000, // 25 gwei
     },
   },
