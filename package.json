@@ -1,0 +1,11 @@
+{
+    "name": "liveduel-demo-2",
+    "private": true,
+    "workspaces": ["contracts"],
+    "pnpm": {
+      "overrides": {
+        "chai": "4.3.7"
+      }
+    }
+  }
+  
