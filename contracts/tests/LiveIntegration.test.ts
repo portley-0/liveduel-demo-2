@@ -59,7 +59,7 @@ describe("Live Integration Tests", function () {
         await usdc.connect(bettor2).approve(predictionMarketAddress, betAmount);
         const betTx2 = await predictionMarket.connect(bettor2).buyShares(outcome, betAmount.toString());
         await betTx2.wait();
-
+ 
         // Monitor events
         const receipt = await ethers.provider.getTransactionReceipt(betTx1.hash);
         const event = receipt.logs.find((log) => log.topics.includes(ethers.utils.id("SharesPurchased(address,uint8,uint256,uint256)")));
