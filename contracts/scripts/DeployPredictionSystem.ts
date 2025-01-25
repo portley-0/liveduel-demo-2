@@ -1,6 +1,8 @@
 import { ethers } from "hardhat";
 import * as fs from "fs";
 import * as path from "path";
+import dotenv from "dotenv";
+dotenv.config();
 
 async function main() {
     const [deployer] = await ethers.getSigners();
@@ -9,10 +11,10 @@ async function main() {
     console.log("Deploying contracts with deployer address:", deployer.address);
     console.log("=====================================================================================\n");
 
-    const CONDITIONAL_TOKENS_ADDRESS = "0xD6824aaeaf8a42EacdE96D931c5712519fD06103";
-    const LMSR_MARKET_MAKER_FACTORY_ADDRESS = "0x3143a32AD5d927217EB493A17A4B99C5Bd5C4A54";
-    const WHITELIST_ADDRESS = "0x503B6Bf0a1e34723AB39d9cD08bA453713a2510d";
-    const RESULTS_CONSUMER_ADDRESS = "0x798DB79459CD33fF7B09a8e7D0B5EA85b89bEdD1";
+    const CONDITIONAL_TOKENS_ADDRESS = process.env.CONDITIONAL_TOKENS_ADDRESS || "";
+    const LMSR_MARKET_MAKER_FACTORY_ADDRESS = process.env.LMSR_MARKET_MAKER_FACTORY_ADDRESS || "";
+    const WHITELIST_ADDRESS = process.env.WHITELIST_ADDRESS || "";
+    const RESULTS_CONSUMER_ADDRESS = process.env.RESULTS_CONSUMER_ADDRESS || "";
 
     try {
         // Load Whitelist artifact

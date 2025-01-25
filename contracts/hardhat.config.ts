@@ -1,9 +1,8 @@
 import "hardhat-contract-sizer";
 import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
 require("@chainlink/env-enc").config();
-import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-etherscan";
 import "@typechain/hardhat";
 require("hardhat-gas-reporter");
 
