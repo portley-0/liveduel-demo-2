@@ -67,6 +67,14 @@ describe("SanityCheck", function () {
   });
 
   // ----------------------------------------------
+  // Initialization Check
+  // ----------------------------------------------
+  it("should confirm MarketFactory is initialized", async function () {
+    const initialized = await marketFactory.initialized();
+    expect(initialized).to.be.true;
+  });
+
+  // ----------------------------------------------
   // Basic Setup & Ownership Checks
   // ----------------------------------------------
   it("should confirm MarketFactory references the correct external addresses", async function () {

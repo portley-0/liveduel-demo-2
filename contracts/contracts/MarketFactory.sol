@@ -39,7 +39,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
 
     uint256 public constant MATCH_DURATION = 120 * 60; // (120 minutes)
 
-    bool private initialized;
+    bool public initialized;
 
     event PredictionMarketDeployed(uint256 matchId, address marketAddress, uint256 matchTimestamp);
     event PredictionMarketResolved(uint256 matchId, uint8 outcome);
@@ -87,7 +87,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         require(amount > 0, "Amount must be greater than zero");
 
         // Transfer USDC from the sender to the MarketFactory contract
-        usdc.safeTransferFrom(msg.sender, address(this), amount);
+        usdc.transferFrom(msg.sender, address(this), amount);
 
         // Increment the platform profit pool
         platformProfitPool += amount;
@@ -101,7 +101,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         platformProfitPool -= amount;
 
         // Transfer the amount to the owner
-        usdc.safeTransfer(msg.sender, amount);
+        usdc.transfer(msg.sender, amount);
     }
 
     function deployPredictionMarket(uint256 matchId, uint256 matchTimestamp) external onlyOwner {

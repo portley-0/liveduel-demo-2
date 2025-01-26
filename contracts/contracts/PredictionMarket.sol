@@ -7,10 +7,8 @@ import "./interfaces/ILiquidityPool.sol";
 import "./MarketFactory.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract PredictionMarket is Ownable {
-    using SafeERC20 for IERC20;
 
     uint256 public matchId;
     ILiquidityPool public liquidityPool;
@@ -101,7 +99,7 @@ contract PredictionMarket is Ownable {
         }
 
         // Transfer 104% of the cost from the buyer to the contract
-        usdc.safeTransferFrom(msg.sender, address(this), totalCost);
+        usdc.transferFrom(msg.sender, address(this), totalCost);
 
         // Approve the MarketMaker to spend the funds
         usdc.approve(address(marketMaker), uint256(netCost));
@@ -175,7 +173,7 @@ contract PredictionMarket is Ownable {
         // Withdraw and return excess collateral to the LiquidityPool
         if (excessCollateral > 0) {
 
-            usdc.safeTransferFrom(address(marketMaker), address(this), excessCollateral);
+            usdc.transferFrom(address(marketMaker), address(this), excessCollateral);
             usdc.approve(address(liquidityPool), excessCollateral);
             liquidityPool.returnLiquidity(excessCollateral);
         }
