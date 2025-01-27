@@ -6,6 +6,7 @@
     "test:chainlink": "pnpm hardhat run scripts/TestChainlinkRequest.ts --network avalancheFuji",
     "test:sanity": "npx hardhat test --network avalancheFuji tests/sanitycheck.test.ts",
     "test:staking": "npx hardhat test --network avalancheFuji tests/staking.test.ts",
+    "test:factory": "npx hardhat test --network avalancheFuji tests/marketdeployment.test.ts",
     "test": "pnpm hardhat test",
     "compile": "pnpm hardhat compile",
     "clean": "pnpm hardhat clean"

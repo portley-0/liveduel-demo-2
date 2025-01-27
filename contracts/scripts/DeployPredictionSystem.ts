@@ -57,7 +57,7 @@ async function main() {
         // Deploy LMSRMarketMakerFactoryWrapper
         console.log("\nDeploying LMSRMarketMakerFactoryWrapper...");
         const LMSRMarketMakerFactoryWrapper = await ethers.getContractFactory("LMSRMarketMakerFactoryWrapper");
-        const lmsrMarketMakerFactoryWrapper = await LMSRMarketMakerFactoryWrapper.deploy(LMSR_MARKET_MAKER_FACTORY_ADDRESS);
+        const lmsrMarketMakerFactoryWrapper = await LMSRMarketMakerFactoryWrapper.deploy(LMSR_MARKET_MAKER_FACTORY_ADDRESS, mockUSDC.address);
         await lmsrMarketMakerFactoryWrapper.deployed();
         console.log("LMSRMarketMakerFactoryWrapper deployed to:", lmsrMarketMakerFactoryWrapper.address);
 
@@ -109,7 +109,7 @@ async function main() {
 
         // Add initial liquidity
         console.log("\nAdding initial liquidity...");
-        const initialUSDC = ethers.utils.parseUnits("10000", 18);
+        const initialUSDC = ethers.utils.parseUnits("10000", 6);
         const initialDUEL = ethers.utils.parseUnits("100000", 18);
 
         console.log("Minting MockUSDC...");

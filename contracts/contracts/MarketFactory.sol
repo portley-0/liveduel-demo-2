@@ -11,21 +11,18 @@ import "./interfaces/IWhitelist.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
 
 contract MarketFactory is Ownable, AutomationCompatibleInterface {
-    using SafeERC20 for IERC20;
-
+    
     mapping(uint256 => address) public predictionMarkets; // Match ID to PredictionMarket address
     mapping(uint256 => address) public lmsrMarketMakers; // Match ID to LMSR Market Maker address
     mapping(uint256 => bytes32) public matchConditionIds; // Match ID to Condition ID
-    mapping(uint256 => uint256) public matchTimestamps; // Match ID to match timestamp
+    mapping(uint256 => uint256) public matchTimestamps;   // Match ID to match timestamp
     mapping(uint256 => uint256) public matchRequestTimestamps; // Match ID to timestamp when result was requested
-    mapping(uint256 => uint256) public deploymentTimestamps; // Match ID to deployment timestamp
-    
-    uint256[] public allMatchIds; // Track all match IDs
+    mapping(uint256 => uint256) public deploymentTimestamps;   // Match ID to deployment timestamp
 
+    uint256[] public allMatchIds; // Track all match IDs
     uint256[] public activeMatches; // List of active match IDs
 
     uint256 public platformProfitPool; // Platform profit pool
@@ -35,10 +32,9 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     IResultsConsumer public resultsConsumer;
     IERC20 public usdc;
     IConditionalTokens public conditionalTokens;
-    ILMSRMarketMakerFactory public lmsrFactory;
+    ILMSRMarketMakerFactory public lmsrFactoryWrapper;
 
     uint256 public constant MATCH_DURATION = 120 * 60; // (120 minutes)
-
     bool public initialized;
 
     event PredictionMarketDeployed(uint256 matchId, address marketAddress, uint256 matchTimestamp);
@@ -64,8 +60,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         resultsConsumer = IResultsConsumer(_resultsConsumer);
         usdc = IERC20(_usdc);
         conditionalTokens = IConditionalTokens(_conditionalTokensWrapper);
-        lmsrFactory = ILMSRMarketMakerFactory(_lmsrFactoryWrapper);
-
+        lmsrFactoryWrapper = ILMSRMarketMakerFactory(_lmsrFactoryWrapper);
     }
 
     function initialize() external onlyOwner {
@@ -76,8 +71,8 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         liquidityPool.authorizeMarket(address(this));
 
         address[] memory whitelistArray = new address[](1);
-        whitelistArray[0] = address(this); 
-        
+        whitelistArray[0] = address(this);
+
         // Authorize the MarketFactory in the Whitelist
         whitelist.addToWhitelist(whitelistArray);
     }
@@ -85,77 +80,63 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     // Add to platform profit pool
     function addToPlatformProfit(uint256 amount) external {
         require(amount > 0, "Amount must be greater than zero");
-
-        // Transfer USDC from the sender to the MarketFactory contract
         usdc.transferFrom(msg.sender, address(this), amount);
-
-        // Increment the platform profit pool
         platformProfitPool += amount;
     }
 
     // Function to retrieve platform profits (onlyOwner)
     function withdrawPlatformProfit(uint256 amount) external onlyOwner {
         require(amount <= platformProfitPool, "Amount exceeds platform profit pool");
-
-        // Decrement the platform profit pool
         platformProfitPool -= amount;
-
-        // Transfer the amount to the owner
         usdc.transfer(msg.sender, amount);
     }
 
     function deployPredictionMarket(uint256 matchId, uint256 matchTimestamp) external onlyOwner {
         require(predictionMarkets[matchId] == address(0), "Market already exists");
+
         require(matchTimestamp > block.timestamp, "Invalid timestamp");
 
-        // Withdraw initial funding from the liquidity pool
         uint256 initialFunding = 5000 * 10**6; // 5000 USDC
         liquidityPool.withdrawLiquidity(initialFunding);
 
-        // Prepare a Gnosis condition via the wrapper
-        bytes32 questionId = keccak256(abi.encodePacked("Match Result: ", matchId));
-        conditionalTokens.prepareCondition(address(this), questionId, 3); 
-        bytes32 conditionId = conditionalTokens.getConditionId(address(this), questionId, 3);
+        usdc.approve(address(lmsrFactoryWrapper), initialFunding);
 
-        // Store conditionId
+        bytes32 questionId = keccak256(abi.encodePacked("Match Result: ", matchId));
+        conditionalTokens.prepareCondition(address(this), questionId, 3);
+
+        bytes32 conditionId = conditionalTokens.getConditionId(address(this), questionId, 3);
         matchConditionIds[matchId] = conditionId;
 
         bytes32[] memory conditionIds = new bytes32[](1);
         conditionIds[0] = conditionId;
 
-        // Create LMSR Market Maker using the wrapper
-        address marketMaker = lmsrFactory.createLMSRMarketMaker(
+        address marketMaker = lmsrFactoryWrapper.createLMSRMarketMaker(
             address(conditionalTokens),
             address(usdc),
             conditionIds,
             0,                  // no fee
             address(whitelist), // whitelist
-            initialFunding // Initial funding 
+            initialFunding      // initialFunding
         );
 
-        // Save the LMSR Market Maker address
         lmsrMarketMakers[matchId] = marketMaker;
 
-        // Deploy the PredictionMarket contract
         PredictionMarket predictionMarket = new PredictionMarket(
             matchId,
             address(liquidityPool),
             conditionId,
-            questionId, 
+            questionId,
             address(usdc),
             address(conditionalTokens),
             marketMaker
         );
 
-        // Authorize the PredictionMarket on the whitelist
         address[] memory whitelistArray = new address[](1);
         whitelistArray[0] = address(predictionMarket);
         whitelist.addToWhitelist(whitelistArray);
 
-        // Transfer ownership of the LMSRMarketMaker to the PredictionMarket
         ILMSRMarketMaker(marketMaker).transferOwnership(address(predictionMarket));
 
-        // Authorize the PredictionMarket in the LiquidityPool
         liquidityPool.authorizeMarket(address(predictionMarket));
 
         predictionMarkets[matchId] = address(predictionMarket);
