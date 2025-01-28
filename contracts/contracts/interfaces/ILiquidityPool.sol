@@ -7,7 +7,7 @@ interface ILiquidityPool {
     event FundsWithdrawn(address indexed market, uint256 amount);
     event FundsReturned(address indexed market, uint256 amount);
     event DuelPurchased(address indexed account, uint256 amount);
-    event RewardsPoolUpdated(uint256 newAmount); // Added event for rewards pool updates
+    event RewardsPoolUpdated(uint256 newAmount); 
 
     function usdc() external view returns (address);
     function duelToken() external view returns (address);

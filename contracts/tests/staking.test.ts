@@ -145,7 +145,7 @@ describe("Staking and DUEL Flows ", function () {
 
     const usdcAfterClaim = await mockUsdc.balanceOf(deployer.address);
     const claimed = usdcAfterClaim.sub(usdcBeforeClaim);
-    console.log(`Deployer claimed: ${ethers.utils.formatUnits(claimed, 18)} USDC`);
+    console.log(`Deployer claimed: ${ethers.utils.formatUnits(claimed, 6)} USDC`);
     expect(claimed).to.be.gt(0);
 
     /********************************************************************

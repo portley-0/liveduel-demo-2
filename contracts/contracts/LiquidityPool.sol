@@ -189,15 +189,17 @@ contract LiquidityPool is Ownable {
         authorizedMarkets[_market] = false;
     }
 
-    function withdrawLiquidity(uint256 _amount18) external {
+    function withdrawLiquidity(uint256 _amount6) external {
         require(authorizedMarkets[msg.sender], "Not authorized");
-        require(usdcReserve >= _amount18, "Insufficient reserve");
 
-        uint256 amount6 = _from18to6(_amount18);
-        usdc.transfer(msg.sender, amount6);
-        usdcReserve -= _amount18;
+        uint256 amount18 = _from6to18(_amount6);
 
-        emit FundsWithdrawn(msg.sender, _amount18);
+        require(usdcReserve >= amount18, "Insufficient reserve");
+
+        usdc.transfer(msg.sender, _amount6);
+        usdcReserve -= amount18;
+
+        emit FundsWithdrawn(msg.sender, amount18);
     }
 
     function returnLiquidity(uint256 _amount6) external {

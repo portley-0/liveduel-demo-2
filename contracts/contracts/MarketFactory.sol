@@ -111,12 +111,12 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         conditionIds[0] = conditionId;
 
         address marketMaker = lmsrFactoryWrapper.createLMSRMarketMaker(
-            address(conditionalTokens),
-            address(usdc),
+            conditionalTokens,
+            usdc,
             conditionIds,
-            0,                  // no fee
-            address(whitelist), // whitelist
-            initialFunding      // initialFunding
+            uint64(0),               
+            whitelist,
+            initialFunding
         );
 
         lmsrMarketMakers[matchId] = marketMaker;

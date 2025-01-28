@@ -82,9 +82,9 @@ describe("SanityCheck", function () {
     const actualPool = (await marketFactory.liquidityPool()).toLowerCase();
     const actualWhitelist = (await marketFactory.whitelist()).toLowerCase();
     const actualResultsConsumer = (await marketFactory.resultsConsumer()).toLowerCase();
-    const actualUsdc = (await marketFactory.usdc()).toLowerCase();
+    const actualUsdc = (await marketFactory.usdc()).toLowerCase(); 
     const actualConditional = (await marketFactory.conditionalTokens()).toLowerCase();
-    const actualLmsr = (await marketFactory.lmsrFactory()).toLowerCase();
+    const actualLmsr = (await marketFactory.lmsrFactoryWrapper()).toLowerCase();
 
     expect(actualPool).to.equal(LIQUIDITY_POOL_ADDRESS.toLowerCase());
     expect(actualWhitelist).to.equal(WHITELIST_WRAPPER_ADDRESS.toLowerCase());

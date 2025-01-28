@@ -2,6 +2,8 @@
 pragma solidity ^0.8.20;
 
 import "../interfaces/ILMSRMarketMakerFactory.sol";
+import "../interfaces/IConditionalTokens.sol";
+import "../interfaces/IWhitelist.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract LMSRMarketMakerFactoryWrapper {
@@ -16,25 +18,26 @@ contract LMSRMarketMakerFactoryWrapper {
     }
 
     function createLMSRMarketMaker(
-        address conditionalTokens,
-        address collateralToken,
-        bytes32[] memory conditionIds,
-        uint fee,
-        address whitelist,
-        uint initialFunding
+        address conditionalTokensAddr,   
+        address collateralTokenAddr,     
+        bytes32[] memory conditionIds,  
+        uint fee,                        
+        address whitelistAddr,           
+        uint initialFunding             
     ) external returns (address) {
-        require(collateralToken == address(usdc), "Collateral mismatch");
+        require(collateralTokenAddr == address(usdc), "Collateral mismatch");
+
         bool success = usdc.transferFrom(msg.sender, address(this), initialFunding);
         require(success, "USDC transfer failed");
 
         usdc.approve(address(lmsrFactory), initialFunding);
 
         return lmsrFactory.createLMSRMarketMaker(
-            conditionalTokens,
-            collateralToken,
+            IConditionalTokens(conditionalTokensAddr),
+            IERC20(collateralTokenAddr),
             conditionIds,
-            fee,
-            whitelist,
+            uint64(fee),
+            IWhitelist(whitelistAddr),
             initialFunding
         );
     }
