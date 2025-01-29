@@ -34,5 +34,5 @@ interface ILiquidityPool {
     function getSwapAmount(uint256 _inputAmount, uint256 _inputReserve, uint256 _outputReserve) 
         external pure returns (uint256);
 
-    function getReserves() external view returns (uint256, uint256); // Added function to view reserves
+    function getReserves() external view returns (uint256, uint256); 
 }

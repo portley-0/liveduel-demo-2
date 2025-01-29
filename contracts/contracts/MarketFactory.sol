@@ -6,7 +6,7 @@ import "./interfaces/ILMSRMarketMaker.sol";
 import "./PredictionMarket.sol";
 import "./interfaces/IResultsConsumer.sol";
 import "./interfaces/IConditionalTokens.sol";
-import "./interfaces/ILMSRMarketMakerFactory.sol";
+import "./interfaces/ILMSRMarketMakerFactoryWrapper.sol";
 import "./interfaces/IWhitelist.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -31,8 +31,8 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     IWhitelist public whitelist;
     IResultsConsumer public resultsConsumer;
     IERC20 public usdc;
-    IConditionalTokens public conditionalTokens;
-    ILMSRMarketMakerFactory public lmsrFactoryWrapper;
+    IConditionalTokens public conditionalTokens; 
+    ILMSRMarketMakerFactoryWrapper public lmsrFactoryWrapper;
 
     uint256 public constant MATCH_DURATION = 120 * 60; // (120 minutes)
     bool public initialized;
@@ -60,7 +60,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         resultsConsumer = IResultsConsumer(_resultsConsumer);
         usdc = IERC20(_usdc);
         conditionalTokens = IConditionalTokens(_conditionalTokensWrapper);
-        lmsrFactoryWrapper = ILMSRMarketMakerFactory(_lmsrFactoryWrapper);
+        lmsrFactoryWrapper = ILMSRMarketMakerFactoryWrapper(_lmsrFactoryWrapper);
     }
 
     function initialize() external onlyOwner {
@@ -111,12 +111,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         conditionIds[0] = conditionId;
 
         address marketMaker = lmsrFactoryWrapper.createLMSRMarketMaker(
-            conditionalTokens,
-            usdc,
-            conditionIds,
-            uint64(0),               
-            whitelist,
-            initialFunding
+            conditionIds
         );
 
         lmsrMarketMakers[matchId] = marketMaker;
@@ -128,7 +123,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
             questionId,
             address(usdc),
             address(conditionalTokens),
-            marketMaker
+            marketMaker 
         );
 
         address[] memory whitelistArray = new address[](1);

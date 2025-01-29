@@ -40,7 +40,7 @@ const config: HardhatUserConfig = {
       url: "https://api.avax-test.network/ext/bc/C/rpc",
       accounts: [process.env.PRIVATE_KEY ?? ""],
       gas: 13000000, // Custom gas limit
-      gasPrice: 25000000000, // 25 gwei
+      gasPrice: 30000000000, // 25 gwei
     },
   },
   paths: {

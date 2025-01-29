@@ -57,7 +57,7 @@ async function main() {
         // Deploy LMSRMarketMakerFactoryWrapper
         console.log("\nDeploying LMSRMarketMakerFactoryWrapper...");
         const LMSRMarketMakerFactoryWrapper = await ethers.getContractFactory("LMSRMarketMakerFactoryWrapper");
-        const lmsrMarketMakerFactoryWrapper = await LMSRMarketMakerFactoryWrapper.deploy(LMSR_MARKET_MAKER_FACTORY_ADDRESS, mockUSDC.address);
+        const lmsrMarketMakerFactoryWrapper = await LMSRMarketMakerFactoryWrapper.deploy(LMSR_MARKET_MAKER_FACTORY_ADDRESS, mockUSDC.address, CONDITIONAL_TOKENS_ADDRESS, WHITELIST_ADDRESS, 0, ethers.utils.parseUnits("5000", 6));
         await lmsrMarketMakerFactoryWrapper.deployed();
         console.log("LMSRMarketMakerFactoryWrapper deployed to:", lmsrMarketMakerFactoryWrapper.address);
 

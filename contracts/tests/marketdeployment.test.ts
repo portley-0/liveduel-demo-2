@@ -21,8 +21,8 @@ describe("MarketFactory - deployPredictionMarket ", function () {
   let oldUsdcReserve: BigNumber;
 
   // The match ID and future timestamp
-  const MATCH_ID = 1339797; 
-  const MATCH_TIMESTAMP = 1738029600; 
+  const MATCH_ID = 1323511; 
+  const MATCH_TIMESTAMP = 1738119900; 
 
   let owner: any;
 
@@ -44,7 +44,7 @@ describe("MarketFactory - deployPredictionMarket ", function () {
       "function authorizedMarkets(address) external view returns (bool)",
     ];
     const WhitelistAbi = [
-      "function isWhitelisted(address) external view returns (bool)",
+      "function isUserWhitelisted(address) external view returns (bool)",
     ];
 
     marketFactory = new ethers.Contract(MARKET_FACTORY_ADDRESS, MarketFactoryAbi, owner);
@@ -61,7 +61,7 @@ describe("MarketFactory - deployPredictionMarket ", function () {
     let tx, receipt;
     try {
       // Attempt the transaction
-      tx = await marketFactory.deployPredictionMarket(MATCH_ID, MATCH_TIMESTAMP);
+      tx = await marketFactory.connect(owner).deployPredictionMarket(MATCH_ID, MATCH_TIMESTAMP);
       receipt = await tx.wait();
       console.log("Transaction confirmed in block:", receipt.blockNumber);
     } catch (error) {
@@ -99,8 +99,8 @@ describe("MarketFactory - deployPredictionMarket ", function () {
     // ============= VERIFY LIQUIDITY WITHDRAWAL =============
     const newUsdcReserve = await liquidityPool.usdcReserve();
     console.log("New LiquidityPool USDC reserve:", newUsdcReserve.toString());
-    // Expect difference ~ 5000 USDC (5000 * 10^6)
-    const expectedWithdraw = ethers.BigNumber.from("5000000000"); // 5000 * 10^6
+    // Expect difference ~ 5000 USDC (5000 * 10^18)
+    const expectedWithdraw = ethers.BigNumber.from("5000000000000000000000"); 
     const actualWithdraw = oldUsdcReserve.sub(newUsdcReserve);
 
     expect(actualWithdraw).to.equal(
@@ -109,7 +109,7 @@ describe("MarketFactory - deployPredictionMarket ", function () {
     );
 
     // ============= WHITELIST + LIQUIDITYPOOL AUTH =============
-    const isWhitelisted = await whitelist.isWhitelisted(marketAddress);
+    const isWhitelisted = await whitelist.isUserWhitelisted(marketAddress);
     expect(isWhitelisted).to.be.true;
 
     const isAuthorizedInPool = await liquidityPool.authorizedMarkets(marketAddress);
