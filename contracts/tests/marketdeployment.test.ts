@@ -6,10 +6,12 @@ import { Contract, BigNumber } from "ethers";
 import { solidity } from "ethereum-waffle";
 chai.use(solidity);
 import * as dotenv from "dotenv";
+import * as fs from "fs";
+import * as path from "path";
 
 dotenv.config();
 
-describe("MarketFactory - deployPredictionMarket ", function () {
+describe("MarketFactory - deployPredictionMarket() ", function () {
   const MARKET_FACTORY_ADDRESS = process.env.MARKET_FACTORY_ADDRESS!;
   const LIQUIDITY_POOL_ADDRESS = process.env.LIQUIDITY_POOL_ADDRESS!;
   const WHITELIST_WRAPPER_ADDRESS = process.env.WHITELIST_WRAPPER_ADDRESS!;
@@ -21,8 +23,8 @@ describe("MarketFactory - deployPredictionMarket ", function () {
   let oldUsdcReserve: BigNumber;
 
   // The match ID and future timestamp
-  const MATCH_ID = 1323511; 
-  const MATCH_TIMESTAMP = 1738119900; 
+  const MATCH_ID = 1318672; 
+  const MATCH_TIMESTAMP = 1738220400; 
 
   let owner: any;
 
@@ -32,7 +34,6 @@ describe("MarketFactory - deployPredictionMarket ", function () {
 
     const MarketFactoryAbi = [
       "function deployPredictionMarket(uint256 matchId, uint256 matchTimestamp) external",
-      "event DebugLog(string step)",
       "event PredictionMarketDeployed(uint256 matchId, address marketAddress, uint256 matchTimestamp)",
       "function predictionMarkets(uint256) external view returns (address)",
       "function lmsrMarketMakers(uint256) external view returns (address)",
@@ -79,6 +80,20 @@ describe("MarketFactory - deployPredictionMarket ", function () {
     expect(matchTimestamp.toNumber()).to.equal(MATCH_TIMESTAMP, "Event matchTimestamp mismatch");
 
     console.log("Deployed PredictionMarket at:", marketAddress);
+
+    // ============= Update .env with newly deployed address =============
+    const envFilePath = path.resolve(__dirname, "../.env"); 
+    let envConfig = dotenv.parse(fs.readFileSync(envFilePath));
+
+    envConfig.TEST_PREDICTION_MARKET_ADDRESS = marketAddress;
+
+    let updatedEnv = "";
+    for (const key in envConfig) {
+      updatedEnv += `${key}=${envConfig[key]}\n`;
+    }
+
+    fs.writeFileSync(envFilePath, updatedEnv);
+    console.log(`.env updated with TEST_PREDICTION_MARKET_ADDRESS=${marketAddress}`);
 
     // ============= CHECK MAPPINGS =============
     const storedMarketAddr = await marketFactory.predictionMarkets(MATCH_ID);

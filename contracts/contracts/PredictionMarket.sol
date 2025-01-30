@@ -72,6 +72,7 @@ contract PredictionMarket is Ownable {
 
         // Calculate the net cost of the trade
         int netCost = marketMaker.calcNetCost(tradeAmounts);
+        
         require(netCost > 0, "Invalid trade cost");
 
         // // Total cost = net cost of shares + 4% fee
@@ -94,10 +95,10 @@ contract PredictionMarket is Ownable {
             usdc.approve(address(marketMaker), shortfall);
             marketMaker.changeFunding(int(shortfall));
 
-            // Resume the market maker
+            // Resume the market maker 
             marketMaker.resume();
         }
-
+ 
         // Transfer 104% of the cost from the buyer to the contract
         usdc.transferFrom(msg.sender, address(this), totalCost);
 
@@ -105,15 +106,17 @@ contract PredictionMarket is Ownable {
         usdc.approve(address(marketMaker), uint256(netCost));
 
         // Execute the trade
-        marketMaker.trade(tradeAmounts, int(netCost));
+        marketMaker.trade(tradeAmounts, 0);
 
         // Calculate the fee amount (4% of the net cost)
         uint256 fee = uint256(netCost) * FEE_BPS / 10_000;
 
         // Split the fee: 2% to liquidity pool rewards and 2% to platform profit
         uint256 halfFee = fee / 2;
+        usdc.approve(address(liquidityPool), halfFee);
         liquidityPool.addToRewardsPool(halfFee);
 
+        usdc.approve(address(owner()), halfFee);
         MarketFactory(address(owner())).addToPlatformProfit(halfFee);
 
         emit SharesPurchased(msg.sender, outcome, amount, totalCost);
@@ -125,6 +128,13 @@ contract PredictionMarket is Ownable {
 
         emit OddsUpdated(matchId, homePrice, drawPrice, awayPrice);
     }
+
+    function getNetCost(uint8 outcome, uint256 amount) external view returns (int) {
+        int[] memory tradeAmounts = new int[](3);
+        tradeAmounts[outcome] = int(amount);
+        return marketMaker.calcNetCost(tradeAmounts);
+    }
+
 
     function resolveMarket(uint8 result) external onlyOwner {
         require(!isResolved, "Market already resolved");

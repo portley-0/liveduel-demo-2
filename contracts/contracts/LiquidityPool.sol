@@ -15,10 +15,10 @@ contract LiquidityPool is Ownable {
     uint256 public totalStaked;
     uint256 public stakingRewardsPool;
 
-    uint256 public constant MIN_REWARDS_THRESHOLD = 100; // 100 USDC in 6-dec terms
+    uint256 public constant MIN_REWARDS_THRESHOLD = 100; 
 
-    mapping(address => uint256) public stakedBalances;  // 18 decimals
-    mapping(address => uint256) public rewardsClaimed;  // 18 decimals
+    mapping(address => uint256) public stakedBalances;  
+    mapping(address => uint256) public rewardsClaimed;  
     mapping(address => bool) public authorizedMarkets;
 
     event RewardsClaimed(address indexed staker, uint256 amountUSDC6);

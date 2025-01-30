@@ -14,18 +14,17 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
 
 contract MarketFactory is Ownable, AutomationCompatibleInterface {
-    
-    mapping(uint256 => address) public predictionMarkets; // Match ID to PredictionMarket address
-    mapping(uint256 => address) public lmsrMarketMakers; // Match ID to LMSR Market Maker address
-    mapping(uint256 => bytes32) public matchConditionIds; // Match ID to Condition ID
-    mapping(uint256 => uint256) public matchTimestamps;   // Match ID to match timestamp
-    mapping(uint256 => uint256) public matchRequestTimestamps; // Match ID to timestamp when result was requested
-    mapping(uint256 => uint256) public deploymentTimestamps;   // Match ID to deployment timestamp
+    mapping(uint256 => address) public predictionMarkets; 
+    mapping(uint256 => address) public lmsrMarketMakers; 
+    mapping(uint256 => bytes32) public matchConditionIds; 
+    mapping(uint256 => uint256) public matchTimestamps;   
+    mapping(uint256 => uint256) public matchRequestTimestamps; 
+    mapping(uint256 => uint256) public deploymentTimestamps;   
 
-    uint256[] public allMatchIds; // Track all match IDs
-    uint256[] public activeMatches; // List of active match IDs
+    uint256[] public allMatchIds;
+    uint256[] public activeMatches;
 
-    uint256 public platformProfitPool; // Platform profit pool
+    uint256 public platformProfitPool;
 
     ILiquidityPool public liquidityPool;
     IWhitelist public whitelist;
@@ -34,7 +33,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     IConditionalTokens public conditionalTokens; 
     ILMSRMarketMakerFactoryWrapper public lmsrFactoryWrapper;
 
-    uint256 public constant MATCH_DURATION = 120 * 60; // (120 minutes)
+    uint256 public constant MATCH_DURATION = 120 * 60; 
     bool public initialized;
 
     event PredictionMarketDeployed(uint256 matchId, address marketAddress, uint256 matchTimestamp);
@@ -67,24 +66,19 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         require(!initialized, "Already initialized");
         initialized = true;
 
-        // Authorize the MarketFactory in the LiquidityPool
         liquidityPool.authorizeMarket(address(this));
 
         address[] memory whitelistArray = new address[](1);
         whitelistArray[0] = address(this);
-
-        // Authorize the MarketFactory in the Whitelist
         whitelist.addToWhitelist(whitelistArray);
     }
 
-    // Add to platform profit pool
     function addToPlatformProfit(uint256 amount) external {
         require(amount > 0, "Amount must be greater than zero");
         usdc.transferFrom(msg.sender, address(this), amount);
         platformProfitPool += amount;
     }
 
-    // Function to retrieve platform profits (onlyOwner)
     function withdrawPlatformProfit(uint256 amount) external onlyOwner {
         require(amount <= platformProfitPool, "Amount exceeds platform profit pool");
         platformProfitPool -= amount;
@@ -93,12 +87,10 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
 
     function deployPredictionMarket(uint256 matchId, uint256 matchTimestamp) external onlyOwner {
         require(predictionMarkets[matchId] == address(0), "Market already exists");
-
         require(matchTimestamp > block.timestamp, "Invalid timestamp");
 
-        uint256 initialFunding = 5000 * 10**6; // 5000 USDC
+        uint256 initialFunding = 5000 * 10**6; 
         liquidityPool.withdrawLiquidity(initialFunding);
-
         usdc.approve(address(lmsrFactoryWrapper), initialFunding);
 
         bytes32 questionId = keccak256(abi.encodePacked("Match Result: ", matchId));
@@ -109,11 +101,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
 
         bytes32[] memory conditionIds = new bytes32[](1);
         conditionIds[0] = conditionId;
-
-        address marketMaker = lmsrFactoryWrapper.createLMSRMarketMaker(
-            conditionIds
-        );
-
+        address marketMaker = lmsrFactoryWrapper.createLMSRMarketMaker(conditionIds);
         lmsrMarketMakers[matchId] = marketMaker;
 
         PredictionMarket predictionMarket = new PredictionMarket(
@@ -123,7 +111,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
             questionId,
             address(usdc),
             address(conditionalTokens),
-            marketMaker 
+            marketMaker
         );
 
         address[] memory whitelistArray = new address[](1);
@@ -131,7 +119,6 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         whitelist.addToWhitelist(whitelistArray);
 
         ILMSRMarketMaker(marketMaker).transferOwnership(address(predictionMarket));
-
         liquidityPool.authorizeMarket(address(predictionMarket));
 
         predictionMarkets[matchId] = address(predictionMarket);
@@ -143,7 +130,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         emit PredictionMarketDeployed(matchId, address(predictionMarket), matchTimestamp);
     }
 
-    function checkUpkeep(bytes calldata /* checkData */)
+    function checkUpkeep(bytes calldata)
         external
         view
         override
@@ -156,79 +143,63 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         uint256 countToCleanup = 0;
         uint256 currentTime = block.timestamp;
 
-        // Check for matches to resolve
         for (uint256 i = 0; i < activeMatches.length; i++) {
             uint256 matchId = activeMatches[i];
-            uint256 matchEndTime = matchTimestamps[matchId] + MATCH_DURATION;
-
-            if (currentTime >= matchEndTime) {
+            if (currentTime >= matchTimestamps[matchId] + MATCH_DURATION) {
                 matchesToResolve[countToResolve] = matchId;
                 countToResolve++;
             }
         }
 
-        // Check for old markets to clean up
-        for (uint256 i = 0; i < allMatchIds.length; i++) {
-            uint256 matchId = allMatchIds[i];
+        for (uint256 j = 0; j < allMatchIds.length; j++) {
+            uint256 matchId = allMatchIds[j];
             if (currentTime > deploymentTimestamps[matchId] + 60 days) {
                 matchesToCleanup[countToCleanup] = matchId;
                 countToCleanup++;
             }
         }
 
-        // If there are matches to resolve or clean up, prepare performData
         if (countToResolve > 0 || countToCleanup > 0) {
             upkeepNeeded = true;
-
-            // Encode only the populated part of the arrays
             uint256[] memory finalMatchesToResolve = new uint256[](countToResolve);
             uint256[] memory finalMatchesToCleanup = new uint256[](countToCleanup);
 
-            for (uint256 i = 0; i < countToResolve; i++) {
-                finalMatchesToResolve[i] = matchesToResolve[i];
+            for (uint256 k = 0; k < countToResolve; k++) {
+                finalMatchesToResolve[k] = matchesToResolve[k];
             }
-            for (uint256 i = 0; i < countToCleanup; i++) {
-                finalMatchesToCleanup[i] = matchesToCleanup[i];
+            for (uint256 m = 0; m < countToCleanup; m++) {
+                finalMatchesToCleanup[m] = matchesToCleanup[m];
             }
 
             performData = abi.encode(finalMatchesToResolve, finalMatchesToCleanup);
-            return (true, performData);
+        } else {
+            upkeepNeeded = false;
+            performData = "";
         }
-
-        return (false, "");
     }
 
-
     function performUpkeep(bytes calldata performData) external override {
-        (uint256[] memory matchesToResolve, uint256[] memory matchesToCleanup) = abi.decode(performData, (uint256[], uint256[]));
+        (uint256[] memory finalMatchesToResolve, uint256[] memory finalMatchesToCleanup) =
+            abi.decode(performData, (uint256[], uint256[]));
 
-        // Handle matches to resolve
-        for (uint256 i = 0; i < matchesToResolve.length; i++) {
-            uint256 matchId = matchesToResolve[i];
+        for (uint256 i = 0; i < finalMatchesToResolve.length; i++) {
+            uint256 matchId = finalMatchesToResolve[i];
             uint256 matchEndTime = matchTimestamps[matchId] + MATCH_DURATION;
-            uint256 requestTimestamp = matchRequestTimestamps[matchId];
-
             require(block.timestamp >= matchEndTime, "Match duration has not passed");
 
+            uint256 requestTimestamp = matchRequestTimestamps[matchId];
             if (requestTimestamp == 0) {
-                // Request result if not already requested
                 matchRequestTimestamps[matchId] = block.timestamp;
                 resultsConsumer.requestMatchResult(matchId);
             } else if (block.timestamp >= requestTimestamp + 30) {
-                // Resolve result after 30 seconds delay
-                address predictionMarket = predictionMarkets[matchId];
-
                 if (!resultsConsumer.matchResolved(matchId)) {
-                    continue; // Skip if the result is not yet available
+                    continue;
                 }
-
+                address predictionMarket = predictionMarkets[matchId];
                 uint8 result = resultsConsumer.returnResult(matchId);
                 PredictionMarket(predictionMarket).resolveMarket(result);
 
-                if (i != activeMatches.length - 1) {
-                    activeMatches[i] = activeMatches[activeMatches.length - 1];
-                }
-                activeMatches.pop();
+                _removeActiveMatch(matchId);
 
                 delete matchRequestTimestamps[matchId];
                 delete lmsrMarketMakers[matchId];
@@ -239,18 +210,13 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
             }
         }
 
-        // Handle old markets to clean up
         uint256 currentTime = block.timestamp;
-        for (uint256 i = 0; i < matchesToCleanup.length; i++) {
-            uint256 matchId = matchesToCleanup[i];
-
+        for (uint256 i = 0; i < finalMatchesToCleanup.length; i++) {
+            uint256 matchId = finalMatchesToCleanup[i];
             if (currentTime > deploymentTimestamps[matchId] + 60 days) {
-
-                // Clean up mappings
                 delete predictionMarkets[matchId];
                 delete deploymentTimestamps[matchId];
 
-                // Remove from allMatchIds array
                 for (uint256 j = 0; j < allMatchIds.length; j++) {
                     if (allMatchIds[j] == matchId) {
                         allMatchIds[j] = allMatchIds[allMatchIds.length - 1];
@@ -258,6 +224,18 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
                         break;
                     }
                 }
+            }
+        }
+    }
+
+    function _removeActiveMatch(uint256 matchId) internal {
+        for (uint256 i = 0; i < activeMatches.length; i++) {
+            if (activeMatches[i] == matchId) {
+                if (i != activeMatches.length - 1) {
+                    activeMatches[i] = activeMatches[activeMatches.length - 1];
+                }
+                activeMatches.pop();
+                return;
             }
         }
     }
@@ -281,8 +259,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
             matchIds[i] = matchId;
             marketAddresses[i] = predictionMarkets[matchId];
         }
-
         return (matchIds, marketAddresses);
     }
-
 }
+  

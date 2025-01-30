@@ -7,6 +7,7 @@
     "test:sanity": "npx hardhat test --network avalancheFuji tests/sanitycheck.test.ts",
     "test:staking": "npx hardhat test --network avalancheFuji tests/staking.test.ts",
     "test:factory": "npx hardhat test --network avalancheFuji tests/marketdeployment.test.ts",
+    "test:market": "npx hardhat test --network avalancheFuji tests/predictionmarket.test.ts",
     "test": "pnpm hardhat test",
     "compile": "pnpm hardhat compile",
     "clean": "pnpm hardhat clean"
