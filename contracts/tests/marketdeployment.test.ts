@@ -23,8 +23,8 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
   let oldUsdcReserve: BigNumber;
 
   // The match ID and future timestamp
-  const MATCH_ID = 1318672; 
-  const MATCH_TIMESTAMP = 1738220400; 
+  const MATCH_ID = 1305090; 
+  const MATCH_TIMESTAMP = 1738389000; 
 
   let owner: any;
 

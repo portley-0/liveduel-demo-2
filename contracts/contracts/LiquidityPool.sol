@@ -6,178 +6,222 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./DuelToken.sol";
 
 contract LiquidityPool is Ownable {
-    IERC20 public usdc;           // 6-decimal USDC externally
-    DuelToken public duelToken;   // 18-decimal DUEL
+    IERC20 public usdc;
+    DuelToken public duelToken;
 
-    // Stored in 18-decimal units
-    uint256 public usdcReserve;
-    uint256 public duelReserve;
-    uint256 public totalStaked;
-    uint256 public stakingRewardsPool;
+    uint256 public usdcReserve;  // For your buyDuel logic
+    uint256 public duelReserve;  // For your buyDuel logic
+    uint256 public totalStaked;  // Total DUEL tokens staked
 
-    uint256 public constant MIN_REWARDS_THRESHOLD = 100; 
+    // ----------------------------
+    // Reward-per-share accounting:
+    // ----------------------------
+    uint256 public accRewardPerShare;  // Scaled by 1e12 for precision
+    // For each staker, how much they've "accounted for" so far
+    mapping (address => uint256) public rewardDebt;
 
-    mapping(address => uint256) public stakedBalances;  
-    mapping(address => uint256) public rewardsClaimed;  
+    // stakedBalances is used to track how many DUEL tokens each user has staked
+    mapping(address => uint256) public stakedBalances;
+
+    // For your old approach, we had "rewardsClaimed"; not needed in MasterChef style.
+    // If you still want to track total claimed historically, you can keep it, but it's not required to calculate "pending" now.
+    // mapping(address => uint256) public rewardsClaimed;
+
+    // For demonstration, we still keep your "authorizedMarkets" logic, etc.
     mapping(address => bool) public authorizedMarkets;
 
-    event RewardsClaimed(address indexed staker, uint256 amountUSDC6);
-    event DuelPurchased(address indexed buyer, uint256 duelAmount18);
-    event DebugBuyDuel(
-        address indexed buyer,
-        uint256 usdcAmount6,
-        uint256 duelAmount18,
-        uint256 usdcReserveBefore18,
-        uint256 duelReserveBefore18,
-        uint256 usdcReserveAfter18,
-        uint256 duelReserveAfter18
-    );
-    event DebugClaimRewards(
-        address indexed staker,
-        uint256 stakerBalance18,
-        uint256 totalStaked18,
-        uint256 stakingRewardsPool18,
-        uint256 rewardShare18,
-        uint256 claimedReward18,
-        uint256 claimableReward18
-    );
-    event FeeReceived(uint256 amountUSDC6);
-    event RewardsPoolUpdated(uint256 newPool18);
-    event FundsWithdrawn(address indexed market, uint256 amount18);
-    event FundsReturned(address indexed market, uint256 amount6);
+    // Constants & events
+    uint256 public constant MIN_REWARDS_THRESHOLD = 100 ether;
 
-    constructor(address _initialOwner, address _usdcAddress, address _duelTokenAddress) Ownable(_initialOwner) {
+    event RewardsClaimed(address indexed staker, uint256 amount);
+    event DuelPurchased(address indexed buyer, uint256 amount);
+    event FeeReceived(uint256 amount);
+    event RewardsPoolUpdated(uint256 newPool);
+    event FundsWithdrawn(address indexed market, uint256 amount);
+    event FundsReturned(address indexed market, uint256 amount);
+
+    constructor(
+        address _initialOwner,
+        address _usdcAddress,
+        address _duelTokenAddress
+    ) Ownable(_initialOwner)
+    {
         require(_usdcAddress != address(0), "Invalid USDC address");
         require(_duelTokenAddress != address(0), "Invalid DuelToken address");
 
-        usdc = IERC20(_usdcAddress);       
+        usdc = IERC20(_usdcAddress);
         duelToken = DuelToken(_duelTokenAddress);
     }
 
-    function _from6to18(uint256 amount6) internal pure returns (uint256) {
-        return amount6 * 1e12;
-    }
-
-    function _from18to6(uint256 amount18) internal pure returns (uint256) {
-        return amount18 / 1e12;
-    }
-
-    function addInitialLiquidity(uint256 _usdcAmount6, uint256 _duelAmount18) external onlyOwner {
+    // ----------------------------------
+    // BuyDuel + Liquidity logic (unchanged)
+    // ----------------------------------
+    function addInitialLiquidity(uint256 _usdcAmount, uint256 _duelAmount)
+        external
+        onlyOwner
+    {
         require(usdcReserve == 0 && duelReserve == 0, "Already provided");
-        require(_usdcAmount6 > 0 && _duelAmount18 > 0, "Zero amounts");
-        require(_usdcAmount6 <= usdc.balanceOf(msg.sender), "Insufficient USDC");
+        require(_usdcAmount > 0 && _duelAmount > 0, "Zero amounts");
+        require(_usdcAmount <= usdc.balanceOf(msg.sender), "Insufficient USDC");
 
-        usdc.transferFrom(msg.sender, address(this), _usdcAmount6);
-        uint256 usdcAmount18 = _from6to18(_usdcAmount6);
+        usdc.transferFrom(msg.sender, address(this), _usdcAmount);
+        duelToken.mint(address(this), _duelAmount);
 
-        duelToken.mint(address(this), _duelAmount18);
-
-        usdcReserve += usdcAmount18;
-        duelReserve += _duelAmount18;
+        usdcReserve += _usdcAmount;
+        duelReserve += _duelAmount;
     }
 
-    function buyDuel(uint256 _usdcAmount6) external {
-        require(_usdcAmount6 > 0, "Zero USDC");
-        require(_usdcAmount6 <= usdc.balanceOf(msg.sender), "Insufficient USDC");
+    function buyDuel(uint256 _usdcAmount) external {
+        require(_usdcAmount > 0, "Zero USDC");
+        require(_usdcAmount <= usdc.balanceOf(msg.sender), "Insufficient USDC");
         require(usdcReserve > 0 && duelReserve > 0, "Not initialized");
 
-        uint256 usdcReserveBefore = usdcReserve;
-        uint256 duelReserveBefore = duelReserve;
+        uint256 duelAmount = getSwapAmount(_usdcAmount, usdcReserve, duelReserve);
 
-        uint256 usdcAmount18 = _from6to18(_usdcAmount6);
-        uint256 duelAmount18 = getSwapAmount(usdcAmount18, usdcReserve, duelReserve);
+        usdc.transferFrom(msg.sender, address(this), _usdcAmount);
 
-        usdc.transferFrom(msg.sender, address(this), _usdcAmount6);
+        usdcReserve += _usdcAmount;
+        duelReserve += duelAmount;
 
-        usdcReserve += usdcAmount18;
-        duelReserve += duelAmount18;
+        duelToken.mint(msg.sender, duelAmount);
 
-        duelToken.mint(msg.sender, duelAmount18);
-
-        emit DebugBuyDuel(
-            msg.sender,
-            _usdcAmount6,
-            duelAmount18,
-            usdcReserveBefore,
-            duelReserveBefore,
-            usdcReserve,
-            duelReserve
-        );
-
-        emit DuelPurchased(msg.sender, duelAmount18);
+        emit DuelPurchased(msg.sender, duelAmount);
     }
 
-    function stake(uint256 _amount18) external {
-        require(_amount18 > 0, "Zero stake");
+    // -------------------------------------
+    // Staking logic using reward-per-share
+    // -------------------------------------
 
-        duelToken.transferFrom(msg.sender, address(this), _amount18);
-        stakedBalances[msg.sender] += _amount18;
-        totalStaked += _amount18;
-    }
-
-    function withdrawStake(uint256 _amount18) external {
-        require(stakedBalances[msg.sender] >= _amount18, "Insufficient stake");
-
-        stakedBalances[msg.sender] -= _amount18;
-        totalStaked -= _amount18;
-
-        duelToken.transfer(msg.sender, _amount18);
-    }
-
-    function claimRewards() external {
-        require(totalStaked > 0, "No rewards");
-        require(stakingRewardsPool >= (MIN_REWARDS_THRESHOLD * 1e12), "Pool too small");
-
-        uint256 stakerBalance18 = stakedBalances[msg.sender];
-        require(stakerBalance18 > 0, "No staked");
-
-        uint256 rewardShare18 = (stakerBalance18 * stakingRewardsPool) / totalStaked;
-        uint256 claimedReward18 = rewardsClaimed[msg.sender];
-        require(rewardShare18 > claimedReward18, "No new rewards");
-
-        uint256 claimable18 = rewardShare18 - claimedReward18;
-        rewardsClaimed[msg.sender] += claimable18;
-        stakingRewardsPool -= claimable18;
-
-        uint256 claimable6 = _from18to6(claimable18);
-        usdc.transfer(msg.sender, claimable6);
-
-        emit DebugClaimRewards(
-            msg.sender,
-            stakerBalance18,
-            totalStaked,
-            stakingRewardsPool,
-            rewardShare18,
-            claimedReward18,
-            claimable18
-        );
-
-        emit RewardsClaimed(msg.sender, claimable6);
-    }
-
-    function calculateReward(address _staker) public view returns (uint256) {
-        if (totalStaked == 0 || stakingRewardsPool == 0) return 0;
-
-        uint256 stakerBalance18 = stakedBalances[_staker];
-        uint256 rewardShare18 = (stakerBalance18 * stakingRewardsPool) / totalStaked;
-        uint256 claimedReward18 = rewardsClaimed[_staker];
-        if (rewardShare18 > claimedReward18) {
-            return rewardShare18 - claimedReward18;
+    /**
+     * @dev Updates the global 'accRewardPerShare' by distributing any newly added USDC
+     * to current stakers. This example *requires* you call 'addToRewardsPool' which calls
+     * 'updatePool' with the newly added reward.
+     */
+    function updatePool(uint256 _rewardAmount) internal {
+        // If nobody is staked, do nothing
+        if (totalStaked == 0) {
+            return;
         }
-        return 0;
+        // Increase accRewardPerShare by (reward * 1e12 / totalStaked)
+        // scale by 1e12 to avoid integer rounding
+        accRewardPerShare += (_rewardAmount * 1e12) / totalStaked;
     }
 
-    function addToRewardsPool(uint256 _amount6) external {
-        require(_amount6 > 0, "Zero amount");
-        usdc.transferFrom(msg.sender, address(this), _amount6);
+    /**
+     * @dev View function to see pending rewards for a staker.
+     */
+    function pendingRewards(address _staker) public view returns (uint256) {
+        uint256 userStaked = stakedBalances[_staker];
+        // userRewardDebt = rewardDebt[_staker]
 
-        uint256 amount18 = _from6to18(_amount6);
-        stakingRewardsPool += amount18;
+        // The total reward the user is *entitled to* in scaled form is:
+        //   userStaked * accRewardPerShare / 1e12
+        uint256 accumulated = (userStaked * accRewardPerShare) / 1e12;
 
-        emit FeeReceived(_amount6);
-        emit RewardsPoolUpdated(stakingRewardsPool);
+        // The difference between that and 'rewardDebt' is the pending reward
+        // that is not yet paid out
+        return accumulated - rewardDebt[_staker];
     }
 
+    /**
+     * @dev Stake DUEL tokens. We first "harvest" any pending reward, then update staked balance.
+     */
+    function stake(uint256 _amount) external {
+        require(_amount > 0, "Zero stake");
+
+        // 1. Harvest any pending reward
+        _claimInternal(msg.sender);
+
+        // 2. Transfer DUEL to this contract
+        duelToken.transferFrom(msg.sender, address(this), _amount);
+
+        // 3. Update staked balance + totalStaked
+        stakedBalances[msg.sender] += _amount;
+        totalStaked += _amount;
+
+        // 4. Update the user's rewardDebt
+        rewardDebt[msg.sender] = (stakedBalances[msg.sender] * accRewardPerShare) / 1e12;
+    }
+
+    /**
+     * @dev Withdraw (unstake) DUEL. Again, harvest first, then reduce stake.
+     */
+    function withdrawStake(uint256 _amount) external {
+        require(stakedBalances[msg.sender] >= _amount, "Insufficient stake");
+
+        // 1. Harvest any pending reward
+        _claimInternal(msg.sender);
+
+        // 2. Subtract staked balance + totalStaked
+        stakedBalances[msg.sender] -= _amount;
+        totalStaked -= _amount;
+
+        // 3. Transfer DUEL back to the user
+        duelToken.transfer(msg.sender, _amount);
+
+        // 4. Update rewardDebt
+        rewardDebt[msg.sender] = (stakedBalances[msg.sender] * accRewardPerShare) / 1e12;
+    }
+
+    /**
+     * @dev Claim any pending rewards without changing stake amount.
+     */
+    function claimRewards() external {
+        // 1. Harvest
+        _claimInternal(msg.sender);
+
+        // 2. Update user rewardDebt
+        rewardDebt[msg.sender] = (stakedBalances[msg.sender] * accRewardPerShare) / 1e12;
+    }
+
+    /**
+     * @dev Internal function to pay out pending rewards to a user.
+     */
+    function _claimInternal(address _staker) internal {
+        // Calculate pending
+        uint256 pending = pendingRewards(_staker);
+        if (pending > 0) {
+            // Transfer USDC out
+            // Make sure this contract has enough USDC in its balance to pay out
+            // (We've distributed it via updatePool, so the contract should hold it)
+            usdc.transfer(_staker, pending);
+
+            emit RewardsClaimed(_staker, pending);
+        }
+    }
+
+    // -----------------------------------
+    // The new "addToRewardsPool" function
+    // -----------------------------------
+    /**
+     * @dev When we add new rewards, we distribute them across 'accRewardPerShare' so that
+     * current stakers can claim them. Then the new reward is effectively "locked" for stakers.
+     */
+    function addToRewardsPool(uint256 _amount) external {
+        require(_amount > 0, "Zero amount");
+        require(totalStaked > 0, "No stakers currently"); 
+        // Because if totalStaked == 0, the user would deposit free money that nobody can claim.
+        // You could allow it, but typically you'd want at least 1 staker.
+
+        // Transfer USDC into this contract
+        usdc.transferFrom(msg.sender, address(this), _amount);
+
+        // 1. Distribute the newly added reward among stakers
+        updatePool(_amount);
+
+        // Optional: If you want a "minimum threshold" for new additions,
+        // you can do require(_amount >= MIN_REWARDS_THRESHOLD, "Add more!");
+        // But that's separate from checking the "pool is big enough to claim"
+
+        emit FeeReceived(_amount);
+
+        // This is purely for reference if you want, or remove "RewardsPoolUpdated":
+        emit RewardsPoolUpdated(_amount);
+    }
+
+    // -----------------------------
+    // Market Authorization & Liquidity
+    // -----------------------------
     function authorizeMarket(address _market) external onlyOwner {
         require(_market != address(0), "Invalid market");
         authorizedMarkets[_market] = true;
@@ -189,39 +233,37 @@ contract LiquidityPool is Ownable {
         authorizedMarkets[_market] = false;
     }
 
-    function withdrawLiquidity(uint256 _amount6) external {
+    function withdrawLiquidity(uint256 _amount) external {
         require(authorizedMarkets[msg.sender], "Not authorized");
+        require(usdcReserve >= _amount, "Insufficient reserve");
 
-        uint256 amount18 = _from6to18(_amount6);
+        usdc.transfer(msg.sender, _amount);
+        usdcReserve -= _amount;
 
-        require(usdcReserve >= amount18, "Insufficient reserve");
-
-        usdc.transfer(msg.sender, _amount6);
-        usdcReserve -= amount18;
-
-        emit FundsWithdrawn(msg.sender, amount18);
+        emit FundsWithdrawn(msg.sender, _amount);
     }
 
-    function returnLiquidity(uint256 _amount6) external {
+    function returnLiquidity(uint256 _amount) external {
         require(authorizedMarkets[msg.sender], "Not authorized");
 
-        usdc.transferFrom(msg.sender, address(this), _amount6);
-        uint256 amount18 = _from6to18(_amount6);
-        usdcReserve += amount18;
+        usdc.transferFrom(msg.sender, address(this), _amount);
+        usdcReserve += _amount;
 
-        emit FundsReturned(msg.sender, _amount6);
+        emit FundsReturned(msg.sender, _amount);
     }
 
-    function getSwapAmount(uint256 _inputAmount, uint256 _inputReserve, uint256 _outputReserve)
-        public
-        pure
-        returns (uint256)
-    {
+    // -----------------------------
+    // Simple swap formula (unchanged)
+    // -----------------------------
+    function getSwapAmount(
+        uint256 _inputAmount,
+        uint256 _inputReserve,
+        uint256 _outputReserve
+    ) public pure returns (uint256) {
         require(_inputReserve > 0 && _outputReserve > 0, "Zero reserves");
 
-        uint256 scaledInputAmount = _inputAmount * 1e18;
-        uint256 numerator = scaledInputAmount * _outputReserve;
-        uint256 denominator = (_inputReserve * 1e18) + scaledInputAmount;
+        uint256 numerator = _inputAmount * _outputReserve;
+        uint256 denominator = _inputReserve + _inputAmount;
         return numerator / denominator;
     }
 

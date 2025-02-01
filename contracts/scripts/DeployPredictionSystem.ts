@@ -72,7 +72,7 @@ async function main() {
             CONDITIONAL_TOKENS_ADDRESS,
             WHITELIST_ADDRESS,
             0,
-            ethers.utils.parseUnits("5000", 6) 
+            ethers.utils.parseUnits("5000", 18) 
         );
         await lmsrMarketMakerFactoryWrapper.deployed();
         console.log("LMSRMarketMakerFactoryWrapper deployed to:", lmsrMarketMakerFactoryWrapper.address);
@@ -133,7 +133,7 @@ async function main() {
         // Mint initial USDC and Duel, add initial liquidity
         // --------------------------------------------------------------------
         console.log("\nAdding initial liquidity...");
-        const initialUSDC = ethers.utils.parseUnits("10000", 6);
+        const initialUSDC = ethers.utils.parseUnits("10000", 18);
         const initialDUEL = ethers.utils.parseUnits("100000", 18);
 
         console.log("Minting MockUSDC to deployer...");
@@ -165,8 +165,8 @@ async function main() {
 
         console.log("Calling addInitialLiquidity...");
         const liquidityTx = await liquidityPool.connect(deployer).addInitialLiquidity(
-            initialUSDC, // 10,000 USDC (6 decimals)
-            initialDUEL  // 100,000 DUEL (18 decimals)
+            initialUSDC, // 10,000 USDC 
+            initialDUEL  // 100,000 DUEL 
         );
         console.log("Transaction hash:", liquidityTx.hash);
         await liquidityTx.wait();

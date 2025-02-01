@@ -31,6 +31,7 @@ describe("PredictionMarket - buyShares()", function () {
       "function buyShares(uint8 outcome, uint256 amount) external",
       "function marketMaker() external view returns (address)",
       "function conditionId() external view returns (bytes32)",
+      "function getNetCost(uint8 outcome, uint256 shares) external view returns (int)",
       "event SharesPurchased(address indexed buyer, uint8 indexed outcome, uint256 shares, uint256 totalCost)",
       "event OddsUpdated(uint256 indexed matchId, uint256 homePrice, uint256 drawPrice, uint256 awayPrice)"
     ];
@@ -54,7 +55,8 @@ describe("PredictionMarket - buyShares()", function () {
     const UsdcAbi = [
       "function balanceOf(address) external view returns (uint256)",
       "function approve(address spender, uint256 value) external returns (bool)",
-      "function mint(uint256 amount) external"
+      "function mint(uint256 amount) external",
+      "function allowance(address owner, address spender) external view returns (uint256)"
     ];
 
     predictionMarket = new ethers.Contract(PREDICTION_MARKET_ADDRESS, PredictionMarketAbi, user);
@@ -72,8 +74,8 @@ describe("PredictionMarket - buyShares()", function () {
     conditionId = await predictionMarket.conditionId();
     console.log("ConditionId:", conditionId);
 
-    await usdc.mint(ethers.utils.parseUnits("50000", 6));
-    console.log("Minted 50,000 USDC to user:", user.address);
+    await usdc.mint(ethers.utils.parseUnits("10000", 18));
+    console.log("Minted 10,000 USDC to user:", user.address);
   });
 
   describe("buyShares()", function () {
@@ -90,10 +92,9 @@ describe("PredictionMarket - buyShares()", function () {
     });
 
     it("allows user to buy shares and emits events", async function () {
-      // Approve
-      await usdc.connect(user).approve(predictionMarket.address, ethers.utils.parseUnits("10000", 6));
 
-      // LOG balances + MarketMaker info BEFORE buy
+      await usdc.connect(user).approve(predictionMarket.address, ethers.utils.parseUnits("10000", 18));
+
       const userBalanceBefore = await usdc.balanceOf(user.address);
       console.log("User USDC balance BEFORE buy:", userBalanceBefore.toString());
 
@@ -116,7 +117,6 @@ describe("PredictionMarket - buyShares()", function () {
       const lpReserveBefore = await liquidityPool.usdcReserve();
       console.log("LiquidityPool usdcReserve BEFORE buy:", lpReserveBefore.toString());
 
-      // Also log the platformProfitPool, etc.
       const oldProfit = await marketFactory.platformProfitPool();
       console.log("Platform profit pool BEFORE buy:", oldProfit.toString());
 
@@ -124,16 +124,17 @@ describe("PredictionMarket - buyShares()", function () {
       console.log("LP rewards BEFORE buy:", oldLpRewards.toString());
 
       const netCost = await predictionMarket.connect(user).getNetCost(0, 100);
-      console.log("netCost =>", netCost.toString());
+      console.log("netCost =>", netCost.toString()); 
       if (netCost.lte(0)) {
         console.log("Net cost <= 0 => That means buyShares would revert with 'Invalid trade cost'");
       }
 
-      // Actually run the trade
+      const allowance = await usdc.allowance(user.address, predictionMarket.address);
+      console.log("USDC Allowance:", allowance.toString());
+
       const tx = await predictionMarket.connect(user).buyShares(0, 100);
       const receipt = await tx.wait();
 
-      // Logs after
       const userBalanceAfter = await usdc.balanceOf(user.address);
       console.log("User USDC balance AFTER buy:", userBalanceAfter.toString());
 
@@ -145,7 +146,6 @@ describe("PredictionMarket - buyShares()", function () {
       const lpReserveAfter = await liquidityPool.usdcReserve();
       console.log("LiquidityPool usdcReserve AFTER buy:", lpReserveAfter.toString());
 
-      // parse events
       const sharesPurchasedEvent = receipt.events.find(e => e.event === "SharesPurchased");
       const oddsUpdatedEvent = receipt.events.find(e => e.event === "OddsUpdated");
       expect(sharesPurchasedEvent).to.exist;
@@ -164,7 +164,6 @@ describe("PredictionMarket - buyShares()", function () {
       const userSpent = userBalanceBefore.sub(userBalanceAfter);
       console.log("User spent USDC:", userSpent.toString());
 
-      // After check
       const newProfit = await marketFactory.platformProfitPool();
       const newLpRewards = await liquidityPool.stakingRewardsPool();
       const profitDiff = newProfit.sub(oldProfit);
@@ -179,7 +178,7 @@ describe("PredictionMarket - buyShares()", function () {
       const marketMakerAddr = await predictionMarket.marketMaker();
       const mmBalanceBefore = await usdc.balanceOf(marketMakerAddr);
       const lpReserveBefore = await liquidityPool.usdcReserve();
-      const shortfallAmount = mmBalanceBefore.add(ethers.utils.parseUnits("1000", 6));
+      const shortfallAmount = mmBalanceBefore.add(ethers.utils.parseUnits("1000", 18));
 
       await usdc.connect(user).approve(predictionMarket.address, shortfallAmount);
       const tx = await predictionMarket.connect(user).buyShares(0, shortfallAmount);
@@ -189,8 +188,8 @@ describe("PredictionMarket - buyShares()", function () {
         e => e.address.toLowerCase() === LIQUIDITY_POOL_ADDRESS.toLowerCase() && e.event === "FundsWithdrawn"
       );
       expect(fundsWithdrawnEvent).to.exist;
-      console.log("FundsWithdrawn => amount18:", fundsWithdrawnEvent.args.amount18.toString());
-      expect(fundsWithdrawnEvent.args.amount18).to.be.gt(0);
+      console.log("FundsWithdrawn => amount:", fundsWithdrawnEvent.args.amount.toString());
+      expect(fundsWithdrawnEvent.args._amount).to.be.gt(0);
 
       const ammFundingChangedEvent = receipt.events.find(
         e => e.address.toLowerCase() === marketMakerAddr.toLowerCase() && e.event === "AMMFundingChanged"

@@ -37,7 +37,7 @@ describe("SanityCheck", function () {
   function parseAddressFromSlot(rawSlotValue: string): string {
     // rawSlotValue is 32 bytes in hex; address is the rightmost 20 bytes
     const addressHex = "0x" + rawSlotValue.slice(-40);
-    return ethers.utils.getAddress(addressHex); // checksummed
+    return ethers.utils.getAddress(addressHex); 
   }
 
   before(async function () {

@@ -70,58 +70,41 @@ contract PredictionMarket is Ownable {
         int[] memory tradeAmounts = new int[](3);
         tradeAmounts[outcome] = int(amount);
 
-        // Calculate the net cost of the trade
+        // Calculate net cost
         int netCost = marketMaker.calcNetCost(tradeAmounts);
-        
         require(netCost > 0, "Invalid trade cost");
 
-        // // Total cost = net cost of shares + 4% fee
-        uint256 totalCost = uint256(netCost) * (10_000 + FEE_BPS) / 10_000;
+        // Ensure exact 4% fee calculation
+        uint256 fee = ceilDiv(uint256(netCost) * FEE_BPS, 10_000); // 4% fee
+        uint256 totalCost = uint256(netCost) + fee; // Ensure total cost is correct
+        uint256 halfFee = ceilDiv(fee, 2); // 2% each to profit and rewards
 
-        // Check available collateral in LMSRMarketMaker
+        // Check available collateral in MarketMaker
         uint256 availableCollateral = usdc.balanceOf(address(marketMaker));
-
-        // If collateral is insufficient, withdraw from LiquidityPool
         if (availableCollateral < totalCost) {
             uint256 shortfall = totalCost - availableCollateral;
-
-            // Pause the market maker before changing funding
             marketMaker.pause();
-
-            // Withdraw liquidity from the liquidity pool
             liquidityPool.withdrawLiquidity(shortfall);
-
-            // Approve and use the `changeFunding` method to add funds to the market maker
             usdc.approve(address(marketMaker), shortfall);
             marketMaker.changeFunding(int(shortfall));
-
-            // Resume the market maker 
             marketMaker.resume();
         }
- 
-        // Transfer 104% of the cost from the buyer to the contract
-        usdc.transferFrom(msg.sender, address(this), totalCost);
 
-        // Approve the MarketMaker to spend the funds
-        usdc.approve(address(marketMaker), uint256(netCost));
+        require(usdc.transferFrom(msg.sender, address(this), totalCost), "transferFrom failed");
+        require(usdc.approve(address(marketMaker), uint256(netCost)), "approve to marketMaker failed");
 
-        // Execute the trade
-        marketMaker.trade(tradeAmounts, 0);
+        marketMaker.trade(tradeAmounts, netCost);
 
-        // Calculate the fee amount (4% of the net cost)
-        uint256 fee = uint256(netCost) * FEE_BPS / 10_000;
+        // Approve and distribute fees
+        require(usdc.approve(address(liquidityPool), halfFee), "Approve to LiquidityPool failed");
+        liquidityPool.addToRewardsPool(halfFee); // 2% to LP rewards 
 
-        // Split the fee: 2% to liquidity pool rewards and 2% to platform profit
-        uint256 halfFee = fee / 2;
-        usdc.approve(address(liquidityPool), halfFee);
-        liquidityPool.addToRewardsPool(halfFee);
+        require(usdc.approve(address(owner()), halfFee), "Approve to owner/MarketFactory failed");
+        MarketFactory(address(owner())).addToPlatformProfit(halfFee); // 2% to platform profit
 
-        usdc.approve(address(owner()), halfFee);
-        MarketFactory(address(owner())).addToPlatformProfit(halfFee);
-
+        // Emit events
         emit SharesPurchased(msg.sender, outcome, amount, totalCost);
 
-        // Emit the updated odds for the match
         uint256 homePrice = marketMaker.calcMarginalPrice(0);
         uint256 drawPrice = marketMaker.calcMarginalPrice(1);
         uint256 awayPrice = marketMaker.calcMarginalPrice(2);
@@ -129,12 +112,16 @@ contract PredictionMarket is Ownable {
         emit OddsUpdated(matchId, homePrice, drawPrice, awayPrice);
     }
 
+    /// Returns `a / b`, rounded up to the nearest integer
+    function ceilDiv(uint256 a, uint256 b) internal pure returns (uint256) {
+        return (a + b - 1) / b;
+    }
+
     function getNetCost(uint8 outcome, uint256 amount) external view returns (int) {
         int[] memory tradeAmounts = new int[](3);
         tradeAmounts[outcome] = int(amount);
         return marketMaker.calcNetCost(tradeAmounts);
     }
-
 
     function resolveMarket(uint8 result) external onlyOwner {
         require(!isResolved, "Market already resolved");
