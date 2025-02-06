@@ -35,7 +35,6 @@ describe("SanityCheck", function () {
 
   // Utility for reading storage slots
   function parseAddressFromSlot(rawSlotValue: string): string {
-    // rawSlotValue is 32 bytes in hex; address is the rightmost 20 bytes
     const addressHex = "0x" + rawSlotValue.slice(-40);
     return ethers.utils.getAddress(addressHex); 
   }
@@ -113,10 +112,9 @@ describe("SanityCheck", function () {
   // ----------------------------------------------
   it("should confirm LiquidityPool has correct USDC and DUEL reserves", async function () {
     const [usdcReserve, duelReserve] = await liquidityPool.getReserves();
-    const initialUSDC = ethers.utils.parseUnits("10000", 18);
-    const initialDUEL = ethers.utils.parseUnits("100000", 18);
+    const initialUSDC = ethers.utils.parseUnits("100000", 6);
+    const initialDUEL = ethers.utils.parseUnits("1000000", 18);
 
-    // Compare BigNumbers via eq()
     expect(usdcReserve.eq(initialUSDC)).to.be.true;
     expect(duelReserve.eq(initialDUEL)).to.be.true;
   });

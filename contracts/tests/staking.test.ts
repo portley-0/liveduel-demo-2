@@ -29,28 +29,35 @@ describe("Staking and DUEL Flows ", function () {
     duelToken = await ethers.getContractAt("DuelToken", DUEL_TOKEN_ADDRESS);
     mockUsdc = await ethers.getContractAt("MockUSDC", MOCK_USDC_ADDRESS);
 
-    // Mint some initial USDC to deployer
-    const mintAmount = ethers.utils.parseUnits("10000", 18);
-    console.log(`\n--- Minting ${ethers.utils.formatUnits(mintAmount, 18)} USDC to deployer...`);
+    const mintAmount = ethers.utils.parseUnits("10000", 6);
+    console.log(
+      `\n--- Minting ${ethers.utils.formatUnits(mintAmount, 6)} USDC (6 decimals) to deployer...`
+    );
     const txMint = await mockUsdc.connect(deployer).mint(mintAmount);
     const receiptMint = await txMint.wait();
     console.log(`Mint TX status: ${receiptMint.status === 1 ? "Success" : "Fail"}`);
 
     const usdcBalance = await mockUsdc.balanceOf(deployer.address);
-    console.log(`Deployer USDC Balance: ${ethers.utils.formatUnits(usdcBalance, 18)}`);
+    console.log(
+      `Deployer USDC Balance: ${ethers.utils.formatUnits(usdcBalance, 6)} (6 decimals)`
+    );
   });
 
-  //log DUEL price + reserves
+  // Log DUEL price + reserves in correct decimals
   async function logDuelPrice() {
-    const oneUsdc = ethers.utils.parseUnits("1", 18);
+    // For 1 USDC in 6 decimals => 1 * 10^6 = 1e6
+    const oneUsdc = ethers.utils.parseUnits("1", 6);
+
     const [usdcReserve, duelReserve] = await liquidityPool.getReserves();
+    // Check how many DUEL for 1 USDC
     const duelForOneUsdc = await liquidityPool.getSwapAmount(oneUsdc, usdcReserve, duelReserve);
 
     console.log(
-      `DUEL Price => 1 USDC -> ${ethers.utils.formatUnits(duelForOneUsdc, 18)} DUEL`
+      `DUEL Price => 1 USDC (6 dec) -> ${ethers.utils.formatUnits(duelForOneUsdc, 18)} DUEL`
     );
     console.log(
-      `Reserves => USDC: ${ethers.utils.formatUnits(usdcReserve, 18)}, DUEL: ${ethers.utils.formatUnits(duelReserve, 18)}`
+      `Reserves => USDC: ${ethers.utils.formatUnits(usdcReserve, 6)} (6 dec), ` +
+      `DUEL: ${ethers.utils.formatUnits(duelReserve, 18)} (18 dec)`
     );
   }
 
@@ -62,7 +69,8 @@ describe("Staking and DUEL Flows ", function () {
 
     await logDuelPrice();
 
-    const buyAmount = ethers.utils.parseUnits("10000", 18);
+    // Buying 10,000 USDC worth at 6 decimals
+    const buyAmount = ethers.utils.parseUnits("10000", 6);
     await mockUsdc.connect(deployer).approve(liquidityPool.address, buyAmount);
 
     const duelBefore = await duelToken.balanceOf(deployer.address);
@@ -86,6 +94,7 @@ describe("Staking and DUEL Flows ", function () {
      * Step 2: STAKE SOME DUEL
      ********************************************************************/
     console.log("\n--- STEP 2: STAKE DUEL ---");
+    // 9,000 DUEL at 18 decimals
     const stakeAmount = ethers.utils.parseUnits("9000", 18);
 
     const approveTx = await duelToken.connect(deployer).approve(liquidityPool.address, stakeAmount);
@@ -105,10 +114,10 @@ describe("Staking and DUEL Flows ", function () {
     expect(stakedAfter.sub(stakedBefore)).to.eq(stakeAmount);
 
     /********************************************************************
-     * Step 3: ADD REWARDS
+     * Step 3: ADD REWARDS 
      ********************************************************************/
     console.log("\n--- STEP 3: ADD REWARDS ---");
-    const rewardAmount = ethers.utils.parseUnits("10000", 18);
+    const rewardAmount = ethers.utils.parseUnits("10000", 6);
 
     const txMintRewards = await mockUsdc.connect(deployer).mint(rewardAmount);
     const rcptMintRewards = await txMintRewards.wait();
@@ -122,16 +131,26 @@ describe("Staking and DUEL Flows ", function () {
     const rcptAddRewards = await txAddRewards.wait();
     console.log(`AddToRewardsPool TX status: ${rcptAddRewards.status === 1 ? "Success" : "Fail"}`);
 
-    console.log(`Added ${ethers.utils.formatUnits(rewardAmount, 18)} USDC to rewards pool.`);
+    console.log(
+      `Added ${ethers.utils.formatUnits(rewardAmount, 6)} USDC (6 decimals) to rewards pool.`
+    );
 
     /********************************************************************
      * Step 4: CLAIM REWARDS (Should Succeed while staked)
      ********************************************************************/
     console.log("\n--- STEP 4: CLAIM REWARDS (SUCCESS) ---");
     const usdcBeforeClaim = await mockUsdc.balanceOf(deployer.address);
-    console.log(`USDC Before Claim: ${ethers.utils.formatUnits(usdcBeforeClaim, 18)}`);
+    console.log(
+      `USDC Before Claim: ${ethers.utils.formatUnits(usdcBeforeClaim, 6)} (6 decimals)`
+    );
 
-    console.log("Pool's USDC (6 decimals):", (await mockUsdc.balanceOf(liquidityPool.address)).toString());
+    const poolBalance = await mockUsdc.balanceOf(liquidityPool.address);
+    console.log(
+      "Pool's USDC (raw):",
+      poolBalance.toString(),
+      "=>",
+      `${ethers.utils.formatUnits(poolBalance, 6)} (6 decimals)`
+    );
 
     const txClaim = await liquidityPool.connect(deployer).claimRewards();
     const rcptClaim = await txClaim.wait();
@@ -139,37 +158,51 @@ describe("Staking and DUEL Flows ", function () {
 
     const claimEvent = rcptClaim.events?.find((e: any) => e.event === "RewardsClaimed");
     expect(claimEvent).to.not.be.undefined;
-    console.log("Already Claimed:", ethers.utils.formatUnits(claimEvent?.args.amount, 18));
+    console.log(
+      "Already Claimed (USDC):",
+      ethers.utils.formatUnits(claimEvent?.args.amount, 6)
+    );
 
     const usdcAfterClaim = await mockUsdc.balanceOf(deployer.address);
     const claimed = usdcAfterClaim.sub(usdcBeforeClaim);
-    console.log(`Deployer claimed: ${ethers.utils.formatUnits(claimed, 18)} USDC`);
+    console.log(
+      `Deployer claimed: ${ethers.utils.formatUnits(claimed, 6)} USDC (6 decimals)`
+    );
     expect(claimed).to.be.gt(0);
 
     /********************************************************************
-     * Step 5: PARTIAL UNSTAKE
+     * Step 5: PARTIAL UNSTAKE (DUEL)
      ********************************************************************/
     console.log("\n--- STEP 5: PARTIAL UNSTAKE ---");
-    const partialUnstake = ethers.utils.parseUnits("2500", 18); 
+    // 2,500 DUEL at 18 decimals
+    const partialUnstake = ethers.utils.parseUnits("2500", 18);
 
     const stakedBalBeforePartial = await liquidityPool.stakedBalances(deployer.address);
-    console.log(`Staked Before Partial Unstake: ${ethers.utils.formatUnits(stakedBalBeforePartial, 18)}`);
+    console.log(
+      `Staked Before Partial Unstake: ${ethers.utils.formatUnits(stakedBalBeforePartial, 18)}`
+    );
 
-    const txPartialUnstake = await liquidityPool.connect(deployer).withdrawStake(partialUnstake);
+    const txPartialUnstake = await liquidityPool
+      .connect(deployer)
+      .withdrawStake(partialUnstake);
     const rcptPartialUnstake = await txPartialUnstake.wait();
     console.log(`Partial Unstake TX status: ${rcptPartialUnstake.status === 1 ? "Success" : "Fail"}`);
 
     const stakedBalAfterPartial = await liquidityPool.stakedBalances(deployer.address);
-    console.log(`Staked After Partial Unstake: ${ethers.utils.formatUnits(stakedBalAfterPartial, 18)}`);
+    console.log(
+      `Staked After Partial Unstake: ${ethers.utils.formatUnits(stakedBalAfterPartial, 18)}`
+    );
 
     expect(stakedBalAfterPartial).to.eq(stakedBalBeforePartial.sub(partialUnstake));
 
     /********************************************************************
-     * Step 6: FULL UNSTAKE (Remaining)
+     * Step 6: FULL UNSTAKE (Remaining DUEL)
      ********************************************************************/
     console.log("\n--- STEP 6: FULL UNSTAKE ---");
     const stakedRemaining = await liquidityPool.stakedBalances(deployer.address);
-    console.log(`Remaining staked: ${ethers.utils.formatUnits(stakedRemaining, 18)}`);
+    console.log(
+      `Remaining staked: ${ethers.utils.formatUnits(stakedRemaining, 18)} DUEL (18 decimals)`
+    );
 
     console.log("User wants to unstake:", ethers.utils.formatUnits(stakedRemaining, 18));
 
@@ -190,6 +223,5 @@ describe("Staking and DUEL Flows ", function () {
     const usdcAfterFinalClaim = await mockUsdc.balanceOf(deployer.address);
     expect(usdcAfterFinalClaim.sub(usdcBeforeFinalClaim)).to.eq(0);
     console.log("Confirmed final claim yields 0, no revert!");
-
   });
 });

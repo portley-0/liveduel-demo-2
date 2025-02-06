@@ -8,18 +8,21 @@ chai.use(solidity);
 dotenv.config();
 
 describe("PredictionMarket - buyShares()", function () {
+  this.timeout(120000);
   let predictionMarket: any;
   let marketFactory: any;
   let liquidityPool: any;
   let conditionalTokens: any;
+  let whitelistWrapper: any;
   let usdc: any;
   let user: any;
 
   const PREDICTION_MARKET_ADDRESS = process.env.TEST_PREDICTION_MARKET_ADDRESS!;
   const MARKET_FACTORY_ADDRESS = process.env.MARKET_FACTORY_ADDRESS!;
   const LIQUIDITY_POOL_ADDRESS = process.env.LIQUIDITY_POOL_ADDRESS!;
-  const CONDITIONAL_TOKENS_WRAPPER_ADDRESS = process.env.CONDITIONAL_TOKENS_WRAPPER_ADDRESS!;
+  const CONDITIONAL_TOKENS_ADDRESS = process.env.CONDITIONAL_TOKENS_ADDRESS!;
   const MOCK_USDC_ADDRESS = process.env.MOCK_USDC_ADDRESS!;
+  const WHITELIST_WRAPPER_ADDRESS = process.env.WHITELIST_WRAPPER_ADDRESS!;
 
   let conditionId: string;
 
@@ -37,11 +40,16 @@ describe("PredictionMarket - buyShares()", function () {
     ];
 
     const MarketFactoryAbi = [
-      "function platformProfitPool() external view returns (uint256)"
+      "function platformProfitPool() external view returns (uint256)",
+      "function verifyUser(address user) external"
+    ];
+
+    const WhitelistWrapperAbi = [
+      "function addToWhitelist(address[] memory users) external",
+      "function isUserWhitelisted(address user) external view returns (bool)"
     ];
 
     const LiquidityPoolAbi = [
-      "function stakingRewardsPool() external view returns (uint256)",
       "function usdcReserve() external view returns (uint256)",
       "event FundsWithdrawn(address indexed market, uint256 amount18)"
     ];
@@ -49,7 +57,9 @@ describe("PredictionMarket - buyShares()", function () {
     const ConditionalTokensAbi = [
       "function balanceOf(address account, uint256 id) external view returns (uint256)",
       "function getPositionId(address, bytes32) external pure returns (uint256)",
-      "function getCollectionId(bytes32, bytes32, uint256) external view returns (bytes32)"
+      "function getCollectionId(bytes32, bytes32, uint256) external view returns (bytes32)",
+      "function setApprovalForAll(address operator, bool approved) external",
+      "function isApprovedForAll(address owner, address operator) external view returns (bool)"
     ];
 
     const UsdcAbi = [
@@ -62,8 +72,9 @@ describe("PredictionMarket - buyShares()", function () {
     predictionMarket = new ethers.Contract(PREDICTION_MARKET_ADDRESS, PredictionMarketAbi, user);
     marketFactory = new ethers.Contract(MARKET_FACTORY_ADDRESS, MarketFactoryAbi, user);
     liquidityPool = new ethers.Contract(LIQUIDITY_POOL_ADDRESS, LiquidityPoolAbi, user);
-    conditionalTokens = new ethers.Contract(CONDITIONAL_TOKENS_WRAPPER_ADDRESS, ConditionalTokensAbi, user);
+    conditionalTokens = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, ConditionalTokensAbi, user);
     usdc = new ethers.Contract(MOCK_USDC_ADDRESS, UsdcAbi, user);
+    whitelistWrapper = new ethers.Contract(WHITELIST_WRAPPER_ADDRESS, WhitelistWrapperAbi, user);
 
     const resolved = await predictionMarket.isResolved();
     if (resolved) {
@@ -74,10 +85,13 @@ describe("PredictionMarket - buyShares()", function () {
     conditionId = await predictionMarket.conditionId();
     console.log("ConditionId:", conditionId);
 
-    await usdc.mint(ethers.utils.parseUnits("10000", 18));
+    // Give the user some USDC
+    await usdc.mint(ethers.utils.parseUnits("10000", 6));
     console.log("Minted 10,000 USDC to user:", user.address);
-  });
 
+    await marketFactory.verifyUser(user.address);
+  });
+ 
   describe("buyShares()", function () {
     it("should revert on invalid outcome", async function () {
       await expect(
@@ -92,9 +106,7 @@ describe("PredictionMarket - buyShares()", function () {
     });
 
     it("allows user to buy shares and emits events", async function () {
-
-      await usdc.connect(user).approve(predictionMarket.address, ethers.utils.parseUnits("10000", 18));
-
+      
       const userBalanceBefore = await usdc.balanceOf(user.address);
       console.log("User USDC balance BEFORE buy:", userBalanceBefore.toString());
 
@@ -105,6 +117,7 @@ describe("PredictionMarket - buyShares()", function () {
         "function atomicOutcomeSlotCount() external view returns (uint)",
         "function whitelist() external view returns (address)"
       ], user);
+
       const mmStageBefore = await MarketMaker.stage();
       const mmFundingBefore = await MarketMaker.funding();
       const mmSlotCount = await MarketMaker.atomicOutcomeSlotCount();
@@ -114,23 +127,30 @@ describe("PredictionMarket - buyShares()", function () {
       console.log("MarketMaker atomicOutcomeSlotCount:", mmSlotCount.toString());
       console.log("MarketMaker whitelist:", mmWhitelist);
 
+      // Check LiquidityPool and platform profit before
       const lpReserveBefore = await liquidityPool.usdcReserve();
       console.log("LiquidityPool usdcReserve BEFORE buy:", lpReserveBefore.toString());
 
       const oldProfit = await marketFactory.platformProfitPool();
       console.log("Platform profit pool BEFORE buy:", oldProfit.toString());
 
-      const oldLpRewards = await liquidityPool.stakingRewardsPool();
-      console.log("LP rewards BEFORE buy:", oldLpRewards.toString());
-
+      // Optionally check netCost for this trade
       const netCost = await predictionMarket.connect(user).getNetCost(0, 100);
-      console.log("netCost =>", netCost.toString()); 
-      if (netCost.lte(0)) {
-        console.log("Net cost <= 0 => That means buyShares would revert with 'Invalid trade cost'");
-      }
+      console.log("netCost =>", netCost.toString());
 
-      const allowance = await usdc.allowance(user.address, predictionMarket.address);
-      console.log("USDC Allowance:", allowance.toString());
+      const userWhitelisted = await whitelistWrapper.isUserWhitelisted(user.address);
+      console.log("User whitelisted:", userWhitelisted);
+
+      const marketWhitelisted = await whitelistWrapper.isUserWhitelisted(predictionMarket.address);
+      console.log("Market whitelisted:", marketWhitelisted);
+
+      await usdc.connect(user).approve(predictionMarket.address, ethers.utils.parseUnits("10000", 6));
+
+      await conditionalTokens.connect(user).setApprovalForAll(marketMakerAddr, true);
+      await conditionalTokens.connect(user).setApprovalForAll(predictionMarket.address, true);
+      console.log(await conditionalTokens.isApprovedForAll(predictionMarket.address, marketMakerAddr));
+
+
 
       const tx = await predictionMarket.connect(user).buyShares(0, 100);
       const receipt = await tx.wait();
@@ -146,6 +166,7 @@ describe("PredictionMarket - buyShares()", function () {
       const lpReserveAfter = await liquidityPool.usdcReserve();
       console.log("LiquidityPool usdcReserve AFTER buy:", lpReserveAfter.toString());
 
+      // Find events
       const sharesPurchasedEvent = receipt.events.find(e => e.event === "SharesPurchased");
       const oddsUpdatedEvent = receipt.events.find(e => e.event === "OddsUpdated");
       expect(sharesPurchasedEvent).to.exist;
@@ -164,21 +185,22 @@ describe("PredictionMarket - buyShares()", function () {
       const userSpent = userBalanceBefore.sub(userBalanceAfter);
       console.log("User spent USDC:", userSpent.toString());
 
+      // Compare changes in profit pool and liquidity pool reserve
       const newProfit = await marketFactory.platformProfitPool();
-      const newLpRewards = await liquidityPool.stakingRewardsPool();
       const profitDiff = newProfit.sub(oldProfit);
-      const lpRewardsDiff = newLpRewards.sub(oldLpRewards);
-
       console.log("Platform profit increase:", profitDiff.toString());
-      console.log("LP rewards increase:", lpRewardsDiff.toString());
-      expect(profitDiff).to.equal(lpRewardsDiff);
+
+      const lpReserveDiff = lpReserveAfter.sub(lpReserveBefore);
+      console.log("LiquidityPool usdcReserve increase:", lpReserveDiff.toString());
+
+      expect(profitDiff).to.equal(lpReserveDiff);
     });
 
     it("withdraws from LiquidityPool if shortfall in MarketMaker collateral", async function () {
       const marketMakerAddr = await predictionMarket.marketMaker();
       const mmBalanceBefore = await usdc.balanceOf(marketMakerAddr);
       const lpReserveBefore = await liquidityPool.usdcReserve();
-      const shortfallAmount = mmBalanceBefore.add(ethers.utils.parseUnits("1000", 18));
+      const shortfallAmount = mmBalanceBefore.add(ethers.utils.parseUnits("1000", 6));
 
       await usdc.connect(user).approve(predictionMarket.address, shortfallAmount);
       const tx = await predictionMarket.connect(user).buyShares(0, shortfallAmount);
@@ -189,7 +211,7 @@ describe("PredictionMarket - buyShares()", function () {
       );
       expect(fundsWithdrawnEvent).to.exist;
       console.log("FundsWithdrawn => amount:", fundsWithdrawnEvent.args.amount.toString());
-      expect(fundsWithdrawnEvent.args._amount).to.be.gt(0);
+      expect(fundsWithdrawnEvent.args.amount).to.be.gt(0);
 
       const ammFundingChangedEvent = receipt.events.find(
         e => e.address.toLowerCase() === marketMakerAddr.toLowerCase() && e.event === "AMMFundingChanged"
@@ -203,9 +225,12 @@ describe("PredictionMarket - buyShares()", function () {
       console.log("MM USDC before:", mmBalanceBefore.toString(), "-> after:", mmBalanceAfter.toString());
       console.log("LP Reserve before:", lpReserveBefore.toString(), "-> after:", lpReserveAfter.toString());
 
+      // MarketMaker's USDC should have increased
       expect(mmBalanceAfter).to.be.gt(mmBalanceBefore);
+
+      // The difference in the pool's reserve matches the withdrawn amount
       const lpDiff = lpReserveBefore.sub(lpReserveAfter);
-      expect(lpDiff).to.equal(fundsWithdrawnEvent.args.amount18);
+      expect(lpDiff).to.equal(fundsWithdrawnEvent.args.amount);
     });
 
     it("credits user with outcome tokens", async function () {

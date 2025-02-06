@@ -2,6 +2,7 @@
   "name": "hardhat-project",
   "scripts": {
     "deploy:system": "pnpm hardhat run scripts/DeployPredictionSystem.ts --network avalancheFuji",
+    "deploy:adapter": "pnpm hardhat run scripts/DeployAdapter.ts --network avalancheFuji",
     "deploy:resultsconsumer": "pnpm hardhat run scripts/DeployResultsConsumer.ts --network avalancheFuji",
     "test:chainlink": "pnpm hardhat run scripts/TestChainlinkRequest.ts --network avalancheFuji",
     "test:sanity": "npx hardhat test --network avalancheFuji tests/sanitycheck.test.ts",

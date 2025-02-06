@@ -16,6 +16,7 @@ async function main() {
     const LMSR_MARKET_MAKER_FACTORY_ADDRESS = process.env.LMSR_MARKET_MAKER_FACTORY_ADDRESS || "";
     const WHITELIST_ADDRESS = process.env.WHITELIST_ADDRESS || "";
     const RESULTS_CONSUMER_ADDRESS = process.env.RESULTS_CONSUMER_ADDRESS || "";
+    const ADAPTER_ADDRESS = process.env.ADAPTER_ADDRESS || "";
 
     try {
         // Load Whitelist artifact
@@ -72,7 +73,7 @@ async function main() {
             CONDITIONAL_TOKENS_ADDRESS,
             WHITELIST_ADDRESS,
             0,
-            ethers.utils.parseUnits("5000", 18) 
+            ethers.utils.parseUnits("10000", 6) 
         );
         await lmsrMarketMakerFactoryWrapper.deployed();
         console.log("LMSRMarketMakerFactoryWrapper deployed to:", lmsrMarketMakerFactoryWrapper.address);
@@ -117,7 +118,8 @@ async function main() {
             RESULTS_CONSUMER_ADDRESS,
             mockUSDC.address,
             conditionalTokensWrapper.address,
-            lmsrMarketMakerFactoryWrapper.address
+            lmsrMarketMakerFactoryWrapper.address,
+            ADAPTER_ADDRESS
         );
         await marketFactory.deployed();
         console.log("MarketFactory deployed to:", marketFactory.address);
@@ -133,8 +135,9 @@ async function main() {
         // Mint initial USDC and Duel, add initial liquidity
         // --------------------------------------------------------------------
         console.log("\nAdding initial liquidity...");
-        const initialUSDC = ethers.utils.parseUnits("10000", 18);
-        const initialDUEL = ethers.utils.parseUnits("100000", 18);
+
+        const initialUSDC = ethers.utils.parseUnits("100000", 6); 
+        const initialDUEL = ethers.utils.parseUnits("1000000", 18);
 
         console.log("Minting MockUSDC to deployer...");
         const mockUSDCMintTx = await mockUSDC.mint(initialUSDC);
@@ -165,15 +168,15 @@ async function main() {
 
         console.log("Calling addInitialLiquidity...");
         const liquidityTx = await liquidityPool.connect(deployer).addInitialLiquidity(
-            initialUSDC, // 10,000 USDC 
-            initialDUEL  // 100,000 DUEL 
+            initialUSDC, 
+            initialDUEL  
         );
         console.log("Transaction hash:", liquidityTx.hash);
         await liquidityTx.wait();
         console.log("Initial liquidity added successfully!");
 
         // --------------------------------------------------------------------
-        // Authorize the deployer so they can call returnLiquidity(...) later
+        // Authorize the deployer so they can call returnLiquidity()
         // --------------------------------------------------------------------
         console.log("\nAuthorizing deployer in LiquidityPool for returnLiquidity...");
         const authorizeTx = await liquidityPool.connect(deployer).authorizeMarket(deployer.address);
@@ -206,7 +209,6 @@ async function main() {
         let envContent = fs.readFileSync(envPath, "utf8");
 
         function setEnvVar(key: string, value: string) {
-            // If key already exists, replace it. Otherwise, add it.
             const regex = new RegExp(`^${key}=.*`, "m");
             if (regex.test(envContent)) {
                 envContent = envContent.replace(regex, `${key}=${value}`);

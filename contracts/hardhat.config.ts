@@ -17,6 +17,7 @@ const config: HardhatUserConfig = {
             runs: 1000, 
           },
           evmVersion: "istanbul",
+          viaIR: true
         },
       },
       {
@@ -25,7 +26,6 @@ const config: HardhatUserConfig = {
           optimizer: {
             enabled: true,
           },
-          evmVersion: "istanbul",
         },
       },
     ],
@@ -40,7 +40,7 @@ const config: HardhatUserConfig = {
       url: "https://rpc.ankr.com/avalanche_fuji",
       accounts: [process.env.PRIVATE_KEY ?? ""],
       gas: "auto", 
-      gasPrice: 18000000000, // 
+      gasPrice: 5000000000, // 
     },
   },
   paths: {

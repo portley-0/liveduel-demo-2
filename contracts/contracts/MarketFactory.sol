@@ -32,6 +32,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     IERC20 public usdc;
     IConditionalTokens public conditionalTokens; 
     ILMSRMarketMakerFactoryWrapper public lmsrFactoryWrapper;
+    address private adapterAddress;
 
     uint256 public constant MATCH_DURATION = 120 * 60; 
     bool public initialized;
@@ -45,7 +46,8 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         address _resultsConsumer,
         address _usdc,
         address _conditionalTokensWrapper,
-        address _lmsrFactoryWrapper
+        address _lmsrFactoryWrapper,
+        address _adapterAddress
     ) Ownable(msg.sender) {
         require(_liquidityPool != address(0), "Invalid LiquidityPool address");
         require(_whitelistWrapper != address(0), "Invalid WhitelistWrapper address");
@@ -53,6 +55,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         require(_usdc != address(0), "Invalid USDC address");
         require(_conditionalTokensWrapper != address(0), "Invalid ConditionalTokensWrapper address");
         require(_lmsrFactoryWrapper != address(0), "Invalid LMSRFactoryWrapper address");
+        require(_adapterAddress != address(0), "Invalid adapter address");
 
         liquidityPool = ILiquidityPool(_liquidityPool);
         whitelist = IWhitelist(_whitelistWrapper);
@@ -60,6 +63,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         usdc = IERC20(_usdc);
         conditionalTokens = IConditionalTokens(_conditionalTokensWrapper);
         lmsrFactoryWrapper = ILMSRMarketMakerFactoryWrapper(_lmsrFactoryWrapper);
+        adapterAddress = _adapterAddress;
     }
 
     function initialize() external onlyOwner {
@@ -83,20 +87,34 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         require(amount <= platformProfitPool, "Amount exceeds platform profit pool");
         platformProfitPool -= amount;
         usdc.transfer(msg.sender, amount);
+    } 
+
+    function verifyUser(address user) external onlyOwner {
+        address[] memory users = new address[](1);
+        users[0] = user;
+        whitelist.addToWhitelist(users);
     }
 
     function deployPredictionMarket(uint256 matchId, uint256 matchTimestamp) external onlyOwner {
         require(predictionMarkets[matchId] == address(0), "Market already exists");
         require(matchTimestamp > block.timestamp, "Invalid timestamp");
 
-        uint256 initialFunding = 5000 * 10**18; 
+        uint256 initialFunding = 10000 * 10**6;
         liquidityPool.withdrawLiquidity(initialFunding);
         usdc.approve(address(lmsrFactoryWrapper), initialFunding);
 
-        bytes32 questionId = keccak256(abi.encodePacked("Match Result: ", matchId));
-        conditionalTokens.prepareCondition(address(this), questionId, 3);
+        PredictionMarket predictionMarket = new PredictionMarket(
+            matchId,
+            address(liquidityPool),
+            address(usdc),
+            address(conditionalTokens)
+        );
 
-        bytes32 conditionId = conditionalTokens.getConditionId(address(this), questionId, 3);
+        bytes32 questionId = keccak256(abi.encodePacked("Match Result: ", matchId));
+        conditionalTokens.prepareCondition(address(predictionMarket), questionId, 3);
+
+        bytes32 conditionId = conditionalTokens.getConditionId(address(predictionMarket), questionId, 3);  
+
         matchConditionIds[matchId] = conditionId;
 
         bytes32[] memory conditionIds = new bytes32[](1);
@@ -104,15 +122,8 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         address marketMaker = lmsrFactoryWrapper.createLMSRMarketMaker(conditionIds);
         lmsrMarketMakers[matchId] = marketMaker;
 
-        PredictionMarket predictionMarket = new PredictionMarket(
-            matchId,
-            address(liquidityPool),
-            conditionId,
-            questionId,
-            address(usdc),
-            address(conditionalTokens),
-            marketMaker
-        );
+        predictionMarket.setAdapterAddress(adapterAddress);
+        predictionMarket.initializeMarket(questionId, conditionId, marketMaker);
 
         address[] memory whitelistArray = new address[](1);
         whitelistArray[0] = address(predictionMarket);
