@@ -14,7 +14,7 @@ dotenv.config();
 describe("MarketFactory - deployPredictionMarket() ", function () {
   const MARKET_FACTORY_ADDRESS = process.env.MARKET_FACTORY_ADDRESS!;
   const LIQUIDITY_POOL_ADDRESS = process.env.LIQUIDITY_POOL_ADDRESS!;
-  const WHITELIST_WRAPPER_ADDRESS = process.env.WHITELIST_WRAPPER_ADDRESS!;
+  const WHITELIST_ADDRESS = process.env.WHITELIST_ADDRESS!;
 
   let marketFactory: Contract;
   let liquidityPool: Contract;
@@ -23,8 +23,8 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
   let oldUsdcReserve: BigNumber;
 
   // The match ID and future timestamp
-  const MATCH_ID = 1304767; 
-  const MATCH_TIMESTAMP = 1738800000; 
+  const MATCH_ID = 1345998; 
+  const MATCH_TIMESTAMP = 1739192400; 
 
   let owner: any;
 
@@ -45,12 +45,12 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
       "function authorizedMarkets(address) external view returns (bool)",
     ];
     const WhitelistAbi = [
-      "function isUserWhitelisted(address) external view returns (bool)",
+      "function isWhitelisted(address) external view returns (bool)",
     ];
 
     marketFactory = new ethers.Contract(MARKET_FACTORY_ADDRESS, MarketFactoryAbi, owner);
     liquidityPool = new ethers.Contract(LIQUIDITY_POOL_ADDRESS, LiquidityPoolAbi, owner);
-    whitelist = new ethers.Contract(WHITELIST_WRAPPER_ADDRESS, WhitelistAbi, owner);
+    whitelist = new ethers.Contract(WHITELIST_ADDRESS, WhitelistAbi, owner);
 
     oldUsdcReserve = await liquidityPool.usdcReserve();
     console.log("Current LiquidityPool USDC reserve:", oldUsdcReserve.toString());
@@ -124,7 +124,7 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
     );
 
     // ============= WHITELIST + LIQUIDITYPOOL AUTH =============
-    const isWhitelisted = await whitelist.isUserWhitelisted(marketAddress);
+    const isWhitelisted = await whitelist.isWhitelisted(marketAddress);
     expect(isWhitelisted).to.be.true;
 
     const isAuthorizedInPool = await liquidityPool.authorizedMarkets(marketAddress);

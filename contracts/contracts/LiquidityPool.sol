@@ -119,7 +119,6 @@ contract LiquidityPool is Ownable {
 
     function addToRewardsPool(uint256 _amount) external {
         require(_amount > 0, "Zero amount");
-        require(totalStaked > 0, "No stakers currently");
         usdc.transferFrom(msg.sender, address(this), _amount);
         updatePool(_amount);
         emit RewardsPoolUpdated(_amount);

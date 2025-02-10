@@ -2,16 +2,16 @@
 pragma solidity ^0.8.20;
 
 import "./interfaces/ILiquidityPool.sol";
-import "./interfaces/ILMSRMarketMaker.sol";
+import "./gnosis/LMSRMarketMaker.sol";
 import "./PredictionMarket.sol";
 import "./interfaces/IResultsConsumer.sol";
-import "./interfaces/IConditionalTokens.sol";
-import "./interfaces/ILMSRMarketMakerFactoryWrapper.sol";
-import "./interfaces/IWhitelist.sol";
+import "./gnosis/ConditionalTokens.sol";
+import "./gnosis/LMSRMarketMakerFactory.sol";
+import "./gnosis/Whitelist.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
+import { AutomationCompatibleInterface } from "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
 
 contract MarketFactory is Ownable, AutomationCompatibleInterface {
     mapping(uint256 => address) public predictionMarkets; 
@@ -27,12 +27,11 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     uint256 public platformProfitPool;
 
     ILiquidityPool public liquidityPool;
-    IWhitelist public whitelist;
+    Whitelist public whitelist;
     IResultsConsumer public resultsConsumer;
     IERC20 public usdc;
-    IConditionalTokens public conditionalTokens; 
-    ILMSRMarketMakerFactoryWrapper public lmsrFactoryWrapper;
-    address private adapterAddress;
+    ConditionalTokens public conditionalTokens; 
+    LMSRMarketMakerFactory public lmsrFactory;
 
     uint256 public constant MATCH_DURATION = 120 * 60; 
     bool public initialized;
@@ -42,28 +41,25 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
 
     constructor(
         address _liquidityPool,
-        address _whitelistWrapper,
+        address _whitelist,
         address _resultsConsumer,
         address _usdc,
-        address _conditionalTokensWrapper,
-        address _lmsrFactoryWrapper,
-        address _adapterAddress
+        address _conditionalTokens,
+        address _lmsrFactory
     ) Ownable(msg.sender) {
         require(_liquidityPool != address(0), "Invalid LiquidityPool address");
-        require(_whitelistWrapper != address(0), "Invalid WhitelistWrapper address");
+        require(_whitelist != address(0), "Invalid Whitelist address");
         require(_resultsConsumer != address(0), "Invalid ResultsConsumer address");
         require(_usdc != address(0), "Invalid USDC address");
-        require(_conditionalTokensWrapper != address(0), "Invalid ConditionalTokensWrapper address");
-        require(_lmsrFactoryWrapper != address(0), "Invalid LMSRFactoryWrapper address");
-        require(_adapterAddress != address(0), "Invalid adapter address");
+        require(_conditionalTokens != address(0), "Invalid ConditionalTokens address");
+        require(_lmsrFactory != address(0), "Invalid LMSRFactory address");
 
         liquidityPool = ILiquidityPool(_liquidityPool);
-        whitelist = IWhitelist(_whitelistWrapper);
+        whitelist = Whitelist(_whitelist);
         resultsConsumer = IResultsConsumer(_resultsConsumer);
         usdc = IERC20(_usdc);
-        conditionalTokens = IConditionalTokens(_conditionalTokensWrapper);
-        lmsrFactoryWrapper = ILMSRMarketMakerFactoryWrapper(_lmsrFactoryWrapper);
-        adapterAddress = _adapterAddress;
+        conditionalTokens = ConditionalTokens(_conditionalTokens);
+        lmsrFactory = LMSRMarketMakerFactory(_lmsrFactory);
     }
 
     function initialize() external onlyOwner {
@@ -101,7 +97,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
 
         uint256 initialFunding = 10000 * 10**6;
         liquidityPool.withdrawLiquidity(initialFunding);
-        usdc.approve(address(lmsrFactoryWrapper), initialFunding);
+        usdc.approve(address(lmsrFactory), initialFunding);
 
         PredictionMarket predictionMarket = new PredictionMarket(
             matchId,
@@ -114,22 +110,30 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         conditionalTokens.prepareCondition(address(predictionMarket), questionId, 3);
 
         bytes32 conditionId = conditionalTokens.getConditionId(address(predictionMarket), questionId, 3);  
+        require(conditionId != bytes32(0), "Condition ID not found");
 
         matchConditionIds[matchId] = conditionId;
 
         bytes32[] memory conditionIds = new bytes32[](1);
         conditionIds[0] = conditionId;
-        address marketMaker = lmsrFactoryWrapper.createLMSRMarketMaker(conditionIds);
-        lmsrMarketMakers[matchId] = marketMaker;
+        
+        LMSRMarketMaker marketMaker = lmsrFactory.createLMSRMarketMaker(
+            conditionalTokens,
+            usdc,
+            conditionIds,
+            uint64(0),
+            whitelist,
+            initialFunding
+        );
 
-        predictionMarket.setAdapterAddress(adapterAddress);
-        predictionMarket.initializeMarket(questionId, conditionId, marketMaker);
+        lmsrMarketMakers[matchId] = address(marketMaker);
+        predictionMarket.initializeMarket(questionId, conditionId, address(marketMaker));
 
         address[] memory whitelistArray = new address[](1);
         whitelistArray[0] = address(predictionMarket);
         whitelist.addToWhitelist(whitelistArray);
 
-        ILMSRMarketMaker(marketMaker).transferOwnership(address(predictionMarket));
+        marketMaker.transferOwnership(address(predictionMarket));
         liquidityPool.authorizeMarket(address(predictionMarket));
 
         predictionMarkets[matchId] = address(predictionMarket);

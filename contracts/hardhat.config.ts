@@ -37,7 +37,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     avalancheFuji: {
-      url: "https://rpc.ankr.com/avalanche_fuji",
+      url: "https://api.avax-test.network/ext/bc/C/rpc",
       accounts: [process.env.PRIVATE_KEY ?? ""],
       gas: "auto", 
       gasPrice: 5000000000, // 

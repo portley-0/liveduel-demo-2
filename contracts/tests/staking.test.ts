@@ -61,7 +61,7 @@ describe("Staking and DUEL Flows ", function () {
     );
   }
 
-  it("Scenario: Buy DUEL → Stake → Add Rewards → Claim → Partial Unstake → Full Unstake → Final Claim (revert)", async function () {
+  it("Scenario: Buy DUEL → Stake → Add Rewards → Claim → Partial Unstake → Full Unstake → Final Claim (0 Rewards)", async function () {
     /********************************************************************
      * Step 1: BUY DUEL
      ********************************************************************/

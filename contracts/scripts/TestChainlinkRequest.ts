@@ -10,7 +10,7 @@ async function main() {
   const ResultsConsumer = await ethers.getContractFactory("ResultsConsumer");
   const resultsConsumer = ResultsConsumer.attach(resultsConsumerAddress);
 
-  const matchId = 1328293;
+  const matchId = 1302694;
   console.log(`Requesting match result for matchId: ${matchId}`);
 
   // Request match result

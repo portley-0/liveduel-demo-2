@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./interfaces/ILMSRMarketMaker.sol";
-import "./interfaces/IConditionalTokens.sol";
+import "./gnosis/LMSRMarketMaker.sol";
+import "./gnosis/ConditionalTokens.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./MarketFactory.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -16,9 +16,8 @@ contract PredictionMarket is Ownable, ERC1155Holder {
     bytes32 public conditionId; 
     bytes32 public questionId;
     IERC20 public usdc;
-    IConditionalTokens public conditionalTokens;
-    ILMSRMarketMaker public marketMaker;
-    address private adapterAddress;
+    ConditionalTokens public conditionalTokens;
+    LMSRMarketMaker public marketMaker;
 
     bool public initialized;
 
@@ -48,44 +47,15 @@ contract PredictionMarket is Ownable, ERC1155Holder {
         matchId = _matchId;
         liquidityPool = ILiquidityPool(_liquidityPool);
         usdc = IERC20(_usdc);
-        conditionalTokens = IConditionalTokens(_conditionalTokens);
-    }
-
-    function setAdapterAddress(address _adapterAddress) external onlyOwner {
-        require(_adapterAddress != address(0), "Invalid adapter address");
-        adapterAddress = _adapterAddress;
-    }
-
-    function approveMarketMakerViaAdapterExternal() external {
-        require(msg.sender == address(this), "Must be called by self");
-        require(adapterAddress != address(0), "Adapter not set");
-
-        bytes memory data = abi.encodeWithSignature(
-            "setApprovalForMarketMaker(address,address)",
-            address(conditionalTokens),
-            address(marketMaker)
-        );
-        (bool success, bytes memory result) = adapterAddress.call(data);
-        if (!success) {
-            if (result.length > 0) {
-                assembly {
-                    let returndata_size := mload(result)
-                    revert(add(32, result), returndata_size)
-                }
-            } else {
-                revert("External call via adapter failed without reason");
-            }
-        }
-        bool approvalSet = abi.decode(result, (bool));
-        require(approvalSet, "Approval not set by adapter external call");
+        conditionalTokens = ConditionalTokens(_conditionalTokens);
     }
 
     function initializeMarket(bytes32 _questionId, bytes32 _conditionId, address _marketMaker) external onlyOwner {
         require(!initialized, "Market already initialized");
         conditionId = _conditionId;
         questionId = _questionId;
-        marketMaker = ILMSRMarketMaker(_marketMaker);
-        this.approveMarketMakerViaAdapterExternal();
+        marketMaker = LMSRMarketMaker(_marketMaker);
+        conditionalTokens.setApprovalForAll(_marketMaker, true);
         initialized = true;
     }
 
@@ -220,7 +190,11 @@ contract PredictionMarket is Ownable, ERC1155Holder {
             conditionalTokens.getCollectionId(bytes32(0), conditionId, indexSet)
         );
         uint256 userBalance = conditionalTokens.balanceOf(msg.sender, winningPositionId);
-        uint[] memory payoutNumerators = conditionalTokens.payoutNumerators(conditionId);
+        uint outcomeCount = conditionalTokens.getOutcomeSlotCount(conditionId);
+        uint[] memory payoutNumerators = new uint[](outcomeCount);
+        for (uint i = 0; i < outcomeCount; i++) {
+            payoutNumerators[i] = conditionalTokens.payoutNumerators(conditionId, i);
+        }
         uint payoutDenominator = conditionalTokens.payoutDenominator(conditionId);
         uint256 payoutNumerator = payoutNumerators[resolvedOutcome];
         uint256 payout = (userBalance * payoutNumerator) / payoutDenominator;
