@@ -23,8 +23,8 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
   let oldUsdcReserve: BigNumber;
 
   // The match ID and future timestamp
-  const MATCH_ID = 1345998; 
-  const MATCH_TIMESTAMP = 1739192400; 
+  const MATCH_ID = 1214475; 
+  const MATCH_TIMESTAMP = 1739806200; 
 
   let owner: any;
 
@@ -113,14 +113,14 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
 
     // ============= VERIFY LIQUIDITY WITHDRAWAL =============
     const newUsdcReserve = await liquidityPool.usdcReserve();
-    console.log("New LiquidityPool USDC reserve:", newUsdcReserve.toString());
+    console.log("New LiquidityPool USDC reserve:", ethers.utils.formatUnits(newUsdcReserve, 6));
     
-    const expectedWithdraw = ethers.BigNumber.from("10000000000"); 
+    const expectedWithdraw = ethers.utils.parseUnits("3500", 6); 
     const actualWithdraw = oldUsdcReserve.sub(newUsdcReserve);
 
     expect(actualWithdraw).to.equal(
       expectedWithdraw,
-      `Expected a 10000 USDC withdrawal in 6 decimals, got ${actualWithdraw.toString()}`
+      `Expected a 3500 USDC withdrawal, got ${ethers.utils.formatUnits(actualWithdraw, 6)} USDC }`
     );
 
     // ============= WHITELIST + LIQUIDITYPOOL AUTH =============

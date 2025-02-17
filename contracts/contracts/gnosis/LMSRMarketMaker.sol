@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.20; 
 
 import { Fixed192x64Math } from "./Fixed192x64Math.sol";
 import { MarketMaker } from "./MarketMaker.sol";
@@ -11,7 +11,7 @@ contract LMSRMarketMaker is MarketMaker {
      *  Constants
      */
     uint constant ONE = 0x10000000000000000;
-    int constant EXP_LIMIT = 3394200909562557497344;
+    int constant EXP_LIMIT = 337769972052787200000;
 
     /// @dev Calculates the net cost for executing a given trade.
     /// @param outcomeTokenAmounts Amounts of outcome tokens to buy from the market. If an amount is negative, represents an amount to sell to the market.

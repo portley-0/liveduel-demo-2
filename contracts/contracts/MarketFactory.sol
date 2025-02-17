@@ -38,6 +38,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
 
     event PredictionMarketDeployed(uint256 matchId, address marketAddress, uint256 matchTimestamp);
     event PredictionMarketResolved(uint256 matchId, uint8 outcome);
+    event PlatformProfitAdded(uint256 amount);
 
     constructor(
         address _liquidityPool,
@@ -77,6 +78,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         require(amount > 0, "Amount must be greater than zero");
         usdc.transferFrom(msg.sender, address(this), amount);
         platformProfitPool += amount;
+        emit PlatformProfitAdded(amount);
     }
 
     function withdrawPlatformProfit(uint256 amount) external onlyOwner {
@@ -95,7 +97,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         require(predictionMarkets[matchId] == address(0), "Market already exists");
         require(matchTimestamp > block.timestamp, "Invalid timestamp");
 
-        uint256 initialFunding = 10000 * 10**6;
+        uint256 initialFunding = 3500 * 1e6;
         liquidityPool.withdrawLiquidity(initialFunding);
         usdc.approve(address(lmsrFactory), initialFunding);
 

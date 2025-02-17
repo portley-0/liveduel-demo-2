@@ -122,4 +122,3 @@ contract LMSRMarketMakerFactory is ConstructedCloneFactory, LMSRMarketMakerData,
     }
 }
 
-

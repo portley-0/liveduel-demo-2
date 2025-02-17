@@ -17,8 +17,6 @@ describe("SanityCheck", function () {
   let conditionalTokens: any; 
   let lmsrMarketMakerFactory: any;
 
-  
-
   // Addresses from .env
   const MARKET_FACTORY_ADDRESS = process.env.MARKET_FACTORY_ADDRESS || "";
   const LIQUIDITY_POOL_ADDRESS = process.env.LIQUIDITY_POOL_ADDRESS || "";

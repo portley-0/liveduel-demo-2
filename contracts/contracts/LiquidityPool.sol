@@ -73,12 +73,12 @@ contract LiquidityPool is Ownable {
         if (totalStaked == 0) {
             return;
         }
-        accRewardPerShare += (_rewardAmount * 1e12) / totalStaked;
+        accRewardPerShare += (_rewardAmount * 1e30) / totalStaked;
     }
 
     function pendingRewards(address _staker) public view returns (uint256) {
         uint256 userStaked = stakedBalances[_staker];
-        uint256 accumulated = (userStaked * accRewardPerShare) / 1e12;
+        uint256 accumulated = (userStaked * accRewardPerShare) / 1e30;
         if (accumulated < rewardDebt[_staker]) {
             return 0;
         }
@@ -91,7 +91,7 @@ contract LiquidityPool is Ownable {
         duelToken.transferFrom(msg.sender, address(this), _amount);
         stakedBalances[msg.sender] += _amount;
         totalStaked += _amount;
-        rewardDebt[msg.sender] = (stakedBalances[msg.sender] * accRewardPerShare) / 1e12;
+        rewardDebt[msg.sender] = (stakedBalances[msg.sender] * accRewardPerShare) / 1e30;
     }
 
     function withdrawStake(uint256 _amount) external {
@@ -100,12 +100,12 @@ contract LiquidityPool is Ownable {
         stakedBalances[msg.sender] -= _amount;
         totalStaked -= _amount;
         duelToken.transfer(msg.sender, _amount);
-        rewardDebt[msg.sender] = (stakedBalances[msg.sender] * accRewardPerShare) / 1e12;
+        rewardDebt[msg.sender] = (stakedBalances[msg.sender] * accRewardPerShare) / 1e30;
     }
 
     function claimRewards() external {
         _claimInternal(msg.sender);
-        rewardDebt[msg.sender] = (stakedBalances[msg.sender] * accRewardPerShare) / 1e12;
+        rewardDebt[msg.sender] = (stakedBalances[msg.sender] * accRewardPerShare) / 1e30;
     }
 
     function _claimInternal(address _staker) internal {

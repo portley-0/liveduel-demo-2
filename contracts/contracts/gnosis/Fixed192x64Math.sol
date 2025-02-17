@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+
 /// @title Fixed192x64Math library - Allows calculation of logarithmic and exponential functions
 /// @author Alan Lu - <alan.lu@gnosis.pm>
 /// @author Stefan George - <stefan@gnosis.pm>
@@ -9,7 +10,7 @@ library Fixed192x64Math {
     enum EstimationMode { LowerBound, UpperBound, Midpoint }
 
     /*
-     *  Constants
+     *  Constants 
      */
     // This is equal to 1 in our calculations
     uint public constant ONE =  0x10000000000000000;
@@ -64,8 +65,8 @@ library Fixed192x64Math {
 
     /// @dev Returns bounds for value of 2**x given x
     /// @param x exponent in fixed point
-    /// @return lower lower bound of 2**x in fixed point
-    /// @return upper upper bound of 2**x in fixed point
+    /// @return lower Lower bound of 2**x in fixed point.
+    /// @return upper Upper bound of 2**x in fixed point.
     function pow2Bounds(int x)
         public
         pure
@@ -143,9 +144,9 @@ library Fixed192x64Math {
 
         shift -= 64;
         if (shift >= 0) {
-            if (result >> uint(256 - shift) == 0) {
-                lower = uint(result) << uint(shift);
-                zpow <<= uint(shift); 
+            if (uint256(result) >> (256 - uint256(shift)) == 0) { 
+                lower = uint(result) << uint256(shift);
+                zpow <<= uint256(shift); // Cast shift value to uint256
                 if (lower + uint(zpow) >= lower)
                     upper = lower + uint(zpow);
                 else
@@ -155,8 +156,8 @@ library Fixed192x64Math {
             else
                 return (2**256-1, 2**256-1);
         }
-        zpow = (zpow >> uint(-shift)) + 1;
-        lower = uint(result) >> uint(-shift);
+        zpow = (zpow >> uint256(-shift)) + 1;
+        lower = uint(result) >> uint256(-shift);
         upper = lower + uint(zpow);
         return (lower, upper);
     }
@@ -197,8 +198,8 @@ library Fixed192x64Math {
 
     /// @dev Returns bounds for value of binaryLog(x) given x
     /// @param x logarithm argument in fixed point
-    /// @return lower lower bound of binaryLog(x) in fixed point
-    /// @return upper upper bound of binaryLog(x) in fixed point
+    /// @return lower Lower bound of binaryLog(x) in fixed point.
+    /// @return upper Upper bound of binaryLog(x) in fixed point.
     function log2Bounds(uint x)
         public
         pure
@@ -225,7 +226,7 @@ library Fixed192x64Math {
             }
             y = y * y / ONE;
             if(y >= 2 * ONE) {
-                lower += int(ONE >> uint(m));
+                lower += int(uint256(ONE) >> uint256(m)); 
                 y /= 2;
             }
         }
@@ -235,28 +236,24 @@ library Fixed192x64Math {
 
     /// @dev Returns base 2 logarithm value of given x
     /// @param x x
-    /// @return lo logarithmic value
-    function floorLog2(uint x)
-        public
-        pure
-        returns (int lo)
-    {
+    /// @return lo Logarithmic value (base 2).
+    function floorLog2(uint x) public pure returns (int lo) {
         lo = -64;
         int hi = 193;
-        // I use a shift here instead of / 2 because it floors instead of rounding towards 0
         int mid = (hi + lo) >> 1;
-        while((lo + 1) < hi) {
-            if (mid < 0 && x << uint(-mid) < ONE || mid >= 0 && x >> uint(mid) < ONE)
+        while ((lo + 1) < hi) {
+            if ((mid < 0 && (x << uint256(-mid)) < ONE) || (mid >= 0 && (x >> uint256(mid)) < ONE)) 
                 hi = mid;
-            else
+            else 
                 lo = mid;
             mid = (hi + lo) >> 1;
         }
     }
 
+
     /// @dev Returns maximum of an array
     /// @param nums Numbers to look through
-    /// @return maxNum Maximum number
+    /// @return maxNum Maximum number in the input array.
     function max(int[] memory nums)
         public
         pure
