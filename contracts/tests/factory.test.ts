@@ -23,8 +23,8 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
   let oldUsdcReserve: BigNumber;
 
   // The match ID and future timestamp
-  const MATCH_ID = 1214475; 
-  const MATCH_TIMESTAMP = 1739806200; 
+  const MATCH_ID = 1330318; 
+  const MATCH_TIMESTAMP = 1739892600; 
 
   let owner: any;
 
@@ -53,7 +53,7 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
     whitelist = new ethers.Contract(WHITELIST_ADDRESS, WhitelistAbi, owner);
 
     oldUsdcReserve = await liquidityPool.usdcReserve();
-    console.log("Current LiquidityPool USDC reserve:", oldUsdcReserve.toString());
+    console.log("Current LiquidityPool USDC reserve:", ethers.utils.formatUnits(oldUsdcReserve, 6));
   });
 
   it("should deploy a new PredictionMarket and withdraw liquidity", async function () {

@@ -129,30 +129,15 @@ contract PredictionMarket is Ownable, ERC1155Holder {
 
         require(conditionalTokens.balanceOf(msg.sender, tokenId) >= amount, "Insufficient outcome tokens");
 
-        uint256 fullIndexSet = (1 << 0) | (1 << 1) | (1 << 2);
-        uint256 usdcPositionId = conditionalTokens.getPositionId(
-            usdc,
-            conditionalTokens.getCollectionId(bytes32(0), conditionId, fullIndexSet) // Full collateral claim
-        );
-        uint256 marketMakerCollateral = conditionalTokens.balanceOf(address(marketMaker), usdcPositionId);
-
         int[] memory tradeAmounts = new int[](3);
         tradeAmounts[outcome] = -int(amount); // Selling, so negative
 
         int netGain = marketMaker.calcNetCost(tradeAmounts);
         require(netGain < 0, "Invalid trade gain");
 
-        uint256 absoluteNetGain = uint256(-netGain);
-        if (marketMakerCollateral < absoluteNetGain) {
-            uint256 shortfall = absoluteNetGain - marketMakerCollateral;
-            require(usdc.balanceOf(address(liquidityPool)) >= shortfall, "LiquidityPool lacks funds");
-            liquidityPool.withdrawLiquidity(shortfall);
-            marketMaker.changeFunding(int256(shortfall));
-        }
-
         conditionalTokens.safeTransferFrom(msg.sender, address(this), tokenId, amount, "");
 
-        int actualGain = marketMaker.trade(tradeAmounts, -netGain);
+        int actualGain = marketMaker.trade(tradeAmounts, netGain);
 
         require(usdc.transfer(msg.sender, uint256(-actualGain)), "USDC transfer failed");
 
@@ -173,6 +158,10 @@ contract PredictionMarket is Ownable, ERC1155Holder {
 
     function getMarginalPrice(uint8 outcome) external view returns (uint256) {
         return marketMaker.calcMarginalPrice(outcome);
+    }
+
+    function getBettors() external view returns (address[] memory) {
+        return bettors;
     }
 
     function resolveMarket(uint8 result) external onlyOwner {
@@ -200,16 +189,21 @@ contract PredictionMarket is Ownable, ERC1155Holder {
         for (uint256 i = 0; i < balances.length; i++) {
             requiredCollateral += balances[i];
         }
-        uint256 fullIndexSet = (1 << 0) | (1 << 1) | (1 << 2);
-        uint256 usdcPositionId = conditionalTokens.getPositionId(
-            usdc,
-            conditionalTokens.getCollectionId(bytes32(0), conditionId, fullIndexSet) // Full collateral claim
-        );
-        uint256 remainingCollateral = conditionalTokens.balanceOf(address(marketMaker), usdcPositionId);
+
+        uint256 remainingCollateral = 0;
+        for (uint8 i = 0; i < 3; i++) { 
+            uint256 indexSet = 1 << i;
+            uint256 positionId = conditionalTokens.getPositionId(
+                usdc,
+                conditionalTokens.getCollectionId(bytes32(0), conditionId, indexSet)
+            );
+            remainingCollateral += conditionalTokens.balanceOf(address(marketMaker), positionId);
+        }
 
         require(remainingCollateral >= requiredCollateral, "Insufficient collateral for payouts");
         uint256 excessCollateral = remainingCollateral - requiredCollateral;
         if (excessCollateral > 0) {
+            marketMaker.pause();
             marketMaker.changeFunding(-int256(excessCollateral));
             usdc.approve(address(liquidityPool), excessCollateral);
             liquidityPool.returnLiquidity(excessCollateral);

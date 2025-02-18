@@ -103,7 +103,6 @@ describe("PredictionMarket - buyShares() & sellShares()", function () {
       console.log(`USDC Balance After Buy: ${ethers.utils.formatUnits(usdcBalanceAfterBuy, 6)} USDC`);
       console.log(`Outcome Token Balance After Buy: ${ethers.utils.formatUnits(outcomeTokenBalanceAfterBuy, 6)} Shares`);
 
-      // **🔎 Extract Events**
       const sharesPurchasedEvent = receipt.events.find(e => e.event === "SharesPurchased");
       const oddsUpdatedEventBuy = receipt.events.find(e => e.event === "OddsUpdated");
 
@@ -186,6 +185,9 @@ describe("PredictionMarket - buyShares() & sellShares()", function () {
         Away: ${(ethers.BigNumber.from(oddsUpdatedEventSell.args.away).mul(10000).div(ethers.BigNumber.from("18446744073709551616")).toNumber() / 10000).toFixed(4)}
         ----------------------------------------
       `);
+      const liquidityPoolBalance = await usdc.balanceOf(LIQUIDITY_POOL_ADDRESS);
+      console.log(`Liquidity Pool Balance: ${ethers.utils.formatUnits(liquidityPoolBalance, 6)} USDC`);
+
     });
   });
 });

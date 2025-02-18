@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 describe("Market Resolution Test", function () {
-  this.timeout(120000); // 2 minutes
+  this.timeout(120000); 
 
   let user: any;
   let marketFactory: any;
@@ -22,7 +22,6 @@ describe("Market Resolution Test", function () {
   const MOCK_USDC_ADDRESS = process.env.MOCK_USDC_ADDRESS!;
 
   let matchId: number;
-  let conditionId: string;
   let resolvedOutcome: number;
 
   before(async function () {
@@ -32,6 +31,8 @@ describe("Market Resolution Test", function () {
       "function matchId() external view returns (uint256)",
       "function isResolved() external view returns (bool)",
       "function resolvedOutcome() external view returns (uint8)",
+      "function getBettors() external view returns (address[] memory)",
+      "function conditionId() external view returns (bytes32)",
       "event MarketResolved(uint256 indexed matchId, uint8 indexed outcome)"
     ];
 
@@ -127,17 +128,11 @@ describe("Market Resolution Test", function () {
     );
 
     // Step 3: Retrieve bettors
-    const bettors = await predictionMarket.bettors();
-    const bettorAddresses: string[] = [];
-
-    for (let i = 0; i < bettors.length; i++) {
-        const bettor = await predictionMarket.bettors(i);
-        bettorAddresses.push(bettor);
-    }
+    const bettors = await predictionMarket.getBettors();
 
     // Step 4: Fetch balances for all bettors in one batch call
     const ids = Array(bettors.length).fill(winningPositionId);
-    const balances = await conditionalTokens.balanceOfBatch(bettorAddresses, ids);
+    const balances = await conditionalTokens.balanceOfBatch(bettors, ids);
 
     // Step 5: Calculate the total required collateral for payouts
     let requiredCollateral = ethers.BigNumber.from(0);

@@ -63,7 +63,7 @@ Reserves:
     await mockUsdc.connect(deployer).approve(liquidityPool.address, buyAmount);
 
     const duelBefore = await duelToken.balanceOf(deployer.address);
-    console.log(`🔹 DUEL Before Buy: ${ethers.utils.formatUnits(duelBefore, 18)}`);
+    console.log(`DUEL Before Buy: ${ethers.utils.formatUnits(duelBefore, 18)}`);
 
     const txBuy = await liquidityPool.connect(deployer).buyDuel(buyAmount);
     await txBuy.wait();
