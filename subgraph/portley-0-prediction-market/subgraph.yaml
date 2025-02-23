@@ -1,0 +1,35 @@
+specVersion: 1.2.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: MarketFactory
+    network: fuji
+    source:
+      address: "0x2d32960680E1260877cD3b036F8a10D263AcB508"
+      abi: MarketFactory
+      startBlock: 38173389
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - OwnershipTransferred
+        - PlatformProfitAdded
+        - PredictionMarketDeployed
+        - PredictionMarketResolved
+      abis:
+        - name: MarketFactory
+          file: ./abis/MarketFactory.json
+      eventHandlers:
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: PlatformProfitAdded(uint256)
+          handler: handlePlatformProfitAdded
+        - event: PredictionMarketDeployed(uint256,address,uint256)
+          handler: handlePredictionMarketDeployed
+        - event: PredictionMarketResolved(uint256,uint8)
+          handler: handlePredictionMarketResolved
+      file: ./src/market-factory.ts

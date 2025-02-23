@@ -35,6 +35,11 @@ const config: HardhatUserConfig = {
     runOnCompile: true,
     disambiguatePaths: false,
   },
+  typechain: {
+    outDir: "typechain-types",  
+    target: "ethers-v5",        
+    alwaysGenerateOverloads: false,
+  },
   networks: {
     avalancheFuji: {
       url: "https://api.avax-test.network/ext/bc/C/rpc",

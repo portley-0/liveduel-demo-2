@@ -33,6 +33,7 @@ describe("Market Resolution Test", function () {
       "function resolvedOutcome() external view returns (uint8)",
       "function getBettors() external view returns (address[] memory)",
       "function conditionId() external view returns (bytes32)",
+      "function marketMaker() external view returns (address)",
       "event MarketResolved(uint256 indexed matchId, uint8 indexed outcome)"
     ];
 
@@ -46,6 +47,7 @@ describe("Market Resolution Test", function () {
       "function balanceOf(address account, uint256 id) external view returns (uint256)",
       "function getCollectionId(bytes32, bytes32, uint ) external view returns (bytes32)",
       "function balanceOfBatch(address[] memory accounts, uint256[] memory ids) external view returns (uint256[] memory)",
+      "function getPositionId(address, bytes32) external view returns (uint256)"
     ];
 
     const LiquidityPoolAbi = [ 
@@ -63,15 +65,20 @@ describe("Market Resolution Test", function () {
 
   it("Verifies that the match ID is no longer in active matches", async function () {
     const activeMatches = await marketFactory.getActiveMatches();
-    console.log("Active Matches:", activeMatches.map((id: any) => id.toString()));
+    const activeMatchesStr = activeMatches.map((id: any) => id.toString());
+    const matchIdStr = matchId.toString();
 
-    expect(activeMatches).to.not.include(matchId, `Match ID ${matchId} is still active!`);
-    console.log(`Match ID ${matchId} successfully removed from active matches.`);
+    console.log("Active Matches:", activeMatchesStr);
+    expect(activeMatchesStr).to.not.include(matchIdStr, `Match ID ${matchIdStr} is still active!`);
+    console.log(`Match ID ${matchIdStr} successfully removed from active matches.`);
   });
 
   it("Logs the PredictionMarketResolved event", async function () {
+    const latestBlock = await ethers.provider.getBlockNumber();
+    const fromBlock = latestBlock - 2000; 
     const filter = marketFactory.filters.PredictionMarketResolved(matchId);
-    const events = await marketFactory.queryFilter(filter);
+    const events = await marketFactory.queryFilter(filter, fromBlock, latestBlock);
+    
     expect(events.length).to.be.gt(0, "PredictionMarketResolved event was not found!");
 
     const event = events[0];
@@ -165,8 +172,13 @@ describe("Market Resolution Test", function () {
 
 
   it("Logs the FundsReturned event in LiquidityPool", async function () {
+
+    const latestBlock = await ethers.provider.getBlockNumber();
+    const fromBlock = latestBlock - 2000; 
     const filter = liquidityPool.filters.FundsReturned(PREDICTION_MARKET_ADDRESS);
-    const events = await liquidityPool.queryFilter(filter);
+    
+    const events = await liquidityPool.queryFilter(filter, fromBlock, latestBlock);
+
     expect(events.length).to.be.gt(0, "FundsReturned event was not found!");
 
     const event = events[0];

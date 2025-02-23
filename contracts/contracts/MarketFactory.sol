@@ -97,7 +97,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         require(predictionMarkets[matchId] == address(0), "Market already exists");
         require(matchTimestamp > block.timestamp, "Invalid timestamp");
 
-        uint256 initialFunding = 3500 * 1e6;
+        uint256 initialFunding = 30000 * 1e6;
         liquidityPool.withdrawLiquidity(initialFunding);
         usdc.approve(address(lmsrFactory), initialFunding);
 
@@ -109,9 +109,9 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         );
 
         bytes32 questionId = keccak256(abi.encodePacked("Match Result: ", matchId));
-        conditionalTokens.prepareCondition(address(predictionMarket), questionId, 3);
+        conditionalTokens.prepareCondition(address(this), questionId, 3);
 
-        bytes32 conditionId = conditionalTokens.getConditionId(address(predictionMarket), questionId, 3);  
+        bytes32 conditionId = conditionalTokens.getConditionId(address(this), questionId, 3);  
         require(conditionId != bytes32(0), "Condition ID not found");
 
         matchConditionIds[matchId] = conditionId;
@@ -205,25 +205,26 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
             require(block.timestamp >= matchEndTime, "Match duration has not passed");
 
             uint256 requestTimestamp = matchRequestTimestamps[matchId];
-            if (requestTimestamp == 0) {
-                matchRequestTimestamps[matchId] = block.timestamp;
-                resultsConsumer.requestMatchResult(matchId);
-            } else if (block.timestamp >= requestTimestamp + 30) {
-                if (!resultsConsumer.matchResolved(matchId)) {
-                    continue;
-                }
+            if (resultsConsumer.matchResolved(matchId) == true) {
                 address predictionMarket = predictionMarkets[matchId];
                 uint8 result = resultsConsumer.returnResult(matchId);
+
+                bytes32 questionId = keccak256(abi.encodePacked("Match Result: ", matchId));
+                uint256[] memory payouts = new uint256[](3);
+                payouts[result] = 1;
+
+                if (conditionalTokens.payoutNumerators(matchConditionIds[matchId], result) == 0) {
+                    conditionalTokens.reportPayouts(questionId, payouts);
+                }
+
                 PredictionMarket(predictionMarket).resolveMarket(result);
 
-                _removeActiveMatch(matchId);
-
-                delete matchRequestTimestamps[matchId];
-                delete lmsrMarketMakers[matchId];
-                delete matchConditionIds[matchId];
-                delete matchTimestamps[matchId];
+                require(_removeActiveMatch(matchId), "Match Removal Fail");
 
                 emit PredictionMarketResolved(matchId, result);
+            } else if (requestTimestamp == 0 || block.timestamp >= requestTimestamp + 30) {
+                matchRequestTimestamps[matchId] = block.timestamp;
+                resultsConsumer.requestMatchResult(matchId);
             }
         }
 
@@ -231,8 +232,19 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         for (uint256 i = 0; i < finalMatchesToCleanup.length; i++) {
             uint256 matchId = finalMatchesToCleanup[i];
             if (currentTime > deploymentTimestamps[matchId] + 60 days) {
+                address predictionMarket = predictionMarkets[matchId];
+                address marketMakerAddress = lmsrMarketMakers[matchId];
+
+                if (marketMakerAddress != address(0)) {
+                    PredictionMarket(predictionMarket).finalizeMarket();
+                }
+
                 delete predictionMarkets[matchId];
                 delete deploymentTimestamps[matchId];
+                delete matchRequestTimestamps[matchId];
+                delete lmsrMarketMakers[matchId];
+                delete matchConditionIds[matchId];
+                delete matchTimestamps[matchId];
 
                 for (uint256 j = 0; j < allMatchIds.length; j++) {
                     if (allMatchIds[j] == matchId) {
@@ -245,16 +257,17 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         }
     }
 
-    function _removeActiveMatch(uint256 matchId) internal {
+    function _removeActiveMatch(uint256 matchId) internal returns (bool) {
         for (uint256 i = 0; i < activeMatches.length; i++) {
             if (activeMatches[i] == matchId) {
                 if (i != activeMatches.length - 1) {
                     activeMatches[i] = activeMatches[activeMatches.length - 1];
                 }
                 activeMatches.pop();
-                return;
+                return true;  
             }
         }
+        return false; 
     }
 
     function getActiveMatches() external view returns (uint256[] memory) {

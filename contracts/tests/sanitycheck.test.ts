@@ -87,8 +87,8 @@ describe("SanityCheck", function () {
   // ----------------------------------------------
   it("should confirm LiquidityPool has correct USDC and DUEL reserves", async function () {
     const [usdcReserve, duelReserve] = await liquidityPool.getReserves();
-    const initialUSDC = ethers.utils.parseUnits("100000", 6);
-    const initialDUEL = ethers.utils.parseUnits("1000000", 18);
+    const initialUSDC = ethers.utils.parseUnits("1000000", 6);
+    const initialDUEL = ethers.utils.parseUnits("10000000", 18);
 
     expect(usdcReserve.eq(initialUSDC)).to.be.true;
     expect(duelReserve.eq(initialDUEL)).to.be.true;

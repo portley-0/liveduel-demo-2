@@ -23,8 +23,8 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
   let oldUsdcReserve: BigNumber;
 
   // The match ID and future timestamp
-  const MATCH_ID = 1330318; 
-  const MATCH_TIMESTAMP = 1739892600; 
+  const MATCH_ID = 1336468; 
+  const MATCH_TIMESTAMP = 1740350700; 
 
   let owner: any;
 
@@ -115,7 +115,7 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
     const newUsdcReserve = await liquidityPool.usdcReserve();
     console.log("New LiquidityPool USDC reserve:", ethers.utils.formatUnits(newUsdcReserve, 6));
     
-    const expectedWithdraw = ethers.utils.parseUnits("3500", 6); 
+    const expectedWithdraw = ethers.utils.parseUnits("30000", 6); 
     const actualWithdraw = oldUsdcReserve.sub(newUsdcReserve);
 
     expect(actualWithdraw).to.equal(

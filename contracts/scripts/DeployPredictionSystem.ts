@@ -79,8 +79,8 @@ async function main() {
         // --------------------------------------------------------------------
         console.log("\nAdding initial liquidity...");
 
-        const initialUSDC = ethers.utils.parseUnits("100000", 6); 
-        const initialDUEL = ethers.utils.parseUnits("1000000", 18);
+        const initialUSDC = ethers.utils.parseUnits("1000000", 6); 
+        const initialDUEL = ethers.utils.parseUnits("10000000", 18);
 
         console.log("Minting MockUSDC to deployer...");
         const mockUSDCMintTx = await mockUSDC.mint(initialUSDC);

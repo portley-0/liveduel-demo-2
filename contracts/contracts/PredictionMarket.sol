@@ -20,6 +20,7 @@ contract PredictionMarket is Ownable, ERC1155Holder {
     LMSRMarketMaker public marketMaker;
 
     bool public initialized;
+    bool public isFinalized;
 
     bool public isResolved;
     uint8 public resolvedOutcome;
@@ -29,11 +30,14 @@ contract PredictionMarket is Ownable, ERC1155Holder {
     address[] public bettors;
     mapping(address => bool) public isBettor;
 
+    mapping(uint8 => uint256) public totalWageredPerOutcome;
+
     event SharesPurchased(address indexed buyer, uint8 indexed outcome, uint256 shares, int actualCost);
     event MarketResolved(uint256 indexed matchId, uint8 indexed outcome);
     event PayoutRedeemed(address indexed redeemer, uint8 indexed outcome, uint256 amount);
     event OddsUpdated(uint256 indexed matchId, uint256 home, uint256 draw, uint256 away);
     event SharesSold(address indexed seller, uint8 indexed outcome, uint256 shares, int actualGain);
+    event MarketFinalized(uint256 matchId, uint256 usdcAmount);
 
     constructor(
         uint256 _matchId,
@@ -69,6 +73,18 @@ contract PredictionMarket is Ownable, ERC1155Holder {
             bettors.push(msg.sender);
             isBettor[msg.sender] = true;
         }
+
+        uint256 otherOutcomesTotal = 0;
+        for (uint8 i = 0; i < 3; i++) {
+            if (i != outcome) {
+                otherOutcomesTotal += totalWageredPerOutcome[i];
+            }
+        }
+        //potential payout offset by other outcomes
+        uint256 maxAllowedBet = 30000 * 1e6 + otherOutcomesTotal - totalWageredPerOutcome[outcome];
+        require(amount <= maxAllowedBet, "Bet exceeds maximum allowable amount");
+
+        totalWageredPerOutcome[outcome] += amount;
 
         int[] memory tradeAmounts = new int[](3);
         tradeAmounts[outcome] = int(amount);
@@ -141,6 +157,8 @@ contract PredictionMarket is Ownable, ERC1155Holder {
 
         require(usdc.transfer(msg.sender, uint256(-actualGain)), "USDC transfer failed");
 
+        totalWageredPerOutcome[outcome] -= amount;
+
         emit SharesSold(msg.sender, outcome, amount, -actualGain);
 
         uint256 home = marketMaker.calcMarginalPrice(0);
@@ -170,10 +188,7 @@ contract PredictionMarket is Ownable, ERC1155Holder {
 
         isResolved = true;
         resolvedOutcome = result;
-        uint256[] memory payouts = new uint256[](3);
-        payouts[result] = 1;
-        conditionalTokens.reportPayouts(questionId, payouts);
-        emit MarketResolved(matchId, result);
+        marketMaker.pause();
 
         uint256 indexSet = 1 << resolvedOutcome;
         uint256 winningPositionId = conditionalTokens.getPositionId(
@@ -191,25 +206,36 @@ contract PredictionMarket is Ownable, ERC1155Holder {
         }
 
         uint256 remainingCollateral = 0;
-        for (uint8 i = 0; i < 3; i++) { 
+        address[] memory allHolders = bettors;
+
+        for (uint8 i = 0; i < 3; i++) {
             uint256 indexSet = 1 << i;
+
+            // Get position ID for each outcome
             uint256 positionId = conditionalTokens.getPositionId(
                 usdc,
                 conditionalTokens.getCollectionId(bytes32(0), conditionId, indexSet)
             );
+
             remainingCollateral += conditionalTokens.balanceOf(address(marketMaker), positionId);
+
+            remainingCollateral += conditionalTokens.balanceOf(address(this), positionId);
+
+            for (uint256 j = 0; j < allHolders.length; j++) {
+                address user = allHolders[j];
+                remainingCollateral += conditionalTokens.balanceOf(user, positionId);
+            }
         }
 
         require(remainingCollateral >= requiredCollateral, "Insufficient collateral for payouts");
         uint256 excessCollateral = remainingCollateral - requiredCollateral;
         if (excessCollateral > 0) {
-            marketMaker.pause();
             marketMaker.changeFunding(-int256(excessCollateral));
             usdc.approve(address(liquidityPool), excessCollateral);
             liquidityPool.returnLiquidity(excessCollateral);
         }
         liquidityPool.revokeMarket(address(this));
-        marketMaker.close();
+        emit MarketResolved(matchId, result);
     }
 
     function redeemPayouts() external {
@@ -222,9 +248,9 @@ contract PredictionMarket is Ownable, ERC1155Holder {
             conditionalTokens.getCollectionId(bytes32(0), conditionId, indexSet)
         );
         uint256 userBalance = conditionalTokens.balanceOf(msg.sender, winningPositionId);
-        uint outcomeCount = conditionalTokens.getOutcomeSlotCount(conditionId);
-        uint[] memory payoutNumerators = new uint[](outcomeCount);
-        for (uint i = 0; i < outcomeCount; i++) {
+
+        uint[] memory payoutNumerators = new uint[](3);
+        for (uint i = 0; i < 3; i++) {
             payoutNumerators[i] = conditionalTokens.payoutNumerators(conditionId, i);
         }
         uint payoutDenominator = conditionalTokens.payoutDenominator(conditionId);
@@ -238,6 +264,46 @@ contract PredictionMarket is Ownable, ERC1155Holder {
         );
         emit PayoutRedeemed(msg.sender, resolvedOutcome, payout);
     }
+
+    function finalizeMarket() external onlyOwner {
+        require(isResolved, "Market must be resolved before finalization");
+        require(!isFinalized, "Market already finalized");
+        isFinalized = true;
+
+        marketMaker.close();
+
+        // Redeem any remaining ERC1155 tokens for USDC
+        for (uint8 i = 0; i < 3; i++) {
+            uint256 indexSet = 1 << i;
+            uint256 tokenId = conditionalTokens.getPositionId(
+                usdc,
+                conditionalTokens.getCollectionId(bytes32(0), conditionId, indexSet)
+            );
+
+            uint256 balance = conditionalTokens.balanceOf(address(this), tokenId);
+            if (balance > 0) {
+                uint256[] memory indexSetArray = new uint256[](1);
+                indexSetArray[0] = indexSet;
+
+                conditionalTokens.redeemPositions(
+                    usdc,
+                    bytes32(0),
+                    conditionId,
+                    indexSetArray
+                );
+            }
+        }
+
+        // Transfer any remaining USDC to the platform profit pool
+        uint256 usdcBalance = usdc.balanceOf(address(this));
+        if (usdcBalance > 0) {
+            require(usdc.approve(owner(), usdcBalance), "USDC approve failed");
+            MarketFactory(owner()).addToPlatformProfit(usdcBalance);
+
+            emit MarketFinalized(matchId, usdcBalance);
+        }
+    }
+
 
 }
 
