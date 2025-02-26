@@ -15,6 +15,14 @@ This demo project is a decentralized soccer prediction market platform built on 
 
 ---
 
+## 🌍 Deployment
+- **Contracts**: Deployed on **Avalanche Fuji Testnet**
+- **Frontend**: Hosted on **Vercel**
+- **Backend**: Hosted on **AWS EC2**
+- **Subgraph**: Deployed using **The Graph's Hosted Service**
+
+---
+
 ## 🐂 Directory Structure
 ```
 ├── contracts   # Solidity smart contracts (LMSR, Market Factory)
@@ -26,6 +34,16 @@ This demo project is a decentralized soccer prediction market platform built on 
 Each module has its own **README.md** with setup and deployment instructions.
 
 ---
+
+## 📝 Documentation
+For module-specific setup instructions, refer to:
+- [Contracts README](./contracts/README.md)
+- [Frontend README](./frontend/README.md)
+- [Backend README](./backend/README.md)
+- [Subgraph README](./subgraph/README.md)
+
+---
+
 
 ## 🚀 Quick Start
 
@@ -51,24 +69,6 @@ yarn build
 yarn deploy
 ```
 
----
-
-## 🌍 Deployment
-- **Contracts**: Deployed on **Avalanche Fuji Testnet**
-- **Frontend**: Hosted on **Vercel**
-- **Backend**: Hosted on **AWS EC2**
-- **Subgraph**: Deployed using **The Graph's Hosted Service**
-
----
-
-## 📝 Documentation
-For module-specific setup instructions, refer to:
-- [Contracts README](./contracts/README.md)
-- [Frontend README](./frontend/README.md)
-- [Backend README](./backend/README.md)
-- [Subgraph README](./subgraph/README.md)
-
----
 
 ## 📝 License
 This project is licensed under the [MIT License](LICENSE).
