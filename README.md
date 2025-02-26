@@ -1,4 +1,4 @@
-# LiveDuel Demo Monorepo
+# LiveDuel Demo 2.0
 
 ## ⚽ Overview
 This demo project is a decentralized soccer prediction market platform built on the **Avalanche Fuji Testnet**. This monorepo contains all core components needed to operate the system, including smart contracts, a web frontend, a backend server, and a subgraph.
@@ -23,14 +23,13 @@ This demo project is a decentralized soccer prediction market platform built on 
 
 ---
 
-## 🐂 Directory Structure
+## 🗁 Directory Structure
 ```
 ├── contracts   # Solidity smart contracts (LMSR, Market Factory)
 ├── frontend    # Next.js app with WalletConnect and live odds
 ├── backend     # Express.js server aggregating odds from The Graph & API Football
 └── subgraph    # The Graph Protocol subgraph for event indexing
 ```
-
 Each module has its own **README.md** with setup and deployment instructions.
 
 ---
@@ -43,7 +42,6 @@ For module-specific setup instructions, refer to:
 - [Subgraph README](./subgraph/README.md)
 
 ---
-
 
 ## 🚀 Quick Start
 
@@ -69,7 +67,7 @@ yarn build
 yarn deploy
 ```
 
+---
 
 ## 📝 License
 This project is licensed under the [MIT License](LICENSE).
-
