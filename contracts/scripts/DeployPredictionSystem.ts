@@ -2,6 +2,11 @@ import { ethers } from "hardhat";
 import * as fs from "fs";
 import * as path from "path";
 import dotenv from "dotenv";
+import { MockUSDC } from "../typechain-types";
+import { DuelToken } from "../typechain-types";
+import { LiquidityPool } from "../typechain-types";
+import { MarketFactory } from "../typechain-types";
+import { Whitelist } from "../typechain-types";
 
 dotenv.config();
 
@@ -17,15 +22,15 @@ async function main() {
     const WHITELIST_ADDRESS = process.env.WHITELIST_ADDRESS || "";
     const RESULTS_CONSUMER_ADDRESS = process.env.RESULTS_CONSUMER_ADDRESS || "";
 
-    const whitelist = await ethers.getContractAt("Whitelist", WHITELIST_ADDRESS);
+    const whitelist = (await ethers.getContractAt("Whitelist", WHITELIST_ADDRESS)) as Whitelist;
 
     try {
         // --------------------------------------------------------------------
         // Deploy MockUSDC
         // --------------------------------------------------------------------
         console.log("\nDeploying MockUSDC...");
-        const MockUSDC = await ethers.getContractFactory("MockUSDC");
-        const mockUSDC = await MockUSDC.deploy();
+        const MockUSDCFactory = await ethers.getContractFactory("MockUSDC");
+        const mockUSDC = (await MockUSDCFactory.deploy()) as MockUSDC;
         await mockUSDC.deployed();
         console.log("MockUSDC deployed to:", mockUSDC.address);
 
@@ -33,8 +38,8 @@ async function main() {
         // Deploy DuelToken
         // --------------------------------------------------------------------
         console.log("\nDeploying DuelToken...");
-        const DuelToken = await ethers.getContractFactory("DuelToken");
-        const duelToken = await DuelToken.deploy(deployer.address);
+        const DuelTokenFactory = await ethers.getContractFactory("DuelToken");
+        const duelToken = (await DuelTokenFactory.deploy(deployer.address)) as DuelToken;
         await duelToken.deployed();
         console.log("DuelToken deployed to:", duelToken.address);
 
@@ -42,12 +47,12 @@ async function main() {
         // Deploy LiquidityPool
         // --------------------------------------------------------------------
         console.log("\nDeploying LiquidityPool...");
-        const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
-        const liquidityPool = await LiquidityPool.deploy(
+        const LiquidityPoolFactory = await ethers.getContractFactory("LiquidityPool");
+        const liquidityPool = (await LiquidityPoolFactory.deploy(
             deployer.address,
             mockUSDC.address,
             duelToken.address
-        );
+        )) as LiquidityPool;
         await liquidityPool.deployed();
         console.log("LiquidityPool deployed to:", liquidityPool.address);
 
@@ -55,15 +60,15 @@ async function main() {
         // Deploy MarketFactory
         // --------------------------------------------------------------------
         console.log("\nDeploying MarketFactory...");
-        const MarketFactory = await ethers.getContractFactory("MarketFactory");
-        const marketFactory = await MarketFactory.deploy(
+        const MarketFactoryFactory = await ethers.getContractFactory("MarketFactory");
+        const marketFactory = (await MarketFactoryFactory.deploy(
             liquidityPool.address,
             WHITELIST_ADDRESS,
             RESULTS_CONSUMER_ADDRESS,
             mockUSDC.address,
             CONDITIONAL_TOKENS_ADDRESS,
             LMSR_MARKET_MAKER_FACTORY_ADDRESS
-        );
+        )) as MarketFactory;
         await marketFactory.deployed();
         console.log("MarketFactory deployed to:", marketFactory.address);
 
@@ -79,7 +84,7 @@ async function main() {
         // --------------------------------------------------------------------
         console.log("\nAdding initial liquidity...");
 
-        const initialUSDC = ethers.utils.parseUnits("1000000", 6); 
+        const initialUSDC = ethers.utils.parseUnits("1000000", 6);
         const initialDUEL = ethers.utils.parseUnits("10000000", 18);
 
         console.log("Minting MockUSDC to deployer...");
@@ -111,8 +116,8 @@ async function main() {
 
         console.log("Calling addInitialLiquidity...");
         const liquidityTx = await liquidityPool.connect(deployer).addInitialLiquidity(
-            initialUSDC, 
-            initialDUEL  
+            initialUSDC,
+            initialDUEL
         );
         console.log("Transaction hash:", liquidityTx.hash);
         await liquidityTx.wait();

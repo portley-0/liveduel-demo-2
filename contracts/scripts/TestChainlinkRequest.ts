@@ -2,13 +2,14 @@ import '@nomiclabs/hardhat-ethers';
 import { ethers } from "hardhat";
 import { ContractReceipt, Event } from "ethers";
 import dotenv from "dotenv";
+import { ResultsConsumer } from "../typechain-types"; 
 dotenv.config();
 
 async function main() {
   const resultsConsumerAddress = process.env.RESULTS_CONSUMER_ADDRESS || "";
 
   const ResultsConsumer = await ethers.getContractFactory("ResultsConsumer");
-  const resultsConsumer = ResultsConsumer.attach(resultsConsumerAddress);
+  const resultsConsumer = ResultsConsumer.attach(resultsConsumerAddress) as ResultsConsumer;
 
   const matchId = 1300251;
   console.log(`Requesting match result for matchId: ${matchId}`);
@@ -35,7 +36,7 @@ async function main() {
 
   const fetchEvents = async (filter: any, fromBlock: number, toBlock: number) => {
     const events: Event[] = [];
-    const chunkSize = 1000; // Querying in chunks to avoid block range issues
+    const chunkSize = 1000;
 
     for (let i = 0; i <= Math.floor((toBlock - fromBlock) / chunkSize); i++) {
       const chunkFromBlock = fromBlock + i * chunkSize;
@@ -54,7 +55,6 @@ async function main() {
   while (Date.now() - startTime < maxWaitTime) {
     const latestBlock = await ethers.provider.getBlockNumber();
 
-    // Query for ResultReceived events
     const resultReceivedEvents = await fetchEvents(
       resultsConsumer.filters.ResultReceived(),
       startBlock,
@@ -67,12 +67,10 @@ async function main() {
         console.log(`  Match ID: ${event.args?.matchId}`);
         console.log(`  Result (from event): ${event.args?.result}`);
 
-        // Check if the match is resolved
         const isResolved = await resultsConsumer.matchResolved(matchId);
         if (isResolved) {
           console.log(`Match ID ${matchId} is resolved. Fetching result...`);
 
-          // Call returnResult to fetch the result
           try {
             const result = await resultsConsumer.returnResult(matchId);
             console.log(`Result for Match ID ${matchId}: ${result}`);
@@ -87,11 +85,10 @@ async function main() {
           console.log(`Match ID ${matchId} is not yet resolved in the mapping.`);
         }
 
-        return; // Exit the loop once the desired matchId is processed
+        return;
       }
     }
 
-    // Query for RequestFailed events
     const requestFailedEvents = await fetchEvents(
       resultsConsumer.filters.RequestFailed(),
       startBlock,
@@ -108,7 +105,7 @@ async function main() {
         }
       });
       console.error("Request for the match result failed. Exiting...");
-      return; // Exit the loop once a failure is detected
+      return;
     }
 
     console.log(`No result yet for Match ID ${matchId}, retrying after ${pollingInterval / 1000} seconds...`);

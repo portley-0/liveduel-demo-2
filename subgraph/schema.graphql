@@ -33,3 +33,33 @@ type PredictionMarketResolved @entity(immutable: true) {
   blockTimestamp: BigInt!
   transactionHash: Bytes!
 }
+
+type SharesPurchased @entity {
+  id: ID!
+  market: Bytes!
+  buyer: Bytes!
+  outcome: Int!
+  shares: BigInt!
+  actualCost: BigInt!
+  timestamp: BigInt!
+}
+
+type SharesSold @entity {
+  id: ID!
+  market: Bytes!
+  seller: Bytes!
+  outcome: Int!
+  shares: BigInt!
+  actualGain: BigInt!
+  timestamp: BigInt!
+}
+
+type OddsUpdated @entity {
+  id: ID!
+  market: Bytes!
+  matchId: BigInt!
+  home: BigDecimal!
+  draw: BigDecimal!
+  away: BigDecimal!
+  timestamp: BigInt!
+}

@@ -4,18 +4,24 @@ import * as chai from "chai";
 import { ethers } from "hardhat";
 import dotenv from "dotenv";
 import { solidity } from "ethereum-waffle";
+import {
+  LiquidityPool,
+  DuelToken,
+  MockUSDC
+} from "../typechain-types";
+
 chai.use(solidity);
 
 dotenv.config();
 
 describe("Staking and DUEL Flows", function () {
-  this.timeout(120000); // 2 minutes timeout
+  this.timeout(120000); 
 
   let deployer: any;
-  let liquidityPool: any;
-  let duelToken: any;
-  let mockUsdc: any;
-
+  let liquidityPool: LiquidityPool;
+  let duelToken: DuelToken;
+  let mockUsdc: MockUSDC;
+  
   // Contract addresses from .env
   const LIQUIDITY_POOL_ADDRESS = process.env.LIQUIDITY_POOL_ADDRESS || "";
   const DUEL_TOKEN_ADDRESS = process.env.DUEL_TOKEN_ADDRESS || "";
@@ -25,9 +31,9 @@ describe("Staking and DUEL Flows", function () {
     [deployer] = await ethers.getSigners();
 
     // Attach contracts
-    liquidityPool = await ethers.getContractAt("LiquidityPool", LIQUIDITY_POOL_ADDRESS);
-    duelToken = await ethers.getContractAt("DuelToken", DUEL_TOKEN_ADDRESS);
-    mockUsdc = await ethers.getContractAt("MockUSDC", MOCK_USDC_ADDRESS);
+    liquidityPool = await ethers.getContractAt("LiquidityPool", LIQUIDITY_POOL_ADDRESS) as LiquidityPool;
+    duelToken = await ethers.getContractAt("DuelToken", DUEL_TOKEN_ADDRESS) as DuelToken;
+    mockUsdc = await ethers.getContractAt("MockUSDC", MOCK_USDC_ADDRESS) as MockUSDC;
 
     // Mint 10,000 USDC to deployer
     const mintAmount = ethers.utils.parseUnits("10000", 6);

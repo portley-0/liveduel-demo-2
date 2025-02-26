@@ -2,12 +2,17 @@ import "@nomiclabs/hardhat-ethers";
 import { expect } from "chai";
 import * as chai from "chai";
 import { ethers } from "hardhat";
-import { Contract, BigNumber } from "ethers";
+import { BigNumber } from "ethers";
 import { solidity } from "ethereum-waffle";
 chai.use(solidity);
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as path from "path";
+import {
+  MarketFactory,
+  LiquidityPool,
+  Whitelist,
+} from "../typechain-types";
 
 dotenv.config();
 
@@ -16,15 +21,15 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
   const LIQUIDITY_POOL_ADDRESS = process.env.LIQUIDITY_POOL_ADDRESS!;
   const WHITELIST_ADDRESS = process.env.WHITELIST_ADDRESS!;
 
-  let marketFactory: Contract;
-  let liquidityPool: Contract;
-  let whitelist: Contract;
+  let marketFactory: MarketFactory;
+  let liquidityPool: LiquidityPool;
+  let whitelist: Whitelist;
 
   let oldUsdcReserve: BigNumber;
 
   // The match ID and future timestamp
-  const MATCH_ID = 1336468; 
-  const MATCH_TIMESTAMP = 1740350700; 
+  const MATCH_ID = 1347460; 
+  const MATCH_TIMESTAMP = 1740553200; 
 
   let owner: any;
 
@@ -32,25 +37,23 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
     [owner] = await ethers.getSigners();
     console.log("Using owner address:", owner.address);
 
-    const MarketFactoryAbi = [
-      "function deployPredictionMarket(uint256 matchId, uint256 matchTimestamp) external",
-      "event PredictionMarketDeployed(uint256 matchId, address marketAddress, uint256 matchTimestamp)",
-      "function predictionMarkets(uint256) external view returns (address)",
-      "function lmsrMarketMakers(uint256) external view returns (address)",
-      "function matchConditionIds(uint256) external view returns (bytes32)",
-      "function matchTimestamps(uint256) external view returns (uint256)",
-    ];
-    const LiquidityPoolAbi = [
-      "function usdcReserve() external view returns (uint256)",
-      "function authorizedMarkets(address) external view returns (bool)",
-    ];
-    const WhitelistAbi = [
-      "function isWhitelisted(address) external view returns (bool)",
-    ];
+    marketFactory = (await ethers.getContractAt(
+      "MarketFactory",
+      MARKET_FACTORY_ADDRESS,
+      owner
+    )) as MarketFactory;
 
-    marketFactory = new ethers.Contract(MARKET_FACTORY_ADDRESS, MarketFactoryAbi, owner);
-    liquidityPool = new ethers.Contract(LIQUIDITY_POOL_ADDRESS, LiquidityPoolAbi, owner);
-    whitelist = new ethers.Contract(WHITELIST_ADDRESS, WhitelistAbi, owner);
+    liquidityPool = (await ethers.getContractAt(
+      "LiquidityPool",
+      LIQUIDITY_POOL_ADDRESS,
+      owner
+    )) as LiquidityPool;
+
+    whitelist = (await ethers.getContractAt(
+      "Whitelist",
+      WHITELIST_ADDRESS,
+      owner
+    )) as Whitelist;
 
     oldUsdcReserve = await liquidityPool.usdcReserve();
     console.log("Current LiquidityPool USDC reserve:", ethers.utils.formatUnits(oldUsdcReserve, 6));
@@ -61,7 +64,6 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
 
     let tx, receipt;
     try {
-      // Attempt the transaction
       tx = await marketFactory.connect(owner).deployPredictionMarket(MATCH_ID, MATCH_TIMESTAMP);
       receipt = await tx.wait();
       console.log("Transaction confirmed in block:", receipt.blockNumber);
@@ -75,7 +77,7 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
     expect(pmDeployedEvent, "PredictionMarketDeployed event not found").to.exist;
 
     const { matchId, marketAddress, matchTimestamp } = pmDeployedEvent?.args || {};
-    // Verify the event arguments 
+   
     expect(matchId.toNumber()).to.equal(MATCH_ID, "Event matchId mismatch");
     expect(matchTimestamp.toNumber()).to.equal(MATCH_TIMESTAMP, "Event matchTimestamp mismatch");
 
@@ -120,7 +122,7 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
 
     expect(actualWithdraw).to.equal(
       expectedWithdraw,
-      `Expected a 3500 USDC withdrawal, got ${ethers.utils.formatUnits(actualWithdraw, 6)} USDC }`
+      `Expected a 30,000 USDC withdrawal, got ${ethers.utils.formatUnits(actualWithdraw, 6)} USDC }`
     );
 
     // ============= WHITELIST + LIQUIDITYPOOL AUTH =============

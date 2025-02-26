@@ -1,5 +1,5 @@
 {
-  "name": "hardhat-project",
+  "name": "contracts",
   "scripts": {
     "deploy:system": "pnpm hardhat run scripts/DeployPredictionSystem.ts --network avalancheFuji",
     "deploy:gnosis": "pnpm hardhat run scripts/DeployGnosisCTF.ts --network avalancheFuji",
@@ -10,9 +10,10 @@
     "test:factory": "npx hardhat test --network avalancheFuji tests/factory.test.ts",
     "test:trading": "npx hardhat test --network avalancheFuji tests/trading.test.ts",
     "test:resolution": "npx hardhat test --network avalancheFuji tests/resolution.test.ts",
-    "test": "pnpm hardhat test",
-    "compile": "pnpm hardhat compile",
-    "clean": "pnpm hardhat clean"
+    "test:redemption": "npx hardhat test --network avalancheFuji tests/redemption.test.ts",
+    "compile": "npx hardhat compile",
+    "clean": "npx hardhat clean",
+    "typechain": "npx hardhat typechain"
   },
   "devDependencies": {
     "@chainlink/contracts": "^1.3.0",

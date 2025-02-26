@@ -33,3 +33,29 @@ dataSources:
         - event: PredictionMarketResolved(uint256,uint8)
           handler: handlePredictionMarketResolved
       file: ./src/market-factory.ts
+
+templates:
+  - name: PredictionMarket
+    kind: ethereum/contract
+    network: fuji
+    source:
+      abi: PredictionMarket
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - SharesPurchased
+        - SharesSold
+        - OddsUpdated
+      abis:
+        - name: PredictionMarket
+          file: ./abis/PredictionMarket.json
+      eventHandlers:
+        - event: SharesPurchased(indexed address,indexed uint8,uint256,int256)
+          handler: handleSharesPurchased
+        - event: SharesSold(indexed address,indexed uint8,uint256,int256)
+          handler: handleSharesSold
+        - event: OddsUpdated(indexed uint256,uint256,uint256,uint256)
+          handler: handleOddsUpdated
+      file: ./src/prediction-market.ts
