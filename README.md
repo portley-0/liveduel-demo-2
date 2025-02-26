@@ -1,4 +1,4 @@
-# <img src="frontend/public/favicon.png" alt="LiveDuel Logo" width="40" align="center" style="vertical-align: middle; position: relative; top: -3px;"> LiveDuel Demo 2.0
+# <img src="frontend/public/favicon.png" alt="LiveDuel Logo" width="40" align="center" style="vertical-align: baseline; margin-bottom: -8px;"> LiveDuel Demo 2.0
 
 
 ## ⚽ Overview
