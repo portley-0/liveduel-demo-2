@@ -27,8 +27,8 @@ This demo project is a decentralized soccer prediction market platform built on 
 ## 📂 Directory Structure
 ```
 ├── contracts   # Solidity smart contracts 
-├── frontend    # Next.js app with WalletConnect and live odds
-├── backend     # Express.js server aggregating odds from The Graph & API Football
+├── frontend    # Next.js app with WalletConnect
+├── backend     # Express.js server aggregating data from The Graph & API Football 
 └── subgraph    # The Graph Protocol subgraph for event indexing
 ```
 Each module has its own **README.md** with setup and deployment instructions.
