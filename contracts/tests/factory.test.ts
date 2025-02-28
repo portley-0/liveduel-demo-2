@@ -27,7 +27,7 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
 
   let oldUsdcReserve: BigNumber;
 
-  // The match ID and future timestamp
+  // The match ID and future timestamp from API Football
   const MATCH_ID = 1337436; 
   const MATCH_TIMESTAMP = 1740706200; 
 

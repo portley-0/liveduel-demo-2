@@ -113,7 +113,7 @@ pnpm run deploy:system
 
 ### 4️⃣ Run Tests
 
-> Note: Some tests may require setting specific variables. See test files.
+> Note: factory.test.ts requires setting specific variables. See test file.
 
 ```bash
 pnpm run test:chainlink
