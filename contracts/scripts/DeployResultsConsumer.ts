@@ -4,10 +4,9 @@ import { ethers } from "hardhat";
 import { ResultsConsumer } from "../typechain-types";
 
 const { SecretsManager, createGist } = require("@chainlink/functions-toolkit");
-
 require("@chainlink/env-enc").config();
-
 const fs = require("fs");
+const path = require("path");
 
 async function deploy() {
     const privateKey = process.env.PRIVATE_KEY!;
@@ -18,7 +17,6 @@ async function deploy() {
     let donId = "fun-avalanche-fuji-1";
 
     const source = fs.readFileSync("./API-request.js").toString();
-
     const subscriptionId = 12321;
 
     const secretsManager = new SecretsManager({ signer, functionsRouterAddress, donId });
@@ -35,7 +33,6 @@ async function deploy() {
     encryptedSecretsReference = await secretsManager.encryptSecretsUrls([gistUrl]);
 
     const secrets = encryptedSecretsReference;
-
     const router = functionsRouterAddress;
 
     const ResultsConsumerFactory = await ethers.getContractFactory("ResultsConsumer");
@@ -52,6 +49,24 @@ async function deploy() {
     await resultsConsumer.deployed();
 
     console.log("ResultsConsumer deployed to:", resultsConsumer.address);
+
+    // Update .env file with deployment address
+    const envPath = path.resolve(__dirname, "../.env");
+    let envContent = fs.readFileSync(envPath, "utf8");
+
+    function setEnvVar(key: string, value: string) {
+        const regex = new RegExp(`^${key}=.*`, "m");
+        if (regex.test(envContent)) {
+            envContent = envContent.replace(regex, `${key}=${value}`);
+        } else {
+            envContent += `\n${key}=${value}`;
+        }
+    }
+
+    setEnvVar("RESULTS_CONSUMER_ADDRESS", resultsConsumer.address);
+
+    fs.writeFileSync(envPath, envContent, "utf8");
+    console.log("\nDeployment addresses added to .env!");
 }
 
 deploy()

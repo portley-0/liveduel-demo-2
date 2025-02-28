@@ -24,7 +24,7 @@ This demo project is a decentralized soccer prediction market platform built on 
 
 ---
 
-## 🗁 Directory Structure
+## 📂 Directory Structure
 ```
 ├── contracts   # Solidity smart contracts (LMSR, Market Factory)
 ├── frontend    # Next.js app with WalletConnect and live odds
@@ -44,32 +44,6 @@ For module-specific setup instructions, refer to:
 
 ---
 
-## 🚀 Quick Start
-
-### 1️⃣ Install Dependencies
-```bash
-pnpm install
-```
-
-### 2️⃣ Running Each Module
-```bash
-# Contracts (Hardhat)
-npx hardhat test
-
-# Frontend (Next.js)
-pnpm run dev
-
-# Backend (Express.js)
-pnpm run dev
-
-# Subgraph (Graph CLI)
-yarn codegen
-yarn build
-yarn deploy
-```
-
----
-
-## 📝 License
+## 📄 License
 This project is licensed under the [MIT License](LICENSE).
 

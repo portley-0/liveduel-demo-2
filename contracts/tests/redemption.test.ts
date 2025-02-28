@@ -1,17 +1,20 @@
 import "@nomiclabs/hardhat-ethers";
-import { expect } from "chai";
 import { ethers } from "hardhat";
+import { BigNumber } from "ethers";
+import { expect } from "chai";
 import dotenv from "dotenv";
+import { Signer } from "ethers";
+import { PredictionMarket, ConditionalTokens, ERC20 } from "../typechain-types";
 
 dotenv.config();
 
 describe("PredictionMarket - Redeem Payouts Test", function () {
   this.timeout(120000);
 
-  let user: any;
-  let predictionMarket: any;
-  let conditionalTokens: any;
-  let usdc: any;
+  let user: Signer;
+  let predictionMarket: PredictionMarket;
+  let conditionalTokens: ConditionalTokens;
+  let usdc: ERC20;
 
   const PREDICTION_MARKET_ADDRESS = process.env.TEST_PREDICTION_MARKET_ADDRESS!;
   const CONDITIONAL_TOKENS_ADDRESS = process.env.CONDITIONAL_TOKENS_ADDRESS!;
@@ -20,40 +23,37 @@ describe("PredictionMarket - Redeem Payouts Test", function () {
   let matchId: number;
   let resolvedOutcome: number;
   let conditionId: string;
-  let winningPositionId: number;
-  let payoutBefore: number;
-  let usdcBefore: number;
-  let erc1155Before: number;
+  let winningPositionId: BigNumber;
+  let payoutBefore: BigNumber;
+  let usdcBefore: BigNumber;
+  let erc1155Before: BigNumber;
 
   before(async function () {
     [user] = await ethers.getSigners();
 
-    const PredictionMarketAbi = [
-      "function matchId() external view returns (uint256)",
-      "function isResolved() external view returns (bool)",
-      "function resolvedOutcome() external view returns (uint8)",
-      "function conditionId() external view returns (bytes32)",
-      "function redeemPayouts() external",
-      "event PayoutRedeemed(address indexed redeemer, uint8 indexed outcome, uint256 amount)"
-    ];
+    predictionMarket = (await ethers.getContractAt(
+      "PredictionMarket",
+      PREDICTION_MARKET_ADDRESS,
+      user
+    )) as PredictionMarket;
 
-    const ConditionalTokensAbi = [
-      "function getCollectionId(bytes32, bytes32, uint) external view returns (bytes32)",
-      "function getPositionId(address, bytes32) external view returns (uint256)",
-      "function balanceOf(address account, uint256 id) external view returns (uint256)"
-    ];
+    conditionalTokens = (await ethers.getContractAt(
+      "ConditionalTokens",
+      CONDITIONAL_TOKENS_ADDRESS,
+      user
+    )) as ConditionalTokens;
 
-    const UsdcAbi = [
-      "function balanceOf(address account) external view returns (uint256)"
-    ];
+    usdc = (await ethers.getContractAt(
+      "ERC20",
+      MOCK_USDC_ADDRESS,
+      user
+    )) as ERC20;
 
-    predictionMarket = new ethers.Contract(PREDICTION_MARKET_ADDRESS, PredictionMarketAbi, user);
-    conditionalTokens = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, ConditionalTokensAbi, user);
-    usdc = new ethers.Contract(MOCK_USDC_ADDRESS, UsdcAbi, user);
-
-    matchId = await predictionMarket.matchId();
+    // Get match details
+    matchId = (await predictionMarket.matchId()).toNumber();
     conditionId = await predictionMarket.conditionId();
-    resolvedOutcome = await predictionMarket.resolvedOutcome();
+    resolvedOutcome = (await predictionMarket.resolvedOutcome());
+
     console.log(`Match ID: ${matchId}, Resolved Outcome: ${resolvedOutcome}`);
   });
 
@@ -77,29 +77,42 @@ describe("PredictionMarket - Redeem Payouts Test", function () {
       ----------------------------------------
     `);
 
-    expect(erc1155Before).to.be.gt(0, "User should have winning outcome tokens to redeem!");
+    expect(erc1155Before.toNumber()).to.be.gt(0, "User should have winning outcome tokens to redeem!");
+  });
+
+  it("Approves ERC1155 transfer to PredictionMarket", async function () {
+    const tx = await conditionalTokens.setApprovalForAll(PREDICTION_MARKET_ADDRESS, true);
+    await tx.wait();
+  
+    const isApproved = await conditionalTokens.isApprovedForAll(
+      await user.getAddress(),
+      PREDICTION_MARKET_ADDRESS
+    );
+  
+    expect(isApproved).to.be.true;
+    console.log("PredictionMarket successfully approved for ERC1155 transfers.");
   });
 
   it("Calls redeemPayouts() and verifies the PayoutRedeemed event", async function () {
     const tx = await predictionMarket.redeemPayouts();
-    const receipt = await tx.wait();
+    const receipt = await tx.wait(1);
 
-    const event = receipt.events?.find((e: any) => e.event === "PayoutRedeemed");
+    const event = receipt.events?.find((e) => e.event === "PayoutRedeemed");
     expect(event).to.not.be.undefined;
 
-    payoutBefore = event?.args?.amount;
+    payoutBefore = event?.args?.amount as BigNumber;
     console.log(`
       PayoutRedeemed Event
       ----------------------------------------
       Redeemer: ${event?.args?.redeemer}
       Outcome: ${event?.args?.outcome}
-      Amount: ${ethers.utils.formatUnits(event?.args?.amount, 6)} USDC
+      Amount: ${ethers.utils.formatUnits(payoutBefore, 6)} USDC
       ----------------------------------------
     `);
 
     expect(event?.args?.redeemer).to.equal(await user.getAddress());
     expect(event?.args?.outcome).to.equal(resolvedOutcome);
-    expect(event?.args?.amount).to.be.gt(0, "Payout amount should be greater than zero");
+    expect(payoutBefore.toNumber()).to.be.gt(0, "Payout amount should be greater than zero");
   });
 
   it("Logs user balances after redemption", async function () {
@@ -114,7 +127,7 @@ describe("PredictionMarket - Redeem Payouts Test", function () {
       ----------------------------------------
     `);
 
-    expect(erc1155After).to.equal(0, "User should have no winning outcome tokens after redemption");
+    expect(erc1155After).to.equal(BigNumber.from(0), "User should have no winning outcome tokens after redemption");
     expect(usdcAfter.sub(usdcBefore)).to.equal(payoutBefore, "User should receive the correct payout in USDC");
   });
 });

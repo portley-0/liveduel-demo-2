@@ -83,8 +83,6 @@ contract PredictionMarket is Ownable, ERC1155Holder {
         uint256 maxAllowedBet = 30000 * 1e6 + otherOutcomesTotal - totalWageredPerOutcome[outcome];
         require(amount <= maxAllowedBet, "Bet exceeds maximum allowable amount");
 
-        totalWageredPerOutcome[outcome] += amount;
-
         int[] memory tradeAmounts = new int[](3);
         tradeAmounts[outcome] = int(amount);
         int netCost = marketMaker.calcNetCost(tradeAmounts);
@@ -122,6 +120,8 @@ contract PredictionMarket is Ownable, ERC1155Holder {
         require(usdc.approve(address(owner()), halfFee), "Approve to owner/MarketFactory failed");
         MarketFactory(address(owner())).addToPlatformProfit(halfFee);
 
+        totalWageredPerOutcome[outcome] += uint256(actualCost);
+
         emit SharesPurchased(msg.sender, outcome, amount, actualCost);
 
         uint256 home = marketMaker.calcMarginalPrice(0);
@@ -156,7 +156,7 @@ contract PredictionMarket is Ownable, ERC1155Holder {
 
         require(usdc.transfer(msg.sender, uint256(-actualGain)), "USDC transfer failed");
 
-        totalWageredPerOutcome[outcome] -= amount;
+        totalWageredPerOutcome[outcome] -= uint256(-actualGain);
 
         emit SharesSold(msg.sender, outcome, amount, -actualGain);
 
@@ -205,20 +205,23 @@ contract PredictionMarket is Ownable, ERC1155Holder {
             requiredCollateral += balances[i];
         }
 
-        // Calculate Remaining LMSR Collateral
-        uint256 remainingCollateral = 0;
-        remainingCollateral = conditionalTokens.balanceOf(address(marketMaker), winningPositionId);
+        // Initial Collateral
+        uint256 initialFunding = marketMaker.funding();
 
-        // Calculate Total Trader Collateral Wagered
+        // Remaining market maker collateral
+        uint256 marketMakerBalance = conditionalTokens.balanceOf(address(marketMaker), winningPositionId);
+
+        // Calculate Total Collateral Wagered 
         uint256 totalTraderCollateral = 0;
         for (uint8 i = 0; i < 3; i++) {
             totalTraderCollateral += totalWageredPerOutcome[i];
         }
 
         // Calculate Excess Collateral
-        uint256 excessCollateral = remainingCollateral + totalTraderCollateral - requiredCollateral;
+        uint256 excessCollateral = initialFunding + totalTraderCollateral - requiredCollateral;
 
-        excessCollateral = excessCollateral > remainingCollateral ? remainingCollateral : excessCollateral;
+        // Capped at market maker balance
+        excessCollateral = excessCollateral > marketMakerBalance ? marketMakerBalance : excessCollateral;
 
         if (excessCollateral > 0) {
             marketMaker.changeFunding(-int256(excessCollateral));
@@ -239,20 +242,24 @@ contract PredictionMarket is Ownable, ERC1155Holder {
             conditionalTokens.getCollectionId(bytes32(0), conditionId, indexSet)
         );
         uint256 userBalance = conditionalTokens.balanceOf(msg.sender, winningPositionId);
+        require(userBalance > 0, "No winning outcome tokens to redeem");
+        conditionalTokens.safeTransferFrom(msg.sender, address(this), winningPositionId, userBalance, "");
 
-        uint[] memory payoutNumerators = new uint[](3);
-        for (uint i = 0; i < 3; i++) {
-            payoutNumerators[i] = conditionalTokens.payoutNumerators(conditionId, i);
-        }
-        uint payoutDenominator = conditionalTokens.payoutDenominator(conditionId);
-        uint256 payoutNumerator = payoutNumerators[resolvedOutcome];
-        uint256 payout = (userBalance * payoutNumerator) / payoutDenominator;
+        uint256 usdcBefore = usdc.balanceOf(address(this));
+
         conditionalTokens.redeemPositions(
             usdc,
             bytes32(0),
             conditionId,
             indexSetArray 
         );
+       
+        uint256 usdcAfter = usdc.balanceOf(address(this));
+        uint256 payout = usdcAfter - usdcBefore;
+        require(payout > 0, "Redemption failed, no payout received");
+
+        require(usdc.transfer(msg.sender, payout), "USDC transfer to user failed");
+
         emit PayoutRedeemed(msg.sender, resolvedOutcome, payout);
     }
 
