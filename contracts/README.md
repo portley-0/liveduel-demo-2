@@ -15,7 +15,7 @@ The **Contracts Module** provides the core smart contracts for the decentralized
 Gnosis source repositories (Solidity 0.5.1):
 
 - **[Conditional Tokens](https://github.com/gnosis/conditional-tokens-contracts)** – Framework for creating conditional token markets.
-- **[Market Makers](https://github.com/gnosis/conditional-tokens-market-makers)** – Provides LMSR-based market makers, including **LMSRMarketMaker**, used in this project.
+- **[Market Makers](https://github.com/gnosis/conditional-tokens-market-makers)** – Provides market makers built with Gnosis CTF, including **LMSRMarketMaker**, used in this project.
 
 ## 🛠 Dependencies
 
