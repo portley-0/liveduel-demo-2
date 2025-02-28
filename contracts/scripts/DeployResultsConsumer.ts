@@ -17,6 +17,8 @@ async function deploy() {
     let donId = "fun-avalanche-fuji-1";
 
     const source = fs.readFileSync("./API-request.js").toString();
+
+    // Subscription ID is a unique identifier for the subscription
     const subscriptionId = 12321;
 
     const secretsManager = new SecretsManager({ signer, functionsRouterAddress, donId });

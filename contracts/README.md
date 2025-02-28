@@ -103,6 +103,8 @@ Required environment variables:
 
 ### 4️⃣ Deploy Contracts
 
+> Note: Chainlink SubscriptionID must be provided to DeployResultsConsumer.ts
+
 ```bash
 pnpm run deploy:gnosis
 pnpm run deploy:resultsconsumer
