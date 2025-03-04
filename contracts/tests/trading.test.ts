@@ -32,7 +32,7 @@ describe("PredictionMarket - buyShares() & sellShares()", function () {
 
   let conditionId: string;
   let outcomeTokenId: any;
-  let outcomeIndex = 1; 
+  let outcomeIndex = 2; 
   let tradeAmount = ethers.utils.parseUnits("100", 6);
 
   before(async function () {

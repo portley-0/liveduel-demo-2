@@ -4,14 +4,14 @@
 This demo project is a decentralized soccer prediction market platform built on the **Avalanche Fuji Testnet**. This monorepo contains all core components needed to operate the system, including smart contracts, a web frontend, a backend server, and a subgraph.
 
 ## 🛠 Technologies
-- **Solidity** – Smart contract development
-- **Chainlink Functions** – Oracle for match results
-- **Chainlink Automation** – Automated match resolution
-- **Gnosis Conditional Tokens Framework (CTF)** – Market-based reward distribution
-- **Logarithmic Market Scoring Rule (LMSR)** – Dynamic odds calculation
-- **The Graph Protocol** – Event indexing and querying
-- **Next.js** + **RainbowKit** – Frontend with WalletConnect integration
-- **Express.js** + **WebSockets** – Backend for real-time odds updates
+- **Solidity** – Core logic for the prediction markets via smart contracts.
+- **Chainlink Functions** – Acts as an Oracle for match result retrieval from a Sports API
+- **Chainlink Automation** – Executes smart contract actions (e.g., match resolution) automatically.
+- **Gnosis Conditional Tokens Framework (CTF)** – Enables conditional payouts based on match outcomes.
+- **Logarithmic Market Scoring Rule (LMSR)** – Dynamically calculates odds and manages liquidity.
+- **The Graph Protocol** – Indexes on-chain events and provides efficient querying
+- **Next.js** + **RainbowKit** – Delivers a user-friendly web interface and WalletConnect integration
+- **Express.js** + **WebSockets** – Handles backend data aggregation and enables real-time odds updates.
 
 ---
 
@@ -27,7 +27,7 @@ This demo project is a decentralized soccer prediction market platform built on 
 ## 📂 Directory Structure
 ```
 ├── contracts   # Solidity smart contracts 
-├── frontend    # Next.js app with WalletConnect
+├── frontend    # Next.js web interface
 ├── backend     # Express.js server aggregating data from The Graph & API Football 
 └── subgraph    # The Graph Protocol subgraph for event indexing
 ```

@@ -1,24 +1,27 @@
-# Subgraph Module - LiveDuel Demo 2
+# Subgraph Module
 
 ## 📜 Overview
-The **Subgraph Module** indexes key events from the **LiveDuel PredictionMarket** contract, enabling efficient data retrieval for the frontend and backend.
+The **Subgraph Module** indexes key events from the **PredictionMarket** and **MarketFactory**contracts, enabling efficient data retrieval for the frontend and backend.
 
 This subgraph is deployed on **The Graph's Hosted Service**.
 
 ## 🛠 Dependencies
 - **The Graph Protocol** – Used for indexing and querying contract events.
 - **Graph CLI** – For building and deploying the subgraph.
-- **Solidity Contracts** – LiveDuel smart contracts on Avalanche Fuji.
+- **Solidity Contracts** – Prediction System contracts on Avalanche Fuji.
 
 ## 📂 Directory Structure
 ```
 ├── subgraph
+│   ├──abis/
+│   ├── build/
+│   ├── generated/
+│   ├── src/
+│   │   ├── prediction-market.ts   # Handles PredictionMarket events
+│   │   ├── market-factory.ts     # Handles MarketFactory events
+│   ├── package.json       # Dependencies and scripts
 │   ├── schema.graphql     # GraphQL schema defining entities
 │   ├── subgraph.yaml      # Subgraph manifest configuration
-│   ├── src/
-│   │   ├── PredictionMarket.ts   # Handles PredictionMarket events
-│   ├── generated/
-│   ├── package.json       # Dependencies and scripts
 │   ├── tsconfig.json      # TypeScript configuration
 ```
 
@@ -27,6 +30,12 @@ The subgraph tracks the following **PredictionMarket** contract events:
 - `SharesPurchased(buyer, outcome, shares, actualCost)`
 - `SharesSold(seller, outcome, shares, actualGain)`
 - `OddsUpdated(matchId, home, draw, away)`
+- `PayoutRedeemed(address indexed redeemer, uint8 indexed outcome, uint256 amount)`
+- `MarketResolved(uint256 indexed matchId, uint8 indexed outcome)`
+
+It tracks the following **MarketFactory** contract events: 
+- `PredictionMarketResolved(uint256 matchId, uint8 outcome)`
+- `PredictionMarketDeployed(uint256 matchId, address marketAddress, uint256 matchTimestamp)`
 
 ## 🚀 Setup & Deployment
 

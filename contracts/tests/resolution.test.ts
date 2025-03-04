@@ -143,7 +143,7 @@ describe("Market Resolution Test", function () {
       ----------------------------------------
       Total Required Payouts: ${ethers.utils.formatUnits(requiredCollateral, 6)} USDC
       MarketMaker Funding: ${ethers.utils.formatUnits(marketMakerFunding, 6)} USDC
-      Wagered Amount on Resolved Outcome: ${ethers.utils.formatUnits(wageredAmount, 6)} USDC
+      Wagered Amount: ${ethers.utils.formatUnits(wageredAmount, 6)} USDC
       Total Remaining Collateral: ${ethers.utils.formatUnits(remainingCollateral, 6)} USDC
       ----------------------------------------
     `);

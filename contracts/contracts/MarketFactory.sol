@@ -33,7 +33,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     ConditionalTokens public conditionalTokens; 
     LMSRMarketMakerFactory public lmsrFactory;
 
-    uint256 public constant MATCH_DURATION = 120 * 60; 
+    uint256 public constant MATCH_DURATION = 120 * 60; //Accounting for overtime
     bool public initialized;
 
     event PredictionMarketDeployed(uint256 matchId, address marketAddress, uint256 matchTimestamp);
@@ -206,25 +206,31 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
 
             uint256 requestTimestamp = matchRequestTimestamps[matchId];
             if (resultsConsumer.matchResolved(matchId) == true) {
-                address predictionMarket = predictionMarkets[matchId];
-                uint8 result = resultsConsumer.returnResult(matchId);
+                try resultsConsumer.returnResult(matchId) returns (uint8 finalOutcome) {
+                    // Only do the payouts report if not already done
+                    if (conditionalTokens.payoutNumerators(matchConditionIds[matchId], finalOutcome) == 0) {
+                        bytes32 questionId = keccak256(abi.encodePacked("Match Result: ", matchId));
+                        uint256[] memory payouts = new uint256[](3);
+                        payouts[finalOutcome] = 1;
+                        conditionalTokens.reportPayouts(questionId, payouts);
+                    }
 
-                bytes32 questionId = keccak256(abi.encodePacked("Match Result: ", matchId));
-                uint256[] memory payouts = new uint256[](3);
-                payouts[result] = 1;
+                    // Call into the PredictionMarket to resolve
+                    PredictionMarket(predictionMarkets[matchId]).resolveMarket(finalOutcome);
 
-                if (conditionalTokens.payoutNumerators(matchConditionIds[matchId], result) == 0) {
-                    conditionalTokens.reportPayouts(questionId, payouts);
+                    // Remove from active list
+                    require(_removeActiveMatch(matchId), "Match Removal Fail");
+
+                    emit PredictionMarketResolved(matchId, finalOutcome);
+                } catch {
+                   continue;
                 }
-
-                PredictionMarket(predictionMarket).resolveMarket(result);
-
-                require(_removeActiveMatch(matchId), "Match Removal Fail");
-
-                emit PredictionMarketResolved(matchId, result);
             } else if (requestTimestamp == 0 || block.timestamp >= requestTimestamp + 30) {
                 matchRequestTimestamps[matchId] = block.timestamp;
-                resultsConsumer.requestMatchResult(matchId);
+                try resultsConsumer.requestMatchResult(matchId) {
+                } catch {
+                    continue;
+                }
             }
         }
 

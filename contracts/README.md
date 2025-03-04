@@ -1,4 +1,4 @@
-# Contracts Module - LiveDuel Demo 2
+# Contracts Module
 
 ## 📜 Overview
 
