@@ -1,4 +1,4 @@
-<img src="./images/Liveduel-Demo-2.png" 
+<img src="./frontend/public/Liveduel-Demo-2.png" 
      alt="Liveduel Demo 2" 
      width="320" />
 
