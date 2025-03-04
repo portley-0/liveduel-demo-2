@@ -1,4 +1,4 @@
-# ![Liveduel Logo](./frontend/public/Liveduel-Logo.png) Demo 2
+# <img src="./frontend/public/Liveduel-Logo.png" alt="Liveduel Logo" width="250" /> Demo 2
 
 ## ⚽ Overview
 This demo project is a decentralized soccer prediction market platform built on the **Avalanche Fuji Testnet**. This monorepo contains all core components needed to operate the system, including smart contracts, a web frontend, a backend server, and a subgraph.
