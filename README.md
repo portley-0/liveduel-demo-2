@@ -1,7 +1,6 @@
-<h1>
-  <img src="./frontend/public/Liveduel-Logo.png" alt="Liveduel Logo" width="250" 
-       style="vertical-align: middle; margin-right: 8px;">
-  Demo 2
+<h1 style="display: flex; align-items: center;">
+  <img src="./frontend/public/Liveduel-Logo.png" alt="Liveduel Logo" width="220">
+  <span style="margin-left: 10px;">Demo 2</span>
 </h1>
 
 ## ⚽ Overview
