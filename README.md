@@ -1,16 +1,16 @@
-# Liveduel Demo 2
+# ![Liveduel Logo](./frontend/public/Liveduel-Logo.png) Demo 2
 
 ## ⚽ Overview
 This demo project is a decentralized soccer prediction market platform built on the **Avalanche Fuji Testnet**. This monorepo contains all core components needed to operate the system, including smart contracts, a web frontend, a backend server, and a subgraph.
 
 ## 🛠 Technologies
 - **Solidity** – Core logic for the prediction markets via smart contracts.
-- **Chainlink Functions** – Acts as an Oracle for match result retrieval from a Sports API
+- **Chainlink Functions** – Acts as an Oracle for match result retrieval from API Football.
 - **Chainlink Automation** – Executes smart contract actions (e.g., match resolution) automatically.
 - **Gnosis Conditional Tokens Framework (CTF)** – Enables conditional payouts based on match outcomes.
 - **Logarithmic Market Scoring Rule (LMSR)** – Dynamically calculates odds and manages liquidity.
-- **The Graph Protocol** – Indexes on-chain events and provides efficient querying
-- **Next.js** + **RainbowKit** – Delivers a user-friendly web interface and WalletConnect integration
+- **The Graph Protocol** – Indexes on-chain events and provides efficient querying.
+- **Next.js** + **RainbowKit** – Delivers a user-friendly web interface and WalletConnect integration.
 - **Express.js** + **WebSockets** – Handles backend data aggregation and enables real-time odds updates.
 
 ---

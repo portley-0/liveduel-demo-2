@@ -1,7 +1,7 @@
 # Subgraph Module
 
 ## 📜 Overview
-The **Subgraph Module** indexes key events from the **PredictionMarket** and **MarketFactory**contracts, enabling efficient data retrieval for the frontend and backend.
+The **Subgraph Module** indexes key events from the **PredictionMarket** and **MarketFactory** contracts, enabling efficient data retrieval for the frontend and backend.
 
 This subgraph is deployed on **The Graph's Hosted Service**.
 
