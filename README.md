@@ -5,6 +5,8 @@
 ## ⚽ Overview
 This demo project is a decentralized soccer prediction market platform built on the **Avalanche Fuji Testnet**. This monorepo contains all core components needed to operate the system, including smart contracts, a web frontend, a backend server, and a subgraph.
 
+A **Mock USDC** faucet is provided. This faucet dispenses mUSDC (test tokens) for use on the Avalanche Fuji Testnet, ensuring you can seamlessly test the prediction markets without needing real USDC.
+
 ## 🛠 Technologies
 - **Solidity** – Core logic for the prediction markets via smart contracts.
 - **Chainlink Functions** – Acts as an Oracle for match result retrieval from API Football.
@@ -22,6 +24,7 @@ This demo project is a decentralized soccer prediction market platform built on 
 - **Frontend**: Hosted on **Vercel**
 - **Backend**: Hosted on **AWS EC2**
 - **Subgraph**: Deployed using **The Graph's Hosted Service**
+- **Mock USDC Faucet**: Accessible at [mock-usdc.xyz](mock-usdc.xyz) (dispenses mUSDC on Avalanche Fuji)
 - **Live Demo**: [https://liveduel-demo-2.app/](https://liveduel-demo-2.app/)
 
 ---
