@@ -33,7 +33,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     ConditionalTokens public conditionalTokens; 
     LMSRMarketMakerFactory public lmsrFactory;
 
-    uint256 public constant MATCH_DURATION = 120 * 60; // Accounting for overtime
+    uint256 public constant MATCH_DURATION = 120 * 60; // Accounting for halftime / injury time / extra time / penalties
     uint256 public constant RESOLUTION_COOLDOWN = 5 minutes;
 
     bool public initialized;
