@@ -18,8 +18,8 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     mapping(uint256 => address) public lmsrMarketMakers; 
     mapping(uint256 => bytes32) public matchConditionIds; 
     mapping(uint256 => uint256) public matchTimestamps;   
-    mapping(uint256 => uint256) public matchRequestTimestamps; 
-    mapping(uint256 => uint256) public deploymentTimestamps;   
+    mapping(uint256 => uint256) public deploymentTimestamps; 
+    mapping(uint256 => uint256) public lastResolutionAttempt;  
 
     uint256[] public allMatchIds;
     uint256[] public activeMatches;
@@ -33,7 +33,9 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     ConditionalTokens public conditionalTokens; 
     LMSRMarketMakerFactory public lmsrFactory;
 
-    uint256 public constant MATCH_DURATION = 120 * 60; //Accounting for overtime
+    uint256 public constant MATCH_DURATION = 120 * 60; // Accounting for overtime
+    uint256 public constant RESOLUTION_COOLDOWN = 5 minutes;
+
     bool public initialized;
 
     event PredictionMarketDeployed(uint256 matchId, address marketAddress, uint256 matchTimestamp);
@@ -162,6 +164,11 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
 
         for (uint256 i = 0; i < activeMatches.length; i++) {
             uint256 matchId = activeMatches[i];
+
+            if (currentTime < lastResolutionAttempt[matchId] + RESOLUTION_COOLDOWN) {
+                continue;
+            }
+
             if (currentTime >= matchTimestamps[matchId] + MATCH_DURATION) {
                 matchesToResolve[countToResolve] = matchId;
                 countToResolve++;
@@ -201,10 +208,10 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
 
         for (uint256 i = 0; i < finalMatchesToResolve.length; i++) {
             uint256 matchId = finalMatchesToResolve[i];
+            lastResolutionAttempt[matchId] = block.timestamp;
             uint256 matchEndTime = matchTimestamps[matchId] + MATCH_DURATION;
             require(block.timestamp >= matchEndTime, "Match duration has not passed");
 
-            uint256 requestTimestamp = matchRequestTimestamps[matchId];
             if (resultsConsumer.matchResolved(matchId) == true) {
                 try resultsConsumer.returnResult(matchId) returns (uint8 finalOutcome) {
                     // Only do the payouts report if not already done
@@ -225,8 +232,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
                 } catch {
                    continue;
                 }
-            } else if (requestTimestamp == 0 || block.timestamp >= requestTimestamp + 30) {
-                matchRequestTimestamps[matchId] = block.timestamp;
+            } else {
                 try resultsConsumer.requestMatchResult(matchId) {
                 } catch {
                     continue;
@@ -238,17 +244,11 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         for (uint256 i = 0; i < finalMatchesToCleanup.length; i++) {
             uint256 matchId = finalMatchesToCleanup[i];
             if (currentTime > deploymentTimestamps[matchId] + 60 days) {
-                address predictionMarket = predictionMarkets[matchId];
-                address marketMakerAddress = lmsrMarketMakers[matchId];
-
-                if (marketMakerAddress != address(0)) {
-                    PredictionMarket(predictionMarket).finalizeMarket();
-                }
 
                 delete predictionMarkets[matchId];
                 delete deploymentTimestamps[matchId];
-                delete matchRequestTimestamps[matchId];
                 delete lmsrMarketMakers[matchId];
+                delete lastResolutionAttempt[matchId];
                 delete matchConditionIds[matchId];
                 delete matchTimestamps[matchId];
 

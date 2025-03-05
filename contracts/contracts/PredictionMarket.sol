@@ -20,12 +20,11 @@ contract PredictionMarket is Ownable, ERC1155Holder {
     LMSRMarketMaker public marketMaker;
 
     bool public initialized;
-    bool public isFinalized;
 
     bool public isResolved;
     uint8 public resolvedOutcome;
 
-    uint256 public constant FEE_BPS = 400; // 4%
+    uint256 public constant FEE_BPS = 400; // 4% in basis points
 
     address[] public bettors;
     mapping(address => bool) public isBettor;
@@ -79,8 +78,8 @@ contract PredictionMarket is Ownable, ERC1155Holder {
                 otherOutcomesTotal += totalWageredPerOutcome[i];
             }
         }
-        // Potential payout is offset by other outcomes
-        uint256 maxAllowedBet = 30000 * 1e6 + otherOutcomesTotal - totalWageredPerOutcome[outcome];
+    
+        uint256 maxAllowedBet = 500000 * 1e6 + otherOutcomesTotal - totalWageredPerOutcome[outcome];
         require(amount <= maxAllowedBet, "Bet exceeds maximum allowable amount");
 
         int[] memory tradeAmounts = new int[](3);
@@ -187,47 +186,24 @@ contract PredictionMarket is Ownable, ERC1155Holder {
 
         isResolved = true;
         resolvedOutcome = result;
-        marketMaker.pause();
+        marketMaker.close();
 
-        // Calculate Required Collateral for Winning Outcome
         uint256 indexSet = 1 << resolvedOutcome;
-        uint256 winningPositionId = conditionalTokens.getPositionId(
+        uint256[] memory indexSetArray = new uint256[](1);
+        indexSetArray[0] = indexSet;
+
+        conditionalTokens.redeemPositions(
             usdc,
-            conditionalTokens.getCollectionId(bytes32(0), conditionId, indexSet)
+            bytes32(0),
+            conditionId,
+            indexSetArray 
         );
-        uint256[] memory ids = new uint256[](bettors.length);
-        for (uint256 i = 0; i < bettors.length; i++) {
-            ids[i] = winningPositionId;
-        }
-        uint256[] memory balances = conditionalTokens.balanceOfBatch(bettors, ids);
-        uint256 requiredCollateral = 0;
-        for (uint256 i = 0; i < balances.length; i++) {
-            requiredCollateral += balances[i];
-        }
 
-        // Initial Collateral
-        uint256 initialFunding = marketMaker.funding();
+        uint256 redeemedBalance = usdc.balanceOf(address(this));
 
-        // Remaining market maker collateral
-        uint256 marketMakerBalance = conditionalTokens.balanceOf(address(marketMaker), winningPositionId);
-
-        // Calculate Total Collateral Wagered 
-        uint256 totalTraderCollateral = 0;
-        for (uint8 i = 0; i < 3; i++) {
-            totalTraderCollateral += totalWageredPerOutcome[i];
-        }
-
-        // Calculate Excess Collateral
-        uint256 excessCollateral = initialFunding + totalTraderCollateral - requiredCollateral;
-
-        // Capped at market maker balance
-        excessCollateral = excessCollateral > marketMakerBalance ? marketMakerBalance : excessCollateral;
-
-        if (excessCollateral > 0) {
-            marketMaker.changeFunding(-int256(excessCollateral));
-            usdc.approve(address(liquidityPool), excessCollateral);
-            liquidityPool.returnLiquidity(excessCollateral);
-        }
+        usdc.approve(address(liquidityPool), redeemedBalance);
+        liquidityPool.returnLiquidity(redeemedBalance);
+        
         liquidityPool.revokeMarket(address(this));
         emit MarketResolved(matchId, result);
     }
@@ -262,15 +238,5 @@ contract PredictionMarket is Ownable, ERC1155Holder {
 
         emit PayoutRedeemed(msg.sender, resolvedOutcome, payout);
     }
-
-    function finalizeMarket() external onlyOwner {
-        require(isResolved, "Market must be resolved before finalization");
-        require(!isFinalized, "Market already finalized");
-        isFinalized = true;
-        marketMaker.close();
-    }
 }
-
-
-
-  
+ 

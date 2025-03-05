@@ -45,7 +45,7 @@ const getGameResult = async (gameId) => {
 
   // Check if the game is finished (Full Time)
   const status = data.fixture.status.short;
-  if (status != "FT") {
+  if (status != "FT" || "PEN" || "AET") {
     throw new Error("Game not finished yet");
   }
 

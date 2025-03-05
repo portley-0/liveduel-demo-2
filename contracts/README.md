@@ -95,13 +95,23 @@ npx @chainlink/env-enc set     # Encrypt and store environment variables
 
 Required environment variables:
 
-- **API\_KEY** (API-Football API key)
+- **API\_KEY** (API-Football API key, can be acquired from **[here](https://dashboard.api-football.com/register)**)
 - **PRIVATE\_KEY** (Testnet Avax Wallet)
 - **AVALANCHE\_FUJI\_RPC\_URL** (https://api.avax-test.network/ext/bc/C/rpc)
 - **GITHUB\_API\_TOKEN** (Must be generated with read and write Gists permission)
 - **FUJI\_SNOWTRACE\_API\_KEY** (Can be left blank)
 
-### 4️⃣ Deploy Contracts
+### 4️⃣ Create a Chainlink Functions Subscription
+
+* Go to **[functions.chain.link](https://functions.chain.link)**
+* Create a new subscription on Avalanche Fuji.
+* Fund the subscription with some testnet LINK.
+* Copy the subscription ID — you will need this when deploying ResultsConsumer.
+
+> Note: Testnet LINK can be obtained from **[faucets.chain.link](https://faucets.chain.link)**
+
+
+### 5️⃣ Deploy Contracts
 
 > Note: Chainlink SubscriptionID must be provided to DeployResultsConsumer.ts
 
@@ -111,9 +121,26 @@ pnpm run deploy:resultsconsumer
 pnpm run deploy:system
 ```
 
-### 4️⃣ Run Tests
+### 6️⃣ Configure Chainlink Functions & Automation
 
-> Note: factory.test.ts requires setting specific variables. See test file.
+After deploying:
+
+1. Register a Custom Logic Chainlink Upkeep
+    * Go to **[automation.chain.link](https://automation.chain.link)**
+    * Register your deployed MarketFactory contract (its address is in your .env)
+    * Fund the upkeep with testnet LINK on Avalanche Fuji
+
+2. Add the Deployed ResultsConsumer Contract to Your Functions Subscription
+    * Go to **[functions.chain.link](https://functions.chain.link)**
+    * Add the newly deployed ResultsConsumer as a consumer on your subscription
+    * Ensure the subscription is funded with testnet LINK
+
+3. Acquire Additional Testnet LINK
+    If needed, request more testnet LINK from **[faucets.chain.link](https://faucets.chain.link)**
+
+### 7️⃣ Run Tests
+
+> Note: factory.test.ts requires setting matchId and timestamp.
 
 ```bash
 pnpm run test:chainlink

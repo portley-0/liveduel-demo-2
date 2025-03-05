@@ -69,7 +69,7 @@ describe("Market Resolution Test", function () {
     resolvedOutcome = filteredEvents[0].args.outcome;
 
     console.log(`
-      PredictionMarketResolved Event
+      PredictionMarketResolved Event (MarketFactory)
       ----------------------------------------
       Match ID: ${filteredEvents[0].args.matchId.toString()}
       Resolved Outcome: ${filteredEvents[0].args.outcome}
@@ -86,7 +86,7 @@ describe("Market Resolution Test", function () {
     expect(events.length).to.be.gt(0, "MarketResolved event was not found!");
     const event = events[0];
     console.log(`
-      MarketResolved Event
+      MarketResolved Event (PredictionMarket)
       ----------------------------------------
       Match ID: ${event.args.matchId.toString()}
       Resolved Outcome: ${event.args.outcome}
@@ -128,7 +128,7 @@ describe("Market Resolution Test", function () {
         requiredCollateral = requiredCollateral.add(balance);
     }
 
-    const marketMakerFunding = await marketMaker.funding();
+    const marketMakerFunding = await conditionalTokens.balanceOf(marketMaker.address, winningPositionId);
 
     let wageredAmount = ethers.BigNumber.from(0);
     for (let i = 0; i < 3; i++) {
@@ -136,15 +136,18 @@ describe("Market Resolution Test", function () {
         wageredAmount = wageredAmount.add(amount);
       });
     }
-    const remainingCollateral = marketMakerFunding.add(wageredAmount);
+
+    const initialFunding = await marketMaker.funding();
+
+    const remainingCollateral = initialFunding.add(wageredAmount);
 
     console.log(`
       Collateral Check
       ----------------------------------------
       Total Required Payouts: ${ethers.utils.formatUnits(requiredCollateral, 6)} USDC
-      MarketMaker Funding: ${ethers.utils.formatUnits(marketMakerFunding, 6)} USDC
+      Remaining MarketMaker Funding: ${ethers.utils.formatUnits(marketMakerFunding, 6)} USDC
       Wagered Amount: ${ethers.utils.formatUnits(wageredAmount, 6)} USDC
-      Total Remaining Collateral: ${ethers.utils.formatUnits(remainingCollateral, 6)} USDC
+      Remaining USDC Collateral: ${ethers.utils.formatUnits(remainingCollateral, 6)} USDC
       ----------------------------------------
     `);
 
@@ -172,10 +175,10 @@ describe("Market Resolution Test", function () {
     `);
   });
 
-  it("Checks that the MarketMaker stage is Paused", async function () {
+  it("Checks that the MarketMaker stage is Closed", async function () {
     const marketStage = await marketMaker.stage();
 
-    expect(marketStage).to.equal(1, "MarketMaker stage is not paused!");
-    console.log(`MarketMaker stage is correctly set to Paused (1).`);
+    expect(marketStage).to.equal(2, "MarketMaker stage is not closed!");
+    console.log(`MarketMaker stage is correctly set to Closed (2).`);
   });
 });

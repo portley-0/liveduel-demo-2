@@ -19,7 +19,7 @@ async function deploy() {
     const source = fs.readFileSync("./API-request.js").toString();
 
     // Subscription ID is a unique identifier for the subscription
-    const subscriptionId = 12321;
+    const subscriptionId = 15388;
 
     const secretsManager = new SecretsManager({ signer, functionsRouterAddress, donId });
     await secretsManager.initialize();
