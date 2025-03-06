@@ -116,6 +116,9 @@ describe("PredictionMarket - Redeem Payouts Test", function () {
   });
 
   it("Logs user balances after redemption", async function () {
+
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
     const erc1155After = await conditionalTokens.balanceOf(await user.getAddress(), winningPositionId);
     const usdcAfter = await usdc.balanceOf(await user.getAddress());
 
