@@ -1,37 +1,31 @@
 specVersion: 1.2.0
 indexerHints:
   prune: auto
+
 schema:
   file: ./schema.graphql
+
 dataSources:
   - kind: ethereum
     name: MarketFactory
     network: fuji
     source:
-      address: "0x2d32960680E1260877cD3b036F8a10D263AcB508"
+      address: "0xd25cd1E25E39E5A84DCC1cE11a9948ed0039753f"
       abi: MarketFactory
-      startBlock: 38173389
+      startBlock: 38400572
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
       language: wasm/assemblyscript
+
       entities:
-        - OwnershipTransferred
-        - PlatformProfitAdded
-        - PredictionMarketDeployed
-        - PredictionMarketResolved
+        - PredictionMarket  
       abis:
         - name: MarketFactory
           file: ./abis/MarketFactory.json
       eventHandlers:
-        - event: OwnershipTransferred(indexed address,indexed address)
-          handler: handleOwnershipTransferred
-        - event: PlatformProfitAdded(uint256)
-          handler: handlePlatformProfitAdded
         - event: PredictionMarketDeployed(uint256,address,uint256)
           handler: handlePredictionMarketDeployed
-        - event: PredictionMarketResolved(uint256,uint8)
-          handler: handlePredictionMarketResolved
       file: ./src/market-factory.ts
 
 templates:
@@ -44,13 +38,18 @@ templates:
       kind: ethereum/events
       apiVersion: 0.0.9
       language: wasm/assemblyscript
+
       entities:
         - SharesPurchased
         - SharesSold
         - OddsUpdated
+        - MarketResolved
+        - PayoutRedeemed
+
       abis:
         - name: PredictionMarket
           file: ./abis/PredictionMarket.json
+
       eventHandlers:
         - event: SharesPurchased(indexed address,indexed uint8,uint256,int256)
           handler: handleSharesPurchased
@@ -58,4 +57,9 @@ templates:
           handler: handleSharesSold
         - event: OddsUpdated(indexed uint256,uint256,uint256,uint256)
           handler: handleOddsUpdated
+        - event: MarketResolved(indexed uint256,indexed uint8)
+          handler: handleMarketResolved
+        - event: PayoutRedeemed(indexed address,indexed uint8,uint256)
+          handler: handlePayoutRedeemed
+
       file: ./src/prediction-market.ts

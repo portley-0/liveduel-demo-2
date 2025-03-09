@@ -1,42 +1,14 @@
-type OwnershipTransferred @entity(immutable: true) {
-  id: Bytes!
-  previousOwner: Bytes! # address
-  newOwner: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type PlatformProfitAdded @entity(immutable: true) {
-  id: Bytes!
-  amount: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type PredictionMarketDeployed @entity(immutable: true) {
-  id: Bytes!
-  matchId: BigInt! # uint256
-  marketAddress: Bytes! # address
-  matchTimestamp: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type PredictionMarketResolved @entity(immutable: true) {
-  id: Bytes!
-  matchId: BigInt! # uint256
-  outcome: Int! # uint8
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type PredictionMarket @entity {
+  id: ID!               
+  matchId: BigInt!
+  matchTimestamp: BigInt!
+  isResolved: Boolean!
+  resolvedOutcome: Int 
 }
 
 type SharesPurchased @entity {
-  id: ID!
-  market: Bytes!
+  id: ID!               
+  market: Bytes!        
   buyer: Bytes!
   outcome: Int!
   shares: BigInt!
@@ -58,8 +30,25 @@ type OddsUpdated @entity {
   id: ID!
   market: Bytes!
   matchId: BigInt!
-  home: BigDecimal!
-  draw: BigDecimal!
-  away: BigDecimal!
+  home: BigInt!
+  draw: BigInt!
+  away: BigInt!
+  timestamp: BigInt!
+}
+
+type MarketResolved @entity {
+  id: ID!
+  market: Bytes!
+  matchId: BigInt!
+  outcome: Int!
+  timestamp: BigInt!
+}
+
+type PayoutRedeemed @entity {
+  id: ID!
+  market: Bytes!
+  redeemer: Bytes!
+  outcome: Int!
+  amount: BigInt!
   timestamp: BigInt!
 }

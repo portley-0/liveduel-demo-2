@@ -3,7 +3,7 @@
 ## 📜 Overview
 The **Subgraph Module** indexes key events from the **PredictionMarket** and **MarketFactory** contracts, enabling efficient data retrieval for the frontend and backend.
 
-This subgraph is deployed on **The Graph's Hosted Service**.
+This subgraph is deployed to the **[Graph Studio](https://api.studio.thegraph.com/query/106321/liveduel-demo-2/version/latest)**.
 
 ## 🛠 Dependencies
 - **The Graph Protocol** – Used for indexing and querying contract events.
@@ -13,12 +13,14 @@ This subgraph is deployed on **The Graph's Hosted Service**.
 ## 📂 Directory Structure
 ```
 ├── subgraph
-│   ├──abis/
+│   ├── abis/
 │   ├── build/
 │   ├── generated/
 │   ├── src/
 │   │   ├── prediction-market.ts   # Handles PredictionMarket events
 │   │   ├── market-factory.ts     # Handles MarketFactory events
+│   ├── tests/
+│   │   ├── prediction-market.test.ts   # Testing
 │   ├── package.json       # Dependencies and scripts
 │   ├── schema.graphql     # GraphQL schema defining entities
 │   ├── subgraph.yaml      # Subgraph manifest configuration
@@ -33,8 +35,7 @@ The subgraph tracks the following **PredictionMarket** contract events:
 - `PayoutRedeemed(address indexed redeemer, uint8 indexed outcome, uint256 amount)`
 - `MarketResolved(uint256 indexed matchId, uint8 indexed outcome)`
 
-It tracks the following **MarketFactory** contract events: 
-- `PredictionMarketResolved(uint256 matchId, uint8 outcome)`
+It tracks the following **MarketFactory** contract event: 
 - `PredictionMarketDeployed(uint256 matchId, address marketAddress, uint256 matchTimestamp)`
 
 ## 🚀 Setup & Deployment
@@ -54,6 +55,13 @@ yarn build
 ```bash
 yarn deploy
 ```
+
+## 🧪 Testing the Subgraph
+This project uses **[Matchstick](https://github.com/LimeChain/matchstick)** for unit testing subgraph mappings.  
+- To run tests:
+  ```bash
+  yarn test
+  ```
 
 ## 📄 License
 This project is licensed under the [MIT License](LICENSE).
