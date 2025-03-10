@@ -1,42 +1,242 @@
-const { request, gql } = require('graphql-request');
-//const cache = require('../cache');
+import { request, gql } from 'graphql-request';
 
-const EVENTS_QUERY = gql`
-  query {
-    # Adjust to match your subgraph schema
-    sharesSoldEvents {
-      id
-      user
-      amount
-    }
-    sharesPurchasedEvents {
-      id
-      user
-      amount
-    }
-    oddsUpdatedEvents {
-      id
-      newOdds
-    }
-  }
-`;
+const SUBGRAPH_URL = process.env.SUBGRAPH_URL || '';
 
-async function fetchSubgraphData() {
-  try {
-    const endpoint = process.env.SUBGRAPH_URL;
-    const data = await request(endpoint, EVENTS_QUERY);
-
-    // For example, let's grab the latest odds
-    if (data?.oddsUpdatedEvents?.length) {
-      const latest = data.oddsUpdatedEvents[data.oddsUpdatedEvents.length - 1];
-      cache.odds = latest.newOdds;
+export async function getOddsUpdatesByMatchId(matchId: number): Promise<OddsUpdatedEntity[]> {
+  const query = gql`
+    query OddsUpdates($matchId: BigInt!) {
+      oddsUpdateds(
+        where: { matchId: $matchId }
+        orderBy: timestamp
+        orderDirection: asc
+      ) {
+        id
+        market
+        matchId
+        home
+        draw
+        away
+        timestamp
+      }
     }
+  `;
 
-    // For sharesSold or sharesPurchased, you could update the userPredictions
-    // ...
-  } catch (error) {
-    console.error('Error fetching subgraph data:', error);
-  }
+  const variables = { matchId: matchId.toString() };
+  const data = await request<{ oddsUpdateds: OddsUpdatedEntity[] }>(SUBGRAPH_URL, query, variables);
+  return data.oddsUpdateds;
 }
 
-module.exports = { fetchSubgraphData };
+export async function getPredictionMarketByMatchId(
+  matchId: number
+): Promise<PredictionMarketEntity | null> {
+  const query = gql`
+    query PredictionMarketByMatchId($matchId: BigInt!) {
+      predictionMarkets(where: { matchId: $matchId }) {
+        id
+        matchId
+        matchTimestamp
+        isResolved
+        resolvedOutcome
+      }
+    }
+  `;
+  const variables = { matchId: matchId.toString() };
+  const data = await request<{ predictionMarkets: PredictionMarketEntity[] }>(
+    SUBGRAPH_URL,
+    query,
+    variables
+  );
+  if (data.predictionMarkets.length === 0) {
+    return null;
+  }
+  return data.predictionMarkets[0];
+}
+
+export async function getSharesPurchasedByMarket(marketAddress: string): Promise<SharesPurchasedEntity[]> {
+  const query = gql`
+    query SharesPurchasedByMarket($market: Bytes!) {
+      sharesPurchaseds(where: { market: $market }) {
+        id
+        market
+        buyer
+        outcome
+        shares
+        actualCost
+        timestamp
+      }
+    }
+  `;
+  const data = await request<{ sharesPurchaseds: SharesPurchasedEntity[] }>(
+    SUBGRAPH_URL,
+    query,
+    { market: marketAddress.toLowerCase() }
+  );
+  return data.sharesPurchaseds;
+}
+
+export async function getSharesSoldByMarket(marketAddress: string): Promise<SharesSoldEntity[]> {
+  const query = gql`
+    query SharesSoldByMarket($market: Bytes!) {
+      sharesSolds(where: { market: $market }) {
+        id
+        market
+        seller
+        outcome
+        shares
+        actualGain
+        timestamp
+      }
+    }
+  `;
+  const data = await request<{ sharesSolds: SharesSoldEntity[] }>(
+    SUBGRAPH_URL,
+    query,
+    { market: marketAddress.toLowerCase() }
+  );
+  return data.sharesSolds;
+}
+
+export async function getSharesPurchasedForUserInMarket(
+  userAddress: string,
+  marketAddress: string
+): Promise<SharesPurchasedEntity[]> {
+  const query = gql`
+    query SharesPurchasedForUserAndMarket($buyer: Bytes!, $market: Bytes!) {
+      sharesPurchaseds(
+        where: { buyer: $buyer, market: $market }
+        orderBy: timestamp
+        orderDirection: desc
+      ) {
+        id
+        market
+        buyer
+        outcome
+        shares
+        actualCost
+        timestamp
+      }
+    }
+  `;
+  const variables = {
+    buyer: userAddress.toLowerCase(),
+    market: marketAddress.toLowerCase(),
+  };
+  const data = await request<{ sharesPurchaseds: SharesPurchasedEntity[] }>(
+    SUBGRAPH_URL,
+    query,
+    variables
+  );
+  return data.sharesPurchaseds;
+}
+
+export async function getSharesSoldForUserInMarket(
+  userAddress: string,
+  marketAddress: string
+): Promise<SharesSoldEntity[]> {
+  const query = gql`
+    query SharesSoldForUserAndMarket($seller: Bytes!, $market: Bytes!) {
+      sharesSolds(
+        where: { seller: $seller, market: $market }
+        orderBy: timestamp
+        orderDirection: desc
+      ) {
+        id
+        market
+        seller
+        outcome
+        shares
+        actualGain
+        timestamp
+      }
+    }
+  `;
+  const variables = {
+    seller: userAddress.toLowerCase(),
+    market: marketAddress.toLowerCase(),
+  };
+  const data = await request<{ sharesSolds: SharesSoldEntity[] }>(
+    SUBGRAPH_URL,
+    query,
+    variables
+  );
+  return data.sharesSolds;
+}
+
+export async function getPayoutRedeemedForUserInMarket(
+  userAddress: string,
+  marketAddress: string
+): Promise<PayoutRedeemedEntity[]> {
+  const query = gql`
+    query PayoutRedeemedForUserAndMarket($redeemer: Bytes!, $market: Bytes!) {
+      payoutRedeemeds(
+        where: { redeemer: $redeemer, market: $market }
+        orderBy: timestamp
+        orderDirection: desc
+      ) {
+        id
+        market
+        redeemer
+        outcome
+        amount
+        timestamp
+      }
+    }
+  `;
+  const variables = {
+    redeemer: userAddress.toLowerCase(),
+    market: marketAddress.toLowerCase(),
+  };
+  const data = await request<{ payoutRedeemeds: PayoutRedeemedEntity[] }>(
+    SUBGRAPH_URL,
+    query,
+    variables
+  );
+  return data.payoutRedeemeds;
+}
+
+export interface PredictionMarketEntity {
+  id: string;            
+  matchId: string;       
+  matchTimestamp: string; 
+  isResolved: boolean;
+  resolvedOutcome?: number | null;
+}
+
+export interface SharesPurchasedEntity {
+  id: string;
+  market: string;
+  buyer: string;
+  outcome: number;
+  shares: string;       
+  actualCost: string;   
+  timestamp: string;    
+}
+
+export interface SharesSoldEntity {
+  id: string;
+  market: string;
+  seller: string;
+  outcome: number;
+  shares: string;
+  actualGain: string;
+  timestamp: string;
+}
+
+export interface OddsUpdatedEntity {
+  id: string;
+  market: string;
+  matchId: string;
+  home: string;
+  draw: string;
+  away: string;
+  timestamp: string;
+}
+
+export interface PayoutRedeemedEntity {
+  id: string;
+  market: string;
+  redeemer: string;
+  outcome: number;
+  amount: string;
+  timestamp: string;
+}

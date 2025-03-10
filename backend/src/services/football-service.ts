@@ -1,30 +1,73 @@
-const axios = require('axios');
-const cache = require('../cache');
+import axios from 'axios';
 
-async function fetchMatchData() {
-  try {
-    // Example endpoint (replace fixture or league ID as needed)
-    const response = await axios.get('https://v3.football.api-sports.io/fixtures', {
-      params: {
-        id: 'YOUR_FIXTURE_ID', // or other params
-      },
-      headers: {
-        'x-rapidapi-key': process.env.API_FOOTBALL_KEY,
-        'x-rapidapi-host': 'v3.football.api-sports.io',
-      },
-    });
+const API_KEY = process.env.API_KEY || '';
+const BASE_URL = 'https://v3.football.api-sports.io';
 
-    const fixture = response.data?.response?.[0] || {};
-    const newMatchData = {
-      score: fixture.goals,  // e.g., { home: number, away: number }
-      // Add red cards, scorers, etc. as needed
-    };
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'x-apisports-key': API_KEY,
+    'x-apisports-host': 'v3.football.api-sports.io',
+  },
+});
 
-    // Update our cache
-    cache.matchData = newMatchData;
-  } catch (error) {
-    console.error('Error fetching match data:', error);
-  }
+export interface GetFixtureParams {
+  id?: number;
+
+  live?: string;
+
+  league?: number;
+
+  date?: string;  
+
+  season?: number;    
+
+  from?: string;      
+
+  to?: string;        
+
+  status?: string;      
 }
 
-module.exports = { fetchMatchData };
+export async function getFixtures(params: GetFixtureParams) {
+  const cleanedParams = Object.fromEntries(
+    Object.entries(params).filter(([_, val]) => val !== undefined)
+  );
+
+  const response = await apiClient.get('/fixtures', { params: cleanedParams });
+  if (response.status !== 200) {
+    throw new Error(`[FootballService] getFixtures failed with status ${response.status}`);
+  }
+
+  const data = response.data?.response ?? [];
+
+  return data; 
+}
+
+export async function getStatistics(matchId: number, teamId: number) {
+  const response = await apiClient.get('/fixtures/statistics', {
+    params: { fixture: matchId, team: teamId },
+  });
+  return response.data?.response ?? [];
+}
+
+export async function getEvents(matchId: number) {
+  const response = await apiClient.get('/fixtures/events', {
+    params: { fixture: matchId },
+  });
+  return response.data?.response ?? [];
+}
+
+export async function getLineups(matchId: number) {
+  const response = await apiClient.get('/fixtures/lineups', {
+    params: { fixture: matchId },
+  });
+  return response.data?.response ?? [];
+}
+
+export async function getStandings(leagueId: number, season: number) {
+  const response = await apiClient.get('/standings', {
+    params: { league: leagueId, season },
+  });
+  return response.data?.response ?? [];
+}
