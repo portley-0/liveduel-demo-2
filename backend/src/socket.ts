@@ -1,18 +1,27 @@
-import { Server } from 'http'
-import { Server as SocketServer } from 'socket.io'
+import { Server as SocketIOServer, Socket } from 'socket.io';
+import { getAllMatches } from './cache'; 
+import { MatchData } from './cache';
 
-export function setupSocket(httpServer: Server) {
-  const io = new SocketServer(httpServer, {
-    cors: { origin: '*' }
-  })
+let io: SocketIOServer;
 
-  io.on('connection', (socket) => {
-    console.log(`Client connected: ${socket.id}`)
-    
-    // You might let them join a "match room" to get real-time updates
-    // from your match view cache, for example:
-    socket.on('joinMatch', (matchId) => {
-      socket.join(`match-${matchId}`)
-    })
-  })
+export function initSocket(socketServer: SocketIOServer) {
+  io = socketServer;
+
+  io.on('connection', (socket: Socket) => {
+    console.log('[socket] Client connected:', socket.id);
+
+    socket.on('requestInitialCache', () => {
+      const allMatches = getAllMatches();
+      socket.emit('initialCache', allMatches);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('[socket] Client disconnected:', socket.id);
+    });
+  });
+}
+
+export function broadcastMatchUpdate(match: MatchData) {
+  if (!io) return; 
+  io.emit('matchUpdate', match);
 }

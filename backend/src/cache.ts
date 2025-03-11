@@ -1,4 +1,4 @@
-import { io } from '../socket';
+import { broadcastMatchUpdate } from './socket';
 
 export interface TeamStanding {
   rank: number;
@@ -221,10 +221,6 @@ export function updateMatchData(matchId: number, partialData: Partial<MatchData>
   broadcastMatchUpdate(updatedMatch);
 }
 
-function broadcastMatchUpdate(match: MatchData) {
-  io.emit('matchUpdate', match);
-}
-
 export function deleteMatchData(matchId:number) {
   delete matchCache[matchId];
 }
@@ -233,6 +229,8 @@ export function getAllMatches(): MatchData[] {
   return Object.values(matchCache);
 }
 
+
+/*
 export function getMatchesFiltered(options?: {
   leagueId?: number;
   liveOnly?: boolean;
@@ -312,3 +310,4 @@ export function getMatchesFiltered(options?: {
     bettingVolume: m.bettingVolume,
   }));
 }
+*/

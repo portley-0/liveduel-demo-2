@@ -52,6 +52,34 @@ export async function getPredictionMarketByMatchId(
   return data.predictionMarkets[0];
 }
 
+export async function getPredictionMarketByAddress(
+  marketAddress: string
+): Promise<PredictionMarketEntity | null> {
+  const query = gql`
+    query PredictionMarketByAddress($market: Bytes!) {
+      predictionMarkets(where: { id: $market }) {
+        id
+        matchId
+        matchTimestamp
+        isResolved
+        resolvedOutcome
+      }
+    }
+  `;
+
+  const variables = { market: marketAddress.toLowerCase() };
+  const data = await request<{ predictionMarkets: PredictionMarketEntity[] }>(
+    SUBGRAPH_URL,
+    query,
+    variables
+  );
+
+  if (!data.predictionMarkets || data.predictionMarkets.length === 0) {
+    return null;
+  }
+  return data.predictionMarkets[0];
+}
+
 export async function getSharesPurchasedByMarket(marketAddress: string): Promise<SharesPurchasedEntity[]> {
   const query = gql`
     query SharesPurchasedByMarket($market: Bytes!) {
@@ -96,14 +124,11 @@ export async function getSharesSoldByMarket(marketAddress: string): Promise<Shar
   return data.sharesSolds;
 }
 
-export async function getSharesPurchasedForUserInMarket(
-  userAddress: string,
-  marketAddress: string
-): Promise<SharesPurchasedEntity[]> {
+export async function getAllPurchasesForUser(userAddress: string): Promise<SharesPurchasedEntity[]> {
   const query = gql`
-    query SharesPurchasedForUserAndMarket($buyer: Bytes!, $market: Bytes!) {
+    query AllPurchasesForUser($buyer: Bytes!) {
       sharesPurchaseds(
-        where: { buyer: $buyer, market: $market }
+        where: { buyer: $buyer }
         orderBy: timestamp
         orderDirection: desc
       ) {
@@ -117,26 +142,22 @@ export async function getSharesPurchasedForUserInMarket(
       }
     }
   `;
-  const variables = {
-    buyer: userAddress.toLowerCase(),
-    market: marketAddress.toLowerCase(),
-  };
+
+  const variables = { buyer: userAddress.toLowerCase() };
   const data = await request<{ sharesPurchaseds: SharesPurchasedEntity[] }>(
     SUBGRAPH_URL,
     query,
     variables
   );
+
   return data.sharesPurchaseds;
 }
 
-export async function getSharesSoldForUserInMarket(
-  userAddress: string,
-  marketAddress: string
-): Promise<SharesSoldEntity[]> {
+export async function getAllSalesForUser(userAddress: string): Promise<SharesSoldEntity[]> {
   const query = gql`
-    query SharesSoldForUserAndMarket($seller: Bytes!, $market: Bytes!) {
+    query AllSalesForUser($seller: Bytes!) {
       sharesSolds(
-        where: { seller: $seller, market: $market }
+        where: { seller: $seller }
         orderBy: timestamp
         orderDirection: desc
       ) {
@@ -150,26 +171,22 @@ export async function getSharesSoldForUserInMarket(
       }
     }
   `;
-  const variables = {
-    seller: userAddress.toLowerCase(),
-    market: marketAddress.toLowerCase(),
-  };
+
+  const variables = { seller: userAddress.toLowerCase() };
   const data = await request<{ sharesSolds: SharesSoldEntity[] }>(
     SUBGRAPH_URL,
     query,
     variables
   );
+
   return data.sharesSolds;
 }
 
-export async function getPayoutRedeemedForUserInMarket(
-  userAddress: string,
-  marketAddress: string
-): Promise<PayoutRedeemedEntity[]> {
+export async function getAllRedeemedForUser(userAddress: string): Promise<PayoutRedeemedEntity[]> {
   const query = gql`
-    query PayoutRedeemedForUserAndMarket($redeemer: Bytes!, $market: Bytes!) {
+    query AllRedeemedForUser($redeemer: Bytes!) {
       payoutRedeemeds(
-        where: { redeemer: $redeemer, market: $market }
+        where: { redeemer: $redeemer }
         orderBy: timestamp
         orderDirection: desc
       ) {
@@ -182,15 +199,14 @@ export async function getPayoutRedeemedForUserInMarket(
       }
     }
   `;
-  const variables = {
-    redeemer: userAddress.toLowerCase(),
-    market: marketAddress.toLowerCase(),
-  };
+
+  const variables = { redeemer: userAddress.toLowerCase() };
   const data = await request<{ payoutRedeemeds: PayoutRedeemedEntity[] }>(
     SUBGRAPH_URL,
     query,
     variables
   );
+
   return data.payoutRedeemeds;
 }
 

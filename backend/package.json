@@ -2,9 +2,9 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.ts",
+  "main": "server.ts",
   "scripts": {
-    "start": "node src/index.ts"
+    "start": "node src/server.ts"
   },
   "keywords": [],
   "author": "",
