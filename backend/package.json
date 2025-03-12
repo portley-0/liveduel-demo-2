@@ -4,7 +4,7 @@
   "description": "",
   "main": "server.ts",
   "scripts": {
-    "start": "node src/server.ts"
+    "start": "tsx src/server.ts"
   },
   "keywords": [],
   "author": "",
@@ -17,12 +17,14 @@
     "ethers": "^6.13.5",
     "express": "^4.21.1",
     "graphql-request": "^7.1.2",
+    "http": "0.0.1-security",
+    "node-fetch": "2",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/node": "^22.13.9",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   }
 }

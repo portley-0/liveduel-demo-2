@@ -23,7 +23,7 @@ A **Mock USDC** faucet is provided. This faucet dispenses mUSDC (test tokens) fo
 - **Contracts**: Deployed on **Avalanche Fuji Testnet**
 - **Frontend**: Hosted on **Vercel**
 - **Backend**: Hosted on **AWS EC2**
-- **Subgraph**: Deployed to the **[Graph Studio](https://api.studio.thegraph.com/query/106321/liveduel-demo-2/version/latest)**
+- **Subgraph**: Deployed to a self-hosted **Graph Node** running on **AWS EC2**.
 - **Live Demo**: Accessible at **[liveduel-demo-2.app](https://liveduel-demo-2.app/)**
 - **Mock USDC Faucet**: Accessible at **[mock-usdc.xyz](https://mock-usdc.xyz/)**
 

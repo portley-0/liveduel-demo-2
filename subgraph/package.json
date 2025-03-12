@@ -4,8 +4,11 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --studio subgraph",
-    "test": "graph test"
+    "deploy:studio": "graph deploy --studio subgraph",
+    "deploy:docker": "graph deploy --product graph-node --node http://localhost:8020 --ipfs http://localhost:5001 liveduel-demo-2",
+    "test": "graph test",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.96.0",

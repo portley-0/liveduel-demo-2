@@ -3,7 +3,7 @@
 ## 📜 Overview
 The **Subgraph Module** indexes key events from the **PredictionMarket** and **MarketFactory** contracts, enabling efficient data retrieval for the frontend and backend.
 
-This subgraph is deployed to the **[Graph Studio](https://api.studio.thegraph.com/query/106321/liveduel-demo-2/version/latest)**.
+This subgraph is deployed to a self-hosted **Graph Node** running on **AWS EC2** via Docker Compose.
 
 ## 🛠 Dependencies
 - **The Graph Protocol** – Used for indexing and querying contract events.
@@ -21,6 +21,7 @@ This subgraph is deployed to the **[Graph Studio](https://api.studio.thegraph.co
 │   │   ├── market-factory.ts     # Handles MarketFactory events
 │   ├── tests/
 │   │   ├── prediction-market.test.ts   # Testing
+│   ├── docker-compose.yml # Docker setup for Graph Node, Postgres, IPFS 
 │   ├── package.json       # Dependencies and scripts
 │   ├── schema.graphql     # GraphQL schema defining entities
 │   ├── subgraph.yaml      # Subgraph manifest configuration
@@ -51,9 +52,21 @@ yarn codegen
 yarn build
 ```
 
-### 3️⃣ Deploy to The Graph's Hosted Service
+> Note: (Make sure you have Docker & Docker Compose installed. On AWS EC2, see docker-compose.yml.)
+
+### 3️⃣ Run the Graph Node
 ```bash
-yarn deploy
+yarn docker:up
+```
+
+### 4️⃣ Deploy to Your Self-Hosted Graph Node
+```bash
+yarn deploy:docker
+```
+
+You can then query the subgraph at:
+```bash
+http://<EC2-PUBLIC-IP>:8000/subgraphs/name/liveduel-demo-2
 ```
 
 ## 🧪 Testing the Subgraph

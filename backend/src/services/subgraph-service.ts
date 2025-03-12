@@ -1,4 +1,8 @@
 import { request, gql } from 'graphql-request';
+const fetch = require('node-fetch');
+
+globalThis.fetch = fetch;
+globalThis.Headers = fetch.Headers;
 
 const SUBGRAPH_URL = process.env.SUBGRAPH_URL || '';
 

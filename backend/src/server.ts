@@ -1,9 +1,10 @@
+import 'dotenv/config';
 import http from 'http';
 import express from 'express';
 import { Server as SocketIOServer } from 'socket.io';
 import { deployMarket } from './services/deploy-market';
 import { getUserPredictions } from './services/get-predictions'
-import { startPollingAggregator } from './services/polling-aggregator';
+import { startDataPolling, startMatchCachePolling } from './services/polling-aggregator';
 import { initCache } from './cache';
 import { initSocket } from './socket';
 
@@ -21,7 +22,8 @@ async function main() {
 
   initCache();
   initSocket(io);
-  startPollingAggregator();
+  startMatchCachePolling();
+  startDataPolling();
 
   app.post('/deploy', async (req, res) => {
     try {

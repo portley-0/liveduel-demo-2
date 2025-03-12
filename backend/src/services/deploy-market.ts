@@ -12,6 +12,8 @@ const API_KEY = process.env.API_KEY || '';
 const baseUrl = 'https://v3.football.api-sports.io';
 const endpoint = '/fixtures';
 
+const ALLOWED_LEAGUE_IDS = [2, 3, 39, 78, 137, 140, 61];
+
 async function fetchGameData(gameId: number) {
   const response = await axios.get(`${baseUrl}${endpoint}?id=${gameId}`, {
     headers: {
@@ -37,6 +39,11 @@ export async function deployMarket(matchId: number, matchTimestamp: number) {
   const fixture = fixtureData.fixture;
   if (!fixture) {
     throw new Error('No fixture data was returned from API Football ');
+  }
+
+  const leagueId = fixtureData.league.id;
+  if (!ALLOWED_LEAGUE_IDS.includes(leagueId)) {
+    throw new Error(`League ID ${leagueId} is not allowed. Allowed league IDs are: ${ALLOWED_LEAGUE_IDS.join(', ')}`);
   }
 
   if (!["NS", "HT", "1H", "2H"].includes(fixture.status?.short)) {

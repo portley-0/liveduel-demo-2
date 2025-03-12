@@ -25,22 +25,32 @@ import {
   OddsUpdatedEntity
 } from './subgraph-service';
 
-let pollingInterval: NodeJS.Timeout | undefined;
+let dataUpdateInterval: NodeJS.Timeout | undefined;
+let matchCacheInterval: NodeJS.Timeout | undefined;
 
-export function startPollingAggregator() {
-  if (pollingInterval) return;
+export function startMatchCachePolling() {
+  if (matchCacheInterval) return;
 
-  pollingInterval = setInterval(async () => {
+  matchCacheInterval = setInterval(async () => {
+    try {
+      console.log('[MatchCachePolling] Poll cycle started.');
+      await addUpcomingMatchesToCache();  
+      console.log('[MatchCachePolling] Poll cycle finished.');
+    } catch (error) {
+      console.error('[MatchCachePolling] Error in poll cycle:', error);
+    }
+  }, 12 * 60 * 60 * 1000); 
+}
+
+export function startDataPolling() {
+  if (dataUpdateInterval) return;
+
+  dataUpdateInterval = setInterval(async () => {
     try {
       console.log('[PollingAggregator] Poll cycle started.');
 
-      // 1) Add new upcoming matches into the cache
-      await addUpcomingMatchesToCache();
-
-      // 2) Update existing matches with Football & Subgraph data
       await updateCachedMatches();
 
-      // 3) Cleanup old resolved matches
       cleanupOldMatches();
 
       console.log('[PollingAggregator] Poll cycle finished.');
@@ -51,9 +61,13 @@ export function startPollingAggregator() {
 }
 
 export function stopPollingAggregator() {
-  if (pollingInterval) {
-    clearInterval(pollingInterval);
-    pollingInterval = undefined;
+  if (matchCacheInterval) {
+    clearInterval(matchCacheInterval);
+    matchCacheInterval = undefined;
+  }
+  if (dataUpdateInterval) {
+    clearInterval(dataUpdateInterval);
+    dataUpdateInterval = undefined;
   }
 }
 
@@ -109,8 +123,16 @@ async function updateCachedMatches() {
       continue;
     }
 
-    await refreshFootballData(match.matchId);
-    await refreshSubgraphData(match.matchId);
+    const currentTime = Date.now();
+    const matchStartTime = match.matchTimestamp;
+
+    if (matchStartTime && currentTime >= matchStartTime) {
+      console.log(`Refreshing data for match ${match.matchId} as it has started.`);
+      await refreshFootballData(match.matchId);
+      await refreshSubgraphData(match.matchId);
+    } else {
+      console.log(`Skipping data refresh for match ${match.matchId} as it has not started yet.`);
+    }
   }
 }
 
