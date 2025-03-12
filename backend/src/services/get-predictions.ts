@@ -14,6 +14,7 @@ import {
   export interface UserPrediction {
     marketAddress: string;
     matchId: number;
+    timestamp?: number | null;
   
     outcome: number;        
     netShares: number;      
@@ -112,6 +113,7 @@ import {
         }
       }
   
+      let timestamp: number | null = null;
       let homeTeamName: string | undefined;
       let homeTeamLogo: string | undefined;
       let awayTeamName: string | undefined;
@@ -120,6 +122,7 @@ import {
       const fixtureArray = await getFixtures({ id: matchId });
       if (fixtureArray.length > 0) {
         const fixture = fixtureArray[0];
+        timestamp = fixture.fixture.timestamp;
         homeTeamName = fixture.teams.home.name;
         homeTeamLogo = fixture.teams.home.logo;
         awayTeamName = fixture.teams.away.name;
@@ -129,6 +132,7 @@ import {
       predictions.push({
         marketAddress: info.market,
         matchId,
+        timestamp: timestamp,
         outcome: info.outcome,
         netShares,
         netCost,
