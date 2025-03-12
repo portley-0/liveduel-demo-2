@@ -129,9 +129,9 @@ async function updateCachedMatches() {
     }
 
     const currentTime = Date.now();
-    const matchStartTime = match.matchTimestamp;
+    const matchStartTimeMs = match.matchTimestamp! * 1000;
 
-    if (matchStartTime && currentTime >= matchStartTime) {
+    if (matchStartTimeMs && currentTime >= matchStartTimeMs) {
       console.log(`Refreshing data for match ${match.matchId} as it has started.`);
       await refreshFootballData(match.matchId);
       await refreshSubgraphData(match.matchId);
