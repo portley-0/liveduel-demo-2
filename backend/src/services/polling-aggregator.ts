@@ -31,6 +31,11 @@ let matchCacheInterval: NodeJS.Timeout | undefined;
 export function startMatchCachePolling() {
   if (matchCacheInterval) return;
 
+  console.log('[MatchCachePolling] Doing initial poll immediately...');
+  addUpcomingMatchesToCache().catch((err) =>
+    console.error('[MatchCachePolling] Error in initial run:', err)
+  );
+
   matchCacheInterval = setInterval(async () => {
     try {
       console.log('[MatchCachePolling] Poll cycle started.');
@@ -39,7 +44,7 @@ export function startMatchCachePolling() {
     } catch (error) {
       console.error('[MatchCachePolling] Error in poll cycle:', error);
     }
-  }, 12 * 60 * 60 * 1000); 
+  }, 6 * 60 * 60 * 1000); 
 }
 
 export function startDataPolling() {
