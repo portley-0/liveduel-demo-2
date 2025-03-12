@@ -5,7 +5,7 @@
     "codegen": "graph codegen",
     "build": "graph build",
     "deploy:studio": "graph deploy --studio subgraph",
-    "deploy:docker": "graph deploy --product graph-node --node http://localhost:8020 --ipfs http://localhost:5001 liveduel-demo-2",
+    "deploy:docker": "graph deploy liveduel-demo-2 subgraph.yaml --node http://localhost:8020 --ipfs http://localhost:5001",
     "test": "graph test",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"
