@@ -66,8 +66,14 @@ export async function getLineups(matchId: number) {
 }
 
 export async function getStandings(leagueId: number, season: number) {
-  const response = await apiClient.get('/standings', {
-    params: { league: leagueId, season },
-  });
-  return response.data?.response ?? [];
+  try {
+    const response = await apiClient.get('/standings', {
+      params: { league: leagueId, season },
+    });
+
+    return response.data.response ?? [];
+  } catch (error) {
+    console.error(`[FootballService] Error fetching standings:`, error);
+    return [];
+  }
 }

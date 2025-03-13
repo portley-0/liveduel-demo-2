@@ -4,8 +4,8 @@ import express from 'express';
 import { Server as SocketIOServer } from 'socket.io';
 import { deployMarket } from './services/deploy-market';
 import { getUserPredictions } from './services/get-predictions'
-import { startDataPolling, startMatchCachePolling } from './services/polling-aggregator';
-import { initCache, getAllMatches } from './cache';
+import { startDataPolling, startMatchCachePolling, startStandingsPolling } from './services/polling-aggregator';
+import { initCache, getAllMatches, getMatchData } from './cache';
 import { initSocket } from './socket';
 
 async function main() {
@@ -23,6 +23,7 @@ async function main() {
   initCache();
   initSocket(io);
   startMatchCachePolling();
+  startStandingsPolling();
   startDataPolling();
 
   app.post('/deploy', async (req, res) => {
@@ -51,9 +52,10 @@ async function main() {
     }
   });
 
-  app.get('/debug/cache', (_req, res) => {
-    const allMatches = getAllMatches();
-    res.json({ success: true, data: allMatches });
+  app.get('/debug/:matchid', (req, res) => {
+    const matchId = Number(req.params.matchid);
+    const match = getMatchData(matchId);
+    res.json({ success: true, data: match });
   });
 
   const PORT = process.env.PORT || 3000;

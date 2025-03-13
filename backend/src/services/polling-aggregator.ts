@@ -25,6 +25,9 @@ import {
   OddsUpdatedEntity
 } from './subgraph-service';
 
+const LEAGUES = [2, 3, 39, 140, 78, 137, 61, 71, 128, 45, 135, 82, 143];
+const SEASONS = [2024, 2025];
+
 let dataUpdateInterval: NodeJS.Timeout | undefined;
 let matchCacheInterval: NodeJS.Timeout | undefined;
 
@@ -46,6 +49,67 @@ export function startMatchCachePolling() {
     }
   }, 6 * 60 * 60 * 1000); 
 }
+
+export function startStandingsPolling() {
+  let intervalTime = 24 * 60 * 60 * 1000;
+
+  async function updateStandings() {
+    const allMatches = getAllMatches();
+    const hasLiveMatches = allMatches.some(
+      (match) => match.statusShort && match.statusShort !== 'NS'
+    );
+
+    if (hasLiveMatches) {
+      intervalTime = 60 * 60 * 1000; 
+    }
+
+    for (const leagueId of LEAGUES) {
+      for (const season of SEASONS) {
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 1500)); 
+
+          const rawStandingsData = await getStandings(leagueId, season);
+
+          if (!rawStandingsData || rawStandingsData.length === 0) {
+            console.warn(`[StandingsPolling] No standings for league ${leagueId}, season ${season}. Skipping update.`);
+            continue;
+          }
+
+          const parsedStandings = parseFootballStandings(rawStandingsData);
+          if (!parsedStandings) {
+            console.warn(`[StandingsPolling] Failed to parse standings for league ${leagueId}, season ${season}.`);
+            continue;
+          }
+
+          const matches = getAllMatches().filter(
+            (match) => match.leagueId === leagueId && match.season === season
+          );
+
+          for (const match of matches) {
+            updateMatchData(match.matchId, { standings: parsedStandings });
+          }
+        } catch (error) {
+          console.error(
+            `[StandingsPolling] Error fetching standings for league ${leagueId}, season ${season}:`,
+            error
+          );
+        }
+      }
+    }
+
+    console.log(
+      `[StandingsPolling] Updated standings. Next update in ${
+        intervalTime / (60 * 60 * 1000)
+      } hour(s).`
+    );
+  }
+
+  updateStandings();
+
+  setInterval(updateStandings, intervalTime);
+}
+
+
 
 export function startDataPolling() {
   if (dataUpdateInterval) return;
@@ -77,9 +141,6 @@ export function stopPollingAggregator() {
 }
 
 async function addUpcomingMatchesToCache() {
-  const LEAGUES = [2, 3, 39, 140, 78, 137, 61, 71, 128, 45, 135, 82, 143, 65, 40, 48];
-  const SEASONS = [2024, 2025];
-
   const today = new Date();
   const fromDate = today.toISOString().split('T')[0];
 
@@ -87,38 +148,43 @@ async function addUpcomingMatchesToCache() {
   futureDate.setDate(today.getDate() + 7);
   const toDate = futureDate.toISOString().split('T')[0];
 
+  const statuses = ['NS', '1H', 'HT', '2H', 'ET', 'P', 'LIVE'];
+
   for (const leagueId of LEAGUES) {
     for (const season of SEASONS) {
-      const notStartedFixtures = await getFixtures({
-        league: leagueId,
-        season,
-        from: fromDate,
-        to: toDate,
-        status: 'NS'
-      });
-
-      for (const fixture of notStartedFixtures) {
-        const matchId = fixture.fixture.id;
-        if (getMatchData(matchId)) continue;
-
-        updateMatchData(matchId, {
-          matchId,
-          leagueId,
+      for (const status of statuses) {
+        const fixtures = await getFixtures({
+          league: leagueId,
           season,
-          matchTimestamp: fixture.fixture.timestamp,
-          homeTeamName: fixture.teams.home.name,
-          homeTeamLogo: fixture.teams.home.logo,
-          awayTeamName: fixture.teams.away.name,
-          awayTeamLogo: fixture.teams.away.logo,
-          homeScore: fixture.goals.home,
-          awayScore: fixture.goals.away,
-          statusShort: fixture.fixture.status.short,
-          elapsed: fixture.fixture.status.elapsed
+          from: fromDate,
+          to: toDate,
+          status: status
         });
+
+        for (const fixture of fixtures) {
+          const matchId = fixture.fixture.id;
+          if (getMatchData(matchId)) continue;
+
+          updateMatchData(matchId, {
+            matchId,
+            leagueId,
+            season,
+            matchTimestamp: fixture.fixture.timestamp,
+            homeTeamName: fixture.teams.home.name,
+            homeTeamLogo: fixture.teams.home.logo,
+            awayTeamName: fixture.teams.away.name,
+            awayTeamLogo: fixture.teams.away.logo,
+            homeScore: fixture.goals.home,
+            awayScore: fixture.goals.away,
+            statusShort: fixture.fixture.status.short,
+            elapsed: fixture.fixture.status.elapsed
+          });
+        }
       }
     }
   }
 }
+
 
 async function updateCachedMatches() {
   const allMatches = getAllMatches();
@@ -188,13 +254,6 @@ async function mergeFootballDetails(matchId: number, fixtureData: any) {
     const parsedLineups = parseFootballLineups(rawLineupsData, homeTeamId);
     updateMatchData(matchId, { lineups: parsedLineups });
 
-    // 4) Standings
-    const leagueId = fixtureData.league.id;
-    const season = fixtureData.league.season;
-    const rawStandingsData = await getStandings(leagueId, season);
-    const parsedStandings = parseFootballStandings(rawStandingsData);
-    updateMatchData(matchId, { standings: parsedStandings });
-
   } catch (error) {
     console.error(`[mergeFootballDetails] Error for matchId=${matchId}`, error);
   }
@@ -248,14 +307,13 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
     updatedHistory.drawOdds.push(Number(oddsItem.draw));
     updatedHistory.awayOdds.push(Number(oddsItem.away));
   }
-
+  
   while (updatedHistory.timestamps.length > 0 && (currentTime - updatedHistory.timestamps[0]) > TWO_HOURS_MS) {
     updatedHistory.timestamps.shift();
     updatedHistory.homeOdds.shift();
     updatedHistory.drawOdds.shift();
     updatedHistory.awayOdds.shift();
   }
-
   updateMatchData(matchId, { oddsHistory: updatedHistory });
 }
 
@@ -277,16 +335,42 @@ async function computeBettingVolume(matchId: number, marketAddress: string) {
 
 function cleanupOldMatches() {
   const now = Date.now();
-  const TWO_MONTHS_MS = 60 * 24 * 60 * 60 * 1000;
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000; 
+  const TWO_MONTHS_MS = 60 * 24 * 60 * 60 * 1000; 
 
   const allMatches = getAllMatches();
+
   for (const match of allMatches) {
-    if (match.resolvedAt && now - match.resolvedAt > TWO_MONTHS_MS) {
-      console.log(`[PollingAggregator] Removing old resolved match ${match.matchId}`);
+    if (!match.matchTimestamp) continue; 
+
+    const matchEndTimeMs = match.matchTimestamp * 1000;
+    const isResolved = !!match.resolvedAt; 
+    const hasContract = !!match.contract;
+    const isPastTwoHours = now > matchEndTimeMs + TWO_HOURS_MS;
+
+    if (!hasContract && isPastTwoHours) {
+      console.log(`[Cleanup] Removing match ${match.matchId} (no contract, 2 hours past)`);
+      deleteMatchData(match.matchId);
+      continue;
+    }
+
+    if (isResolved) {
+      console.log(`[Cleanup] Removing detailed data for resolved match ${match.matchId}`);
+      updateMatchData(match.matchId, {
+        statistics: undefined,
+        events: undefined,
+        lineups: undefined,
+        standings: undefined
+      });
+    }
+
+    if (isResolved && match.resolvedAt && now - match.resolvedAt > TWO_MONTHS_MS) {
+      console.log(`[Cleanup] Removing fully resolved match ${match.matchId} (2 months past)`);
       deleteMatchData(match.matchId);
     }
   }
 }
+
 
 function isMatchFinished(statusShort?: string) {
   if (!statusShort) return false;
@@ -406,6 +490,7 @@ function parseFootballLineups(
 
 function parseFootballStandings(rawStandings: any[]): LeagueStanding | undefined {
   if (!rawStandings.length) return undefined;
+  
   const leagueObject = rawStandings[0].league;
   if (!leagueObject) return undefined;
 
@@ -417,26 +502,24 @@ function parseFootballStandings(rawStandings: any[]): LeagueStanding | undefined
       logo: leagueObject.logo,
       flag: leagueObject.flag,
       season: leagueObject.season,
-      standings: leagueObject.standings.map((groupArray: any) =>
-        groupArray.map((standingItem: any) => ({
-          rank: standingItem.rank,
-          team: {
-            id: standingItem.team.id,
-            name: standingItem.team.name,
-            logo: standingItem.team.logo
-          },
-          points: standingItem.points,
-          goalsDiff: standingItem.goalsDiff,
-          group: standingItem.group,
-          form: standingItem.form,
-          status: standingItem.status,
-          description: standingItem.description,
-          all: standingItem.all,
-          home: standingItem.home,
-          away: standingItem.away,
-          update: standingItem.update
-        }))
-      )
+      standings: leagueObject.standings.flat().map((standingItem: any) => ({
+        rank: standingItem.rank,
+        team: {
+          id: standingItem.team.id,
+          name: standingItem.team.name,
+          logo: standingItem.team.logo
+        },
+        points: standingItem.points,
+        goalsDiff: standingItem.goalsDiff,
+        group: standingItem.group,
+        form: standingItem.form,
+        status: standingItem.status,
+        description: standingItem.description,
+        all: standingItem.all,
+        home: standingItem.home,
+        away: standingItem.away,
+        update: standingItem.update
+      }))
     }
   };
 }
