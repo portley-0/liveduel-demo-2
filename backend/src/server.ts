@@ -5,7 +5,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { deployMarket } from './services/deploy-market';
 import { getUserPredictions } from './services/get-predictions'
 import { startDataPolling, startMatchCachePolling } from './services/polling-aggregator';
-import { initCache } from './cache';
+import { initCache, getAllMatches } from './cache';
 import { initSocket } from './socket';
 
 async function main() {
@@ -50,7 +50,11 @@ async function main() {
       res.status(500).json({ success: false, error: error.message });
     }
   });
-  
+
+  app.get('/debug/cache', (_req, res) => {
+    const allMatches = getAllMatches();
+    res.json({ success: true, data: allMatches });
+  });
 
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, () => {
