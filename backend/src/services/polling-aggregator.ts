@@ -77,7 +77,7 @@ export function stopPollingAggregator() {
 }
 
 async function addUpcomingMatchesToCache() {
-  const LEAGUES = [2, 3, 39, 78, 137, 140, 61];
+  const LEAGUES = [2, 3, 39, 140, 78, 137, 61, 71, 128, 45, 135, 82, 143, 65, 40, 48];
   const SEASONS = [2024, 2025];
 
   const today = new Date();
