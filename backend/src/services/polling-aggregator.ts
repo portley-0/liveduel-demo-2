@@ -131,12 +131,15 @@ async function updateCachedMatches() {
     const currentTime = Date.now();
     const matchStartTimeMs = match.matchTimestamp! * 1000;
 
-    if (matchStartTimeMs && currentTime >= matchStartTimeMs) {
-      console.log(`Refreshing data for match ${match.matchId} as it has started.`);
+    const predictionMarket = await getPredictionMarketByMatchId(match.matchId);
+    const hasPredictionMarket = !!predictionMarket;
+
+    if (matchStartTimeMs && currentTime >= matchStartTimeMs || hasPredictionMarket) {
+      console.log(`Refreshing data for match ${match.matchId}`);
       await refreshFootballData(match.matchId);
       await refreshSubgraphData(match.matchId);
     } else {
-      console.log(`Skipping data refresh for match ${match.matchId} as it has not started yet.`);
+      console.log(`Skipping data refresh for match ${match.matchId}`);
     }
   }
 }
@@ -236,11 +239,21 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
     awayOdds: []
   };
 
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+  const currentTime = Date.now();
+
   for (const oddsItem of oddsData) {
-    updatedHistory.timestamps.push(Number(oddsItem.timestamp));
+    updatedHistory.timestamps.push(Number(oddsItem.timestamp) * 1000); 
     updatedHistory.homeOdds.push(Number(oddsItem.home));
     updatedHistory.drawOdds.push(Number(oddsItem.draw));
     updatedHistory.awayOdds.push(Number(oddsItem.away));
+  }
+
+  while (updatedHistory.timestamps.length > 0 && (currentTime - updatedHistory.timestamps[0]) > TWO_HOURS_MS) {
+    updatedHistory.timestamps.shift();
+    updatedHistory.homeOdds.shift();
+    updatedHistory.drawOdds.shift();
+    updatedHistory.awayOdds.shift();
   }
 
   updateMatchData(matchId, { oddsHistory: updatedHistory });
