@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useMatches } from "@/context/MatchContext.tsx";
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
 
 // 192x64 Fixed-Point Scaling Factor (BigInt for Ethers v6)
 const FIXED_192x64_SCALING_FACTOR = BigInt("18446744073709551616");
@@ -16,7 +16,6 @@ const convertToDecimalOdds = (probability: number): number => {
   return probability > 0 ? 1 / probability : 10.0; // Prevent division by zero, default max 10.0 odds
 };
 
-// Generate default flatline odds history if none exists
 const generateFlatlineOdds = () => {
   const now = Date.now();
   return {
@@ -52,8 +51,10 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
     filteredMatches = filteredMatches.filter((match) => match.leagueId === selectedLeague);
   }
 
+  const LIVE_STATUSES = ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"];
+
   if (liveOnly) {
-    filteredMatches = filteredMatches.filter((match) => match.statusShort === "LIVE");
+    filteredMatches = filteredMatches.filter((match) => match.statusShort && LIVE_STATUSES.includes(match.statusShort));
   }
 
   // Apply sorting
@@ -86,9 +87,20 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
 
         // Get latest odds values
         const lastIndex = oddsData.homeOdds.length - 1;
-        const homePrice = convertToDecimal(BigInt(oddsData.homeOdds[lastIndex]));
-        const drawPrice = convertToDecimal(BigInt(oddsData.drawOdds[lastIndex]));
-        const awayPrice = convertToDecimal(BigInt(oddsData.awayOdds[lastIndex]));
+        const homePrice = convertToDecimalOdds(convertToDecimal(BigInt(oddsData.homeOdds[lastIndex])));
+        const drawPrice = convertToDecimalOdds(convertToDecimal(BigInt(oddsData.drawOdds[lastIndex])));
+        const awayPrice = convertToDecimalOdds(convertToDecimal(BigInt(oddsData.awayOdds[lastIndex])));
+
+
+        const formatKickoffTime = (timestamp: number | undefined) => {
+          if (!timestamp) return "TBD"; 
+          return new Date(timestamp * 1000).toLocaleString([], { 
+            weekday: "short", 
+            hour: "2-digit", 
+            minute: "2-digit", 
+            hour12: false
+          });
+        };
 
         return (
           <Link
@@ -106,8 +118,10 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
                   <span className="text-3xl sm:text-xl font-bold text-red-500">
                     {match.homeScore ?? 0}:{match.awayScore ?? 0}
                   </span>
-                  <span className="text-xs text-red-500 text-semibold">
-                    {match.statusShort === "LIVE" ? `⚡In Progress (${match.elapsed ?? 0}’)` : "Upcoming"}
+                  <span className="text-xs text-red-500 font-semibold">
+                    {match.statusShort && LIVE_STATUSES.includes(match.statusShort)
+                      ? `In Progress ${match.elapsed ? `(${match.elapsed}’)` : ""}`
+                      : formatKickoffTime(match.matchTimestamp)}
                   </span>
                 </div>
                 <div className="flex flex-col items-end">
@@ -124,7 +138,7 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
                     <YAxis
                       domain={[0, 10]}
                       ticks={[0, 1, 2.5, 5, 7.5, 10]} // Ensure all levels are shown
-                      tick={{ fill: "white", fontSize: 10, textAnchor: "end" }}
+                      tick={{ fill: "white", fontSize: 9, textAnchor: "end" }}
                       tickSize={6} // Ensures proper spacing for each level
                       width={3} // Increase width for proper visibility
                       axisLine={false} // Removes axis bracket
@@ -146,15 +160,15 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
                 <div className="flex space-x-4 text-xs font-[Quicksand Bold]">
                   <div className="flex flex-col items-center">
                     <span className="text-blue-400 font-semibold">$HOME</span>
-                    <span className="text-blue-400 font-semibold">{homePrice.toFixed(4)}</span>
+                    <span className="text-blue-400 font-semibold">{homePrice.toFixed(1)}</span>
                   </div>
                   <div className="flex flex-col items-center">
                     <span className="text-gray-400 font-semibold">$DRAW</span>
-                    <span className="text-gray-400 font-semibold">{drawPrice.toFixed(4)}</span>
+                    <span className="text-gray-400 font-semibold">{drawPrice.toFixed(1)}</span>
                   </div>
                   <div className="flex flex-col items-center">
                     <span className="text-red-500 font-semibold">$AWAY</span>
-                    <span className="text-red-500 font-semibold">{awayPrice.toFixed(4)}</span>
+                    <span className="text-red-500 font-semibold">{awayPrice.toFixed(1)}</span>
                   </div>
                 </div>
               </div>

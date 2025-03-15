@@ -69,8 +69,26 @@ const TitleBar = () => {
                         }`
                       }
                     >
-                      <Icon className="text-lg lg:text-xl group-hover:text-gray-300" />
-                      <span className="text-xs lg:text-sm capitalize group-hover:text-gray-300">{label}</span>
+                      {({ isActive }) => (
+                        <>
+                          <Icon
+                            className={`text-lg lg:text-xl ${
+                              isActive
+                                ? "text-redmagenta group-hover:opacity-80" // Dims slightly on hover
+                                : "text-white group-hover:text-gray-300"
+                            }`}
+                          />
+                          <span
+                            className={`text-xs lg:text-sm capitalize ${
+                              isActive
+                                ? "text-redmagenta group-hover:opacity-80" // Dims slightly
+                                : "text-white group-hover:text-gray-300"
+                            }`}
+                          >
+                            {label}
+                          </span>
+                        </>
+                      )}
                     </NavLink>
                   ))}
                 </div>
@@ -85,7 +103,7 @@ const TitleBar = () => {
           </header>
 
           {isMobile && (
-            <div className="fixed bottom-0 w-full bg-darkblue flex justify-around py-2 shadow-md z-50">
+            <div className="fixed bottom-0 w-full bg-darkblue flex justify-around py-2 shadow-xl z-50">
               {navItems.map(({ path, label, icon: Icon }) => (
                 <NavLink
                   key={path}
@@ -96,8 +114,26 @@ const TitleBar = () => {
                     }`
                   }
                 >
-                  <Icon className="text-lg lg:text-xl group-hover:text-gray-300" />
-                  <span className="text-xs lg:text-sm capitalize group-hover:text-gray-300">{label}</span>
+                  {({ isActive }) => (
+                    <>
+                      <Icon
+                        className={`text-lg lg:text-xl ${
+                          isActive
+                            ? "text-redmagenta group-hover:opacity-80"
+                            : "text-white group-hover:text-gray-300"
+                        }`}
+                      />
+                      <span
+                        className={`text-xs lg:text-sm capitalize ${
+                          isActive
+                            ? "text-redmagenta group-hover:opacity-80"
+                            : "text-white group-hover:text-gray-300"
+                        }`}
+                      >
+                        {label}
+                      </span>
+                    </>
+                  )}
                 </NavLink>
               ))}
             </div>

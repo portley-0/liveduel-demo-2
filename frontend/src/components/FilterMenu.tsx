@@ -58,7 +58,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
   }, [sortBy]);
 
   return (
-    <div className="sticky top-0 z-20 bg-darkblue py-2 px-4 flex justify-between items-center shadow-md">
+    <div className="sticky top-0 z-20 bg-darkblue py-2 px-4 flex justify-between items-center shadow-xl">
       <div className="flex flex-col space-y-1">
         <h1 className="text-xs font-bold text-white">Markets</h1>
 
