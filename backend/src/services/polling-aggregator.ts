@@ -25,7 +25,7 @@ import {
   OddsUpdatedEntity
 } from './subgraph-service';
 
-const LEAGUES = [2, 3, 39, 140, 78, 137, 61, 71, 128, 45, 135, 82, 143];
+const LEAGUES = [2, 3, 39, 140, 78, 61, 71, 128, 135, 82];
 const SEASONS = [2024, 2025];
 
 let dataUpdateInterval: NodeJS.Timeout | undefined;
@@ -145,7 +145,7 @@ async function addUpcomingMatchesToCache() {
   const fromDate = today.toISOString().split('T')[0];
 
   const futureDate = new Date();
-  futureDate.setDate(today.getDate() + 7);
+  futureDate.setDate(today.getDate() + 10);
   const toDate = futureDate.toISOString().split('T')[0];
 
   const statuses = ['NS', '1H', 'HT', '2H', 'ET', 'P', 'LIVE'];
@@ -179,6 +179,8 @@ async function addUpcomingMatchesToCache() {
             statusShort: fixture.fixture.status.short,
             elapsed: fixture.fixture.status.elapsed
           });
+
+          console.log(`[DataPolling] Added match ${matchId} to cache.`);
         }
       }
     }

@@ -5,7 +5,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { deployMarket } from './services/deploy-market';
 import { getUserPredictions } from './services/get-predictions'
 import { startDataPolling, startMatchCachePolling, startStandingsPolling } from './services/polling-aggregator';
-import { initCache, getAllMatches, getMatchData } from './cache';
+import { initCache, getMatchData } from './cache';
 import { initSocket } from './socket';
 
 async function main() {
@@ -15,6 +15,7 @@ async function main() {
   const io = new SocketIOServer(server, {
     cors: {
       origin: '*',  
+      methods: ["GET", "POST"],
     },
   });
 

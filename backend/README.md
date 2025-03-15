@@ -11,7 +11,7 @@ The **Backend Module** handles match data aggregation and caching, websocket com
 ### Services
 - **`polling-aggregator.ts`** - Periodically fetches football match data and prediction market information, updates the cache, and cleans up old data.
 - **`football-service.ts`** - Interfaces with the football API to fetch match fixtures, statistics, events, lineups, and standings.
-- **`subgraph-service.ts`** - Fetches on chain prediction market events using The Graph subgraph.
+- **`subgraph-service.ts`** - Fetches on chain prediction market events using the deployed Graph Protocol subgraph.
 - **`get-predictions.ts`** - Aggregates user prediction data from purchase and sales events.
 - **`deploy-market.ts`** - Handles deploying new prediction markets on the blockchain.
 
