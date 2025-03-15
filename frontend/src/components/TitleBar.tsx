@@ -7,7 +7,6 @@ import { FaChartLine, FaFutbol, FaCreditCard, FaCoins } from "react-icons/fa";
 const TitleBar = () => {
   const [isMobile, setIsMobile] = useState(false);
 
-  // Optimize resize event with debouncing
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
 
@@ -22,7 +21,6 @@ const TitleBar = () => {
     return () => window.removeEventListener("resize", debouncedResize);
   }, []);
 
-  // Navigation Items
   const navItems = [
     { path: "/dashboard/markets", label: "Markets", icon: FaChartLine },
     { path: "/dashboard/predictions", label: "My Predictions", icon: FaFutbol },
@@ -35,11 +33,8 @@ const TitleBar = () => {
       <div className="drawer">
         <input id="my-drawer" type="checkbox" className="drawer-toggle" />
         <div className="drawer-content">
-          {/* Header */}
           <header className="flex items-center justify-between px-4 py-2 bg-darkblue h-[84px] shadow-md z-40 select-none">
-            {/* Left Section: Drawer and Logo */}
             <div className="flex items-center space-x-2 select-none">
-              {/* Drawer Icon */}
               <label
                 htmlFor="my-drawer"
                 className="drawer-button btn bg-transparent border-0 text-white text-3xl rounded-full hover:bg-gray-200 hover:text-darkblue select-none z-50 flex items-center justify-center w-12 h-12"
@@ -47,7 +42,6 @@ const TitleBar = () => {
                 &#9776;
               </label>
 
-              {/* Logo */}
               <NavLink
                 to="/"
                 className="btn bg-transparent border-none hover:bg-transparent select-none p-0 hover:opacity-80"
@@ -62,7 +56,6 @@ const TitleBar = () => {
               </NavLink>
             </div>
 
-            {/* Right Section: Desktop Navigation & Login */}
             <div className="flex items-center space-x-4 lg:space-x-6">
               {!isMobile && (
                 <div className="flex items-center gap-4 select-none">
@@ -91,7 +84,6 @@ const TitleBar = () => {
             </div>
           </header>
 
-          {/* Mobile Bottom Navigation */}
           {isMobile && (
             <div className="fixed bottom-0 w-full bg-darkblue flex justify-around py-2 shadow-md z-50">
               {navItems.map(({ path, label, icon: Icon }) => (
@@ -112,7 +104,6 @@ const TitleBar = () => {
           )}
         </div>
 
-        {/* Drawer Side Content */}
         <div className="drawer-side z-50">
           <label htmlFor="my-drawer" className="drawer-overlay fixed z-50"></label>
           <ul className="menu bg-base-200 text-base-content min-h-full w-80 p-4 z-50">

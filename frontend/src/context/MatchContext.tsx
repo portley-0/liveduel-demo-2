@@ -4,7 +4,6 @@ import React, { createContext, useContext, useEffect, useState, useRef } from "r
 import io, { Socket } from "socket.io-client";
 import { MatchData } from "../types/MatchData.ts";
 
-// ✅ Ensure WebSocket URL is defined
 const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
 
 interface MatchContextType {
@@ -15,11 +14,11 @@ const MatchContext = createContext<MatchContextType | undefined>(undefined);
 
 export const MatchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [matches, setMatches] = useState<Record<number, MatchData>>({});
-  const socketRef = useRef<Socket | null>(null); // ✅ Store WebSocket instance
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     if (!socketRef.current) {
-      console.log(`[WebSocket] 🚀 Connecting to ${SOCKET_SERVER_URL}...`);
+      console.log(`[WebSocket] Connecting to ${SOCKET_SERVER_URL}...`);
       socketRef.current = io(SOCKET_SERVER_URL, {
         reconnection: true,
         transports: ["websocket"],
@@ -29,15 +28,15 @@ export const MatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const socket = socketRef.current;
 
     const onConnect = () => {
-      console.log("[WebSocket] ✅ Connected to server");
+      console.log("[WebSocket] Connected to server");
       socket.emit("requestInitialCache");
     };
 
     const onInitialCache = (initialMatches: MatchData[]) => {
-      console.log("[WebSocket] 📥 Initial match cache received:", initialMatches);
+      console.log("[WebSocket] Initial match cache received:", initialMatches);
 
       if (!Array.isArray(initialMatches)) {
-        console.error("[WebSocket] ❌ initialCache is NOT an array!", initialMatches);
+        console.error("[WebSocket] initialCache is NOT an array!", initialMatches);
         return;
       }
 
@@ -50,7 +49,7 @@ export const MatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const onMatchUpdate = (updatedMatch: MatchData) => {
-      console.log("[WebSocket] 🔄 Match update received:", updatedMatch);
+      console.log("[WebSocket] Match update received:", updatedMatch);
       setMatches((prevMatches) => ({
         ...prevMatches,
         [updatedMatch.matchId]: updatedMatch,
@@ -58,14 +57,13 @@ export const MatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const onDisconnect = (reason: string) => {
-      console.warn(`[WebSocket] 🔴 Disconnected: ${reason}`);
+      console.warn(`[WebSocket] Disconnected: ${reason}`);
     };
 
     const onError = (error: any) => {
-      console.error("[WebSocket] ❌ Connection Error:", error);
+      console.error("[WebSocket] Connection Error:", error);
     };
 
-    // ✅ Attach Listeners
     socket.on("connect", onConnect);
     socket.on("initialCache", onInitialCache);
     socket.on("matchUpdate", onMatchUpdate);
@@ -73,7 +71,7 @@ export const MatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     socket.on("connect_error", onError);
 
     return () => {
-      console.log("[WebSocket] 🧹 Cleaning up...");
+      console.log("[WebSocket] Cleaning up...");
       socket.off("connect", onConnect);
       socket.off("initialCache", onInitialCache);
       socket.off("matchUpdate", onMatchUpdate);

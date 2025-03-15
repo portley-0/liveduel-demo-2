@@ -99,14 +99,19 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
           >
             <div className="p-6 flex flex-col h-full">
               <div className="flex justify-between items-center mb-4">
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col">
                   <img src={match.homeTeamLogo} alt={match.homeTeamName} className="object-contain mb-1 w-20 h-20 sm:w-14 sm:h-14" />
                   <span className="text-lg sm:text-xs font-[Lato-Bold] mt-1">{match.homeTeamName}</span>
                 </div>
-                <div className="text-4xl sm:text-2xl font-[Quicksand Bold] font-medium text-red-500">
-                  {match.homeScore ?? 0}:{match.awayScore ?? 0}
+                <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-2 flex flex-col items-center">
+                  <span className="text-3xl sm:text-xl font-bold text-red-500">
+                    {match.homeScore ?? 0}:{match.awayScore ?? 0}
+                  </span>
+                  <span className="text-xs text-red-500">
+                    {match.statusShort === "LIVE" ? `⚡In Progress (${match.elapsed ?? 0}’)` : "Upcoming"}
+                  </span>
                 </div>
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-end">
                   <img src={match.awayTeamLogo} alt={match.awayTeamName} className="object-contain mb-1 w-20 h-20 sm:w-14 sm:h-14" />
                   <span className="text-lg sm:text-xs font-[Lato-Bold] mt-1">{match.awayTeamName}</span>
                 </div>

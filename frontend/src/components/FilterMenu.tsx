@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 
-// API Football League Mappings
 const LEAGUES = [
   { id: null, name: "All Leagues" },
   { id: 2, name: "UEFA Champions League" },
@@ -41,10 +40,9 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
 }) => {
   const categoryRef = useRef<HTMLSpanElement>(null);
   const sortRef = useRef<HTMLSpanElement>(null);
-  const [categoryWidth, setCategoryWidth] = useState(190); // Default width
+  const [categoryWidth, setCategoryWidth] = useState(190); 
   const [sortWidth, setSortWidth] = useState(140);
 
-  // Adjust Category Dropdown Width
   useEffect(() => {
     if (categoryRef.current) {
       const textWidth = categoryRef.current.offsetWidth + 45;
@@ -52,7 +50,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
     }
   }, [selectedLeague]);
 
-  // Adjust Sort By Dropdown Width
   useEffect(() => {
     if (sortRef.current) {
       const textWidth = sortRef.current.offsetWidth + 40;
@@ -65,11 +62,9 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
       <div className="flex flex-col space-y-1">
         <h1 className="text-xs font-bold text-white">Markets</h1>
 
-        {/* Category Dropdown (Balanced Auto Width) */}
         <div className="flex items-center space-x-2">
           <span className="text-sm font-bold text-white">Category:</span>
           <div className="relative">
-            {/* Hidden element to measure text width */}
             <span
               ref={categoryRef}
               className="absolute opacity-0 pointer-events-none whitespace-nowrap text-sm font-bold"
@@ -91,11 +86,9 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
           </div>
         </div>
 
-        {/* Sort By Dropdown (Already Perfect) */}
         <div className="flex items-center space-x-2">
           <span className="text-sm font-bold text-white">Sort by:</span>
           <div className="relative">
-            {/* Hidden element to measure text width */}
             <span
               ref={sortRef}
               className="absolute opacity-0 pointer-events-none whitespace-nowrap text-sm font-bold"
@@ -118,7 +111,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
         </div>
       </div>
 
-      {/* Live Only Toggle */}
       <div className="flex items-center space-x-2">
         <span className="text-sm font-bold text-white">Live Only</span>
         <input
