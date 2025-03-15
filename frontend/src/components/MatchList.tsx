@@ -2,7 +2,6 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useMatches } from "@/context/MatchContext.tsx";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
-import { MatchData } from "@/types/MatchData.ts";
 
 // 192x64 Fixed-Point Scaling Factor (BigInt for Ethers v6)
 const FIXED_192x64_SCALING_FACTOR = BigInt("18446744073709551616");
@@ -97,7 +96,7 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
             to={`/dashboard/markets/${match.matchId}`}
             className="relative group transition-all duration-300 ease-in-out hover:bg-hovergreyblue bg-greyblue text-white rounded-xl shadow-md w-full h-auto aspect-[6/5] p-0 flex flex-col"
           >
-            <div className="p-6 flex flex-col h-full">
+            <div className="p-5 flex flex-col h-full">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex flex-col">
                   <img src={match.homeTeamLogo} alt={match.homeTeamName} className="object-contain mb-1 w-20 h-20 sm:w-14 sm:h-14" />
@@ -107,7 +106,7 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
                   <span className="text-3xl sm:text-xl font-bold text-red-500">
                     {match.homeScore ?? 0}:{match.awayScore ?? 0}
                   </span>
-                  <span className="text-xs text-red-500">
+                  <span className="text-xs text-red-500 text-semibold">
                     {match.statusShort === "LIVE" ? `⚡In Progress (${match.elapsed ?? 0}’)` : "Upcoming"}
                   </span>
                 </div>
@@ -118,25 +117,33 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
               </div>
 
               {/* Lightweight Odds Graph using Recharts */}
-              <div className="mt-2 overflow-hidden bg-lightgreyblue h-[110px] sm:h-[80px]">
+              <div className="bg-lightgreyblue h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={formattedData}>
+                  <LineChart data={formattedData} margin={{ left: 0, right: 5, top: 5, bottom: 5 }}>
                     <XAxis dataKey="time" hide />
-                    <YAxis domain={[0, 10]} ticks={[0, 1, 2.5, 5, 7.5, 10]} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} />
-                    <Line type="monotone" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} />
-                    <Line type="monotone" dataKey="away" stroke="rgba(220, 53, 69, 1)" strokeWidth={2} />
+                    <YAxis
+                      domain={[0, 10]}
+                      ticks={[0, 1, 2.5, 5, 7.5, 10]} // Ensure all levels are shown
+                      tick={{ fill: "white", fontSize: 10, textAnchor: "end" }}
+                      tickSize={6} // Ensures proper spacing for each level
+                      width={3} // Increase width for proper visibility
+                      axisLine={false} // Removes axis bracket
+                      tickLine={false} // Removes tick lines
+                      orientation="right" // Moves Y-axis fully to the right
+                    />
+                    <Line type="monotone" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="away" stroke="rgba(220, 53, 69, 1)" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
 
-              <div className="flex justify-between items-end mt-3">
-                <div className="text-sm sm:text-xs font-[Quicksand Bold]">
+              <div className="flex justify-between items-end mt-2">
+                <div className="text-xs font-[Quicksand Bold]">
                   <span className="block font-semibold">Volume</span>
                   <div className="text-white font-semibold">${match.bettingVolume?.toLocaleString() ?? "0"}</div>
                 </div>
-                <div className="flex space-x-4 text-sm sm:text-xs font-[Quicksand Bold]">
+                <div className="flex space-x-4 text-xs font-[Quicksand Bold]">
                   <div className="flex flex-col items-center">
                     <span className="text-blue-400 font-semibold">$HOME</span>
                     <span className="text-blue-400 font-semibold">{homePrice.toFixed(4)}</span>
