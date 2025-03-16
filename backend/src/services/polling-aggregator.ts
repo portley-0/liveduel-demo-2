@@ -126,7 +126,7 @@ export function startDataPolling() {
     } catch (error) {
       console.error('[PollingAggregator] Error in poll cycle:', error);
     }
-  }, 60_000); 
+  }, 40_000); 
 }
 
 export function stopPollingAggregator() {
@@ -290,6 +290,7 @@ async function refreshSubgraphData(matchId: number) {
 
 function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
   if (oddsData.length === 0) return;
+
   const currentMatchData = getMatchData(matchId);
   if (!currentMatchData) return;
 
@@ -304,18 +305,31 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
   const currentTime = Date.now();
 
   for (const oddsItem of oddsData) {
-    updatedHistory.timestamps.push(Number(oddsItem.timestamp) * 1000); 
-    updatedHistory.homeOdds.push(Number(oddsItem.home));
-    updatedHistory.drawOdds.push(Number(oddsItem.draw));
-    updatedHistory.awayOdds.push(Number(oddsItem.away));
+    const newTimestamp = Number(oddsItem.timestamp) * 1000;
+    const newHomeOdds = Number(oddsItem.home);
+    const newDrawOdds = Number(oddsItem.draw);
+    const newAwayOdds = Number(oddsItem.away);
+
+    const lastIndex = updatedHistory.timestamps.length - 1;
+    const lastHomeOdds = updatedHistory.homeOdds[lastIndex];
+    const lastDrawOdds = updatedHistory.drawOdds[lastIndex];
+    const lastAwayOdds = updatedHistory.awayOdds[lastIndex];
+
+    if (lastIndex === -1 || newHomeOdds !== lastHomeOdds || newDrawOdds !== lastDrawOdds || newAwayOdds !== lastAwayOdds) {
+      updatedHistory.timestamps.push(newTimestamp);
+      updatedHistory.homeOdds.push(newHomeOdds);
+      updatedHistory.drawOdds.push(newDrawOdds);
+      updatedHistory.awayOdds.push(newAwayOdds);
+    }
   }
-  
+
   while (updatedHistory.timestamps.length > 0 && (currentTime - updatedHistory.timestamps[0]) > TWO_HOURS_MS) {
     updatedHistory.timestamps.shift();
     updatedHistory.homeOdds.shift();
     updatedHistory.drawOdds.shift();
     updatedHistory.awayOdds.shift();
   }
+
   updateMatchData(matchId, { oddsHistory: updatedHistory });
 }
 
@@ -339,6 +353,7 @@ function cleanupOldMatches() {
   const now = Date.now();
   const TWO_HOURS_MS = 2 * 60 * 60 * 1000; 
   const TWO_MONTHS_MS = 60 * 24 * 60 * 60 * 1000; 
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
   const allMatches = getAllMatches();
 
@@ -350,20 +365,24 @@ function cleanupOldMatches() {
     const hasContract = !!match.contract;
     const isPastTwoHours = now > matchEndTimeMs + TWO_HOURS_MS;
 
+    if (isResolved && match.resolvedAt) {
+      const resolvedTimeElapsed = now - match.resolvedAt;
+    
+      if (resolvedTimeElapsed > ONE_DAY_MS) { 
+        console.log(`[Cleanup] Removing detailed data for resolved match ${match.matchId} (24 hours past)`);
+        updateMatchData(match.matchId, {
+          statistics: undefined,
+          events: undefined,
+          lineups: undefined,
+          standings: undefined
+        });
+      }
+    }
+
     if (!hasContract && isPastTwoHours) {
       console.log(`[Cleanup] Removing match ${match.matchId} (no contract, 2 hours past)`);
       deleteMatchData(match.matchId);
       continue;
-    }
-
-    if (isResolved) {
-      console.log(`[Cleanup] Removing detailed data for resolved match ${match.matchId}`);
-      updateMatchData(match.matchId, {
-        statistics: undefined,
-        events: undefined,
-        lineups: undefined,
-        standings: undefined
-      });
     }
 
     if (isResolved && match.resolvedAt && now - match.resolvedAt > TWO_MONTHS_MS) {
@@ -372,7 +391,6 @@ function cleanupOldMatches() {
     }
   }
 }
-
 
 function isMatchFinished(statusShort?: string) {
   if (!statusShort) return false;

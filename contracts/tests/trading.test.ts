@@ -33,7 +33,7 @@ describe("PredictionMarket - buyShares() & sellShares()", function () {
   let conditionId: string;
   let outcomeTokenId: any;
   let outcomeIndex = 0; 
-  let tradeAmount = ethers.utils.parseUnits("100", 6);
+  let tradeAmount = ethers.utils.parseUnits("20000", 6);
 
   before(async function () {
     [user] = await ethers.getSigners();
@@ -72,8 +72,8 @@ describe("PredictionMarket - buyShares() & sellShares()", function () {
     conditionId = await predictionMarket.conditionId();
     console.log(`Condition ID: ${conditionId}`);
 
-    await usdc.mint(ethers.utils.parseUnits("1000", 6));
-    console.log(`Minted 1000 USDC to user: ${user.address}`);
+    await usdc.mint(ethers.utils.parseUnits("20000", 6));
+    console.log(`Minted 20000 USDC to user: ${user.address}`);
 
     // Get outcome token ID
     let indexSet = 1 << outcomeIndex;
@@ -91,13 +91,12 @@ describe("PredictionMarket - buyShares() & sellShares()", function () {
       console.log(`Outcome Token Balance Before Buy: ${ethers.utils.formatUnits(outcomeTokenBalanceBeforeBuy, 6)} Shares`);
 
       const netCost = await predictionMarket.getNetCost(outcomeIndex, tradeAmount);
-      console.log(`Net Cost for 100 Shares: ${ethers.utils.formatUnits(netCost, 6)} USDC`);
+      console.log(`Net Cost for 20000 Shares: ${ethers.utils.formatUnits(netCost, 6)} USDC`);
 
-      await usdc.approve(predictionMarket.address, ethers.utils.parseUnits("10000", 6));
+      await usdc.approve(predictionMarket.address, ethers.utils.parseUnits("50000", 6));
       await conditionalTokens.setApprovalForAll(predictionMarket.address, true);
 
-      // Buying 100 Shares
-      console.log("Buying 100 Shares...");
+      console.log("Buying 20000 Shares...");
       const tx = await predictionMarket.buyShares(outcomeIndex, tradeAmount);
       const receipt = await tx.wait() as any;
 
@@ -158,7 +157,7 @@ describe("PredictionMarket - buyShares() & sellShares()", function () {
 
 
       // Selling 50 Shares
-      console.log("Selling 50 Shares...");
+      console.log("Selling 10000 Shares...");
       const sellTx = await predictionMarket.sellShares(outcomeIndex, tradeAmount.div(2));
       const sellReceipt = await sellTx.wait() as any;
 

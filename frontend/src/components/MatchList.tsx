@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useMatches } from "@/context/MatchContext.tsx";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
 
@@ -31,7 +32,55 @@ interface MatchListProps {
 
 const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly }) => {
   const { matches } = useMatches();
+  const [chartData, setChartData] = useState<Record<number, any>>({});
 
+  useEffect(() => {
+    if (!matches) return;
+  
+    setChartData((prevChartData) => {
+      const newChartData = { ...prevChartData };
+  
+      Object.values(matches).forEach((match) => {
+        const matchId = match.matchId;
+  
+        if (!matchId) return;
+  
+        // Use existing data if available
+        const existingData = newChartData[matchId] ?? [];
+        const oddsData = match.oddsHistory?.timestamps?.length ? match.oddsHistory : generateFlatlineOdds();
+  
+        const newEntries = oddsData.timestamps.map((timestamp: number, index: number) => {
+          const homeProbability = convertToDecimal(BigInt(oddsData.homeOdds[index]));
+          const drawProbability = convertToDecimal(BigInt(oddsData.drawOdds[index]));
+          const awayProbability = convertToDecimal(BigInt(oddsData.awayOdds[index]));
+  
+          return {
+            timestamp,
+            time: new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            home: convertToDecimalOdds(homeProbability),
+            draw: convertToDecimalOdds(drawProbability),
+            away: convertToDecimalOdds(awayProbability),
+          };
+        });
+  
+        // Merge new data while avoiding duplicates
+        const mergedData = [...existingData, ...newEntries]
+          .sort((a, b) => a.timestamp - b.timestamp)
+          .reduce((acc, entry) => {
+            if (!acc.some((e: { timestamp: number }) => e.timestamp === entry.timestamp)) acc.push(entry);
+            return acc;
+          }, [] as typeof existingData);
+  
+        newChartData[matchId] = mergedData;
+      });
+  
+      return newChartData;
+    });
+  
+  }, [matches]); 
+  
+  
+  
   if (!matches || Object.keys(matches).length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -63,27 +112,10 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
   return (
     <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-6 3xl:grid-cols-7 gap-4 p-4 pb-[80px]">
       {filteredMatches.map((match) => {
-        const oddsData = match.oddsHistory?.timestamps?.length ? match.oddsHistory : generateFlatlineOdds();
 
-        // Format data for Recharts (Convert to Decimal Odds)
-        const formattedData = oddsData.timestamps.map((timestamp: number, index: number) => {
-          const homeProbability = convertToDecimal(BigInt(oddsData.homeOdds[index]));
-          const drawProbability = convertToDecimal(BigInt(oddsData.drawOdds[index]));
-          const awayProbability = convertToDecimal(BigInt(oddsData.awayOdds[index]));
-
-          return {
-            time: new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            home: convertToDecimalOdds(homeProbability),
-            draw: convertToDecimalOdds(drawProbability),
-            away: convertToDecimalOdds(awayProbability),
-          };
-        });
-
-        const lastIndex = oddsData.homeOdds.length - 1;
-        const homePrice = convertToDecimalOdds(convertToDecimal(BigInt(oddsData.homeOdds[lastIndex])));
-        const drawPrice = convertToDecimalOdds(convertToDecimal(BigInt(oddsData.drawOdds[lastIndex])));
-        const awayPrice = convertToDecimalOdds(convertToDecimal(BigInt(oddsData.awayOdds[lastIndex])));
-
+        const homePrice = convertToDecimalOdds(convertToDecimal(BigInt(match.latestOdds?.home ?? 6148914691236516864)));
+        const drawPrice = convertToDecimalOdds(convertToDecimal(BigInt(match.latestOdds?.draw ?? 6148914691236516864)));
+        const awayPrice = convertToDecimalOdds(convertToDecimal(BigInt(match.latestOdds?.away ?? 6148914691236516864)));
 
         const formatKickoffTime = (timestamp: number | undefined) => {
           if (!timestamp) return "TBD"; 
@@ -95,7 +127,7 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
           });
         };
 
-        return (
+        return ( 
           <Link
             key={match.matchId}
             to={`/dashboard/markets/${match.matchId}`}
@@ -128,7 +160,7 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
 
                 <div className="bg-lightgreyblue h-[300px] min-w-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={formattedData} margin={{ left: 0, right: 7, top: 5, bottom: 5 }}>
+                    <LineChart data={chartData[match.matchId] ?? []} margin={{ left: 0, right: 7, top: 5, bottom: 5 }}>  
                       <XAxis dataKey="time" hide />
                       <YAxis
                         domain={[0, 10]}
@@ -145,9 +177,10 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
                         tickLine={false}
                         orientation="right"
                       />
-                      <Line type="monotone" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="away" stroke="rgba(220, 53, 69, 1)" strokeWidth={2} dot={false} />
+                        <Line type="linear" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false} />
+                        <Line type="linear" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false} />
+                        <Line type="linear" dataKey="away" stroke="rgba(220, 53, 69, 1)" strokeWidth={2} dot={false} />
+
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -155,7 +188,9 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
                 <div className="flex justify-between items-end mt-2">
                   <div className="text-xs font-[Quicksand Bold]">
                     <span className="block font-semibold">Volume</span>
-                    <div className="text-white font-semibold">${match.bettingVolume?.toLocaleString() ?? "0"}</div>
+                    <div className="text-white font-semibold">
+                      ${match.bettingVolume ? (match.bettingVolume / 1_000_000).toFixed(2) : "0.00"}
+                    </div>
                   </div>
                   <div className="flex space-x-4 text-xs font-[Quicksand Bold]">
                     <div className="flex flex-col items-center">

@@ -50,12 +50,28 @@ export const MatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const onMatchUpdate = (updatedMatch: MatchData) => {
       console.log("[WebSocket] Match update received:", updatedMatch);
+      
       setMatches((prevMatches) => ({
         ...prevMatches,
-        [updatedMatch.matchId]: updatedMatch,
+        [updatedMatch.matchId]: {
+          ...prevMatches[updatedMatch.matchId], 
+          ...updatedMatch, 
+          oddsHistory: { 
+            ...updatedMatch.oddsHistory, 
+            timestamps: [...(updatedMatch.oddsHistory?.timestamps ?? [])],
+            homeOdds: [...(updatedMatch.oddsHistory?.homeOdds ?? [])],
+            drawOdds: [...(updatedMatch.oddsHistory?.drawOdds ?? [])],
+            awayOdds: [...(updatedMatch.oddsHistory?.awayOdds ?? [])],
+          },
+          latestOdds: {
+            home: updatedMatch.latestOdds?.home ?? 6148914691236516864,
+            draw: updatedMatch.latestOdds?.draw ?? 6148914691236516864,
+            away: updatedMatch.latestOdds?.away ?? 6148914691236516864,
+          },
+        },
       }));
     };
-
+    
     const onDisconnect = (reason: string) => {
       console.warn(`[WebSocket] Disconnected: ${reason}`);
     };
