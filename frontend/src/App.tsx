@@ -4,7 +4,7 @@ import TitleBar from "@/components/TitleBar.tsx";
 import { lazy, Suspense } from "react";
 
 const Markets = lazy(() => import("@/pages/Markets.tsx"));
-const Market = lazy(() => import("@/pages/Market.tsx")); // Added this for dynamic match pages
+const Market = lazy(() => import("@/pages/Match.tsx")); // Added this for dynamic match pages
 const Predictions = lazy(() => import("@/pages/Predictions.tsx"));
 const BuyDuel = lazy(() => import("@/pages/BuyDuel.tsx"));
 const Staking = lazy(() => import("@/pages/Staking.tsx"));
@@ -13,7 +13,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const routesToPrefetch = [
       () => import("@/pages/Markets.tsx"),
-      () => import("@/pages/Market.tsx"), // Prefetch match details page
+      () => import("@/pages/Match.tsx"), // Prefetch match details page
       () => import("@/pages/Predictions.tsx"),
       () => import("@/pages/BuyDuel.tsx"),
       () => import("@/pages/Staking.tsx"),

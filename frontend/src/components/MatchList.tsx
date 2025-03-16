@@ -139,12 +139,14 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
                     <span className="text-sm xs:text-lg sm:text-lg lg:text-sm font-[Lato-Bold] mt-1 mb-1 truncate max-w-[140px]">{match.homeTeamName}</span>
                   </div>
                   <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-2 flex flex-col items-center">
-                    <span className="text-3xl xs:text-2xl font-bold text-red-500">
+                    <span className="text-3xl xs:text-2xl font-bold text-redmagenta">
                       {match.homeScore ?? 0}:{match.awayScore ?? 0}
                     </span>
-                    <span className="text-xs xs:text-sm text-red-500 font-semibold">
-                      {match.statusShort && LIVE_STATUSES.includes(match.statusShort)
-                        ? `In Progress ${match.elapsed ? `(${match.elapsed}’)` : ""}`
+                    <span className="text-xs text-redmagenta font-semibold">
+                      {match.statusShort && ["FT", "AET", "PEN"].includes(match.statusShort)
+                        ? "Full Time"
+                        : match.statusShort && LIVE_STATUSES.includes(match.statusShort)
+                        ? `In Progress (${match.elapsed}’)`
                         : formatKickoffTime(match.matchTimestamp)}
                     </span>
                   </div>
@@ -175,7 +177,7 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
                         />
                         <Line type="linear" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false} />
                         <Line type="linear" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false} />
-                        <Line type="linear" dataKey="away" stroke="rgba(220, 53, 69, 1)" strokeWidth={2} dot={false} />
+                        <Line type="linear" dataKey="away" stroke="rgb(225, 29, 72)" strokeWidth={2} dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
                 </div>
@@ -198,8 +200,8 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
                       <span className="text-gray-400 font-semibold">{drawPrice.toFixed(1)}</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <span className="text-red-500 font-semibold">$AWAY</span>
-                      <span className="text-red-500 font-semibold">{awayPrice.toFixed(1)}</span>
+                      <span className="text-redmagenta font-semibold">$AWAY</span>
+                      <span className="text-redmagenta font-semibold">{awayPrice.toFixed(1)}</span>
                     </div>
                   </div>
                 </div>
