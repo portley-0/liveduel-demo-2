@@ -61,7 +61,7 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
   }
 
   return (
-    <div className="w-full grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
+    <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-4 p-4 pb-[80px]">
       {filteredMatches.map((match) => {
         const oddsData = match.oddsHistory?.timestamps?.length ? match.oddsHistory : generateFlatlineOdds();
 
@@ -99,78 +99,83 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
           <Link
             key={match.matchId}
             to={`/dashboard/markets/${match.matchId}`}
-            className="relative group transition-all duration-300 ease-in-out hover:bg-hovergreyblue bg-greyblue text-white rounded-xl shadow-md w-full h-auto aspect-[6/5] p-0 flex flex-col"
+            className="w-full max-w-[420px] h-auto aspect-[6/5]"
           >
-            <div className="p-5 xs:p-6 flex flex-col h-full">
-              <div className="flex justify-between items-center mb-3">
-                <div className="flex flex-col">
-                  <img src={match.homeTeamLogo} alt={match.homeTeamName} className="object-contain w-16 h-16 xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] lg:w-14 lg:h-14" />
-                  <span className="text-sm xs:text-lg sm:text-lg lg:text-sm font-[Lato-Bold] mt-1 mb-1">{match.homeTeamName}</span>
+            <button
+              className="relative group transition-all duration-200 ease-in-out bg-greyblue text-white rounded-xl shadow-md w-full h-full flex flex-col hover:bg-hovergreyblue active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <div className="p-5 xs:p-6 flex flex-col h-full">
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex flex-col">
+                    <img src={match.homeTeamLogo} alt={match.homeTeamName} className="object-contain w-16 h-16 xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] lg:w-14 lg:h-14" />
+                    <span className="text-sm xs:text-lg sm:text-lg lg:text-sm font-[Lato-Bold] mt-1 mb-1 truncate max-w-[140px]">{match.homeTeamName}</span>
+                  </div>
+                  <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-2 flex flex-col items-center">
+                    <span className="text-3xl xs:text-2xl font-bold text-red-500">
+                      {match.homeScore ?? 0}:{match.awayScore ?? 0}
+                    </span>
+                    <span className="text-xs xs:text-sm text-red-500 font-semibold">
+                      {match.statusShort && LIVE_STATUSES.includes(match.statusShort)
+                        ? `In Progress ${match.elapsed ? `(${match.elapsed}’)` : ""}`
+                        : formatKickoffTime(match.matchTimestamp)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <img src={match.awayTeamLogo} alt={match.awayTeamName} className="object-contain w-16 h-16 xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] lg:w-14 lg:h-14" />
+                    <span className="text-sm xs:text-lg sm:text-lg lg:text-sm font-[Lato-Bold] mt-1 mb-1 truncate max-w-[140px]">{match.awayTeamName}</span>
+                  </div>
                 </div>
-                <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-2 flex flex-col items-center">
-                  <span className="text-3xl xs:text-2xl font-bold text-red-500">
-                    {match.homeScore ?? 0}:{match.awayScore ?? 0}
-                  </span>
-                  <span className="text-xs xs:text-sm text-red-500 font-semibold">
-                    {match.statusShort && LIVE_STATUSES.includes(match.statusShort)
-                      ? `In Progress ${match.elapsed ? `(${match.elapsed}’)` : ""}`
-                      : formatKickoffTime(match.matchTimestamp)}
-                  </span>
-                </div>
-                <div className="flex flex-col items-end">
-                  <img src={match.awayTeamLogo} alt={match.awayTeamName} className="object-contain w-16 h-16 xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] lg:w-14 lg:h-14" />
-                  <span className="text-sm xs:text-lg sm:text-lg lg:text-sm font-[Lato-Bold] mt-1 mb-1">{match.awayTeamName}</span>
-                </div>
-              </div>
 
-              <div className="bg-lightgreyblue h-[300px] min-w-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={formattedData} margin={{ left: 0, right: 7, top: 5, bottom: 5}}>
-                    <XAxis dataKey="time" hide />
-                    <YAxis
-                      domain={[0, 10]}
-                      allowDecimals={true}
-                      ticks={[0, 1, 2.5, 5, 7.5, 10]}
-                      tickFormatter={(tick) => (tick % 1 === 0 ? tick : tick.toFixed(1))}
-                      tick={{ fill: "white", fontSize: 7, textAnchor: "end", dx: 5, dy: 0 }}
-                      tickSize={2} 
-                      tickCount={5}
-                      minTickGap={2}
-                      interval={0}
-                      width={3} 
-                      axisLine={false} 
-                      tickLine={false} 
-                      orientation="right"
-                    />
-                    <Line type="monotone" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="away" stroke="rgba(220, 53, 69, 1)" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+                <div className="bg-lightgreyblue h-[300px] min-w-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={formattedData} margin={{ left: 0, right: 7, top: 5, bottom: 5 }}>
+                      <XAxis dataKey="time" hide />
+                      <YAxis
+                        domain={[0, 10]}
+                        allowDecimals={true}
+                        ticks={[0, 1, 2.5, 5, 7.5, 10]}
+                        tickFormatter={(tick) => (tick % 1 === 0 ? tick : tick.toFixed(1))}
+                        tick={{ fill: "white", fontSize: 7, textAnchor: "end", dx: 5, dy: 0 }}
+                        tickSize={2}
+                        tickCount={5}
+                        minTickGap={2}
+                        interval={0}
+                        width={3}
+                        axisLine={false}
+                        tickLine={false}
+                        orientation="right"
+                      />
+                      <Line type="monotone" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="away" stroke="rgba(220, 53, 69, 1)" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
 
-              <div className="flex justify-between items-end mt-2">
-                <div className="text-xs font-[Quicksand Bold]">
-                  <span className="block font-semibold">Volume</span>
-                  <div className="text-white font-semibold">${match.bettingVolume?.toLocaleString() ?? "0"}</div>
-                </div>
-                <div className="flex space-x-4 text-xs font-[Quicksand Bold]">
-                  <div className="flex flex-col items-center">
-                    <span className="text-blue-400 font-semibold">$HOME</span>
-                    <span className="text-blue-400 font-semibold">{homePrice.toFixed(1)}</span>
+                <div className="flex justify-between items-end mt-2">
+                  <div className="text-xs font-[Quicksand Bold]">
+                    <span className="block font-semibold">Volume</span>
+                    <div className="text-white font-semibold">${match.bettingVolume?.toLocaleString() ?? "0"}</div>
                   </div>
-                  <div className="flex flex-col items-center">
-                    <span className="text-gray-400 font-semibold">$DRAW</span>
-                    <span className="text-gray-400 font-semibold">{drawPrice.toFixed(1)}</span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <span className="text-red-500 font-semibold">$AWAY</span>
-                    <span className="text-red-500 font-semibold">{awayPrice.toFixed(1)}</span>
+                  <div className="flex space-x-4 text-xs font-[Quicksand Bold]">
+                    <div className="flex flex-col items-center">
+                      <span className="text-blue-400 font-semibold">$HOME</span>
+                      <span className="text-blue-400 font-semibold">{homePrice.toFixed(1)}</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-gray-400 font-semibold">$DRAW</span>
+                      <span className="text-gray-400 font-semibold">{drawPrice.toFixed(1)}</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-red-500 font-semibold">$AWAY</span>
+                      <span className="text-red-500 font-semibold">{awayPrice.toFixed(1)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </button>
           </Link>
+
         );
       })}
     </div>

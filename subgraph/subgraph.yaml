@@ -10,7 +10,7 @@ dataSources:
     name: MarketFactory
     network: fuji
     source:
-      address: "0xd25cd1E25E39E5A84DCC1cE11a9948ed0039753f"
+      address: "0x5EBf1a84158d38f000c5045ED6854Bcc752E9D6b"
       abi: MarketFactory
       startBlock: 38400572
     mapping:
