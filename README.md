@@ -1,4 +1,4 @@
-<img src="./frontend/public/Liveduel-Demo-2.png" 
+<img src="./frontend/public/images/Liveduel-Demo-2.png" 
      alt="Liveduel Demo 2" 
      width="320" />
 
@@ -14,7 +14,7 @@ A **Mock USDC** faucet is provided. This faucet dispenses mUSDC (test tokens) fo
 - **Gnosis Conditional Tokens Framework (CTF)** – Enables conditional payouts based on match outcomes.
 - **Logarithmic Market Scoring Rule (LMSR)** – Dynamically calculates odds and manages liquidity.
 - **The Graph Protocol** – Indexes on-chain events and provides efficient querying.
-- **Next.js** + **RainbowKit** – Delivers a user-friendly web interface and WalletConnect integration.
+- **React** + **RainbowKit** – Delivers a user-friendly web interface and WalletConnect integration.
 - **Express.js** + **WebSockets** – Handles backend data aggregation and enables real-time odds updates.
 
 ---
