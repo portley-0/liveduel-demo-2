@@ -1,6 +1,7 @@
 {
-    "buildCommand": "pnpm install --filter frontend... && pnpm build",
-    "outputDirectory": "frontend/dist",
-    "framework": "vite"
-  }
-  
+  "version": 2,
+  "rootDirectory": "frontend",
+  "builds": [{ "src": "frontend/package.json", "use": "@vercel/static-build" }],
+  "routes": [{ "src": "/(.*)", "dest": "/frontend/$1" }],
+  "installCommand": "cd frontend && pnpm install --frozen-lockfile"
+}
