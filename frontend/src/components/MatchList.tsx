@@ -3,30 +3,26 @@ import { Link } from "react-router-dom";
 import { useMatches } from "@/context/MatchContext.tsx";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
 
-// 192x64 Fixed-Point Scaling Factor (BigInt for Ethers v6)
 const FIXED_192x64_SCALING_FACTOR = BigInt("18446744073709551616");
 
-// Convert 192x64 fixed-point to decimal probability
 const convertToDecimal = (value: bigint): number => {
   return Number((value * 10000n) / FIXED_192x64_SCALING_FACTOR) / 10000;
 };
 
-// Convert decimal probability to decimal odds (1 / probability)
 const convertToDecimalOdds = (probability: number): number => {
-  return probability > 0 ? 1 / probability : 10.0; // Prevent division by zero, default max 10.0 odds
+  return probability > 0 ? 1 / probability : 10.0; 
 };
 
 const generateFlatlineOdds = () => {
   const now = Date.now();
   return {
-    timestamps: Array.from({ length: 10 }, (_, i) => now - i * 60000), // 10 timestamps, 1 min apart
-    homeOdds: Array(10).fill(FIXED_192x64_SCALING_FACTOR / 3n), // Default 0.33
+    timestamps: Array.from({ length: 10 }, (_, i) => now - i * 60000), 
+    homeOdds: Array(10).fill(FIXED_192x64_SCALING_FACTOR / 3n), 
     drawOdds: Array(10).fill(FIXED_192x64_SCALING_FACTOR / 3n),
     awayOdds: Array(10).fill(FIXED_192x64_SCALING_FACTOR / 3n),
   };
 };
 
-// Props Interface
 interface MatchListProps {
   selectedLeague: number | null;
   sortBy: string;
@@ -44,7 +40,6 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
     );
   }
 
-  // Apply filters
   let filteredMatches = Object.values(matches);
 
   if (selectedLeague !== null) {
@@ -57,7 +52,6 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
     filteredMatches = filteredMatches.filter((match) => match.statusShort && LIVE_STATUSES.includes(match.statusShort));
   }
 
-  // Apply sorting
   if (sortBy === "volume") {
     filteredMatches.sort((a, b) => (b.bettingVolume ?? 0) - (a.bettingVolume ?? 0));
   } else if (sortBy === "date-asc") {
@@ -85,7 +79,6 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
           };
         });
 
-        // Get latest odds values
         const lastIndex = oddsData.homeOdds.length - 1;
         const homePrice = convertToDecimalOdds(convertToDecimal(BigInt(oddsData.homeOdds[lastIndex])));
         const drawPrice = convertToDecimalOdds(convertToDecimal(BigInt(oddsData.drawOdds[lastIndex])));
@@ -130,20 +123,24 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
                 </div>
               </div>
 
-              {/* Lightweight Odds Graph using Recharts */}
-              <div className="bg-lightgreyblue h-[300px]">
+              <div className="bg-lightgreyblue h-[300px] min-w-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={formattedData} margin={{ left: 0, right: 5, top: 5, bottom: 5 }}>
+                  <LineChart data={formattedData} margin={{ left: 0, right: 7, top: 5, bottom: 5}}>
                     <XAxis dataKey="time" hide />
                     <YAxis
                       domain={[0, 10]}
-                      ticks={[0, 1, 2.5, 5, 7.5, 10]} // Ensure all levels are shown
-                      tick={{ fill: "white", fontSize: 7, textAnchor: "end" }}
-                      tickSize={6} // Ensures proper spacing for each level
-                      width={3} // Increase width for proper visibility
-                      axisLine={false} // Removes axis bracket
-                      tickLine={false} // Removes tick lines
-                      orientation="right" // Moves Y-axis fully to the right
+                      allowDecimals={true}
+                      ticks={[0, 1, 2.5, 5, 7.5, 10]}
+                      tickFormatter={(tick) => (tick % 1 === 0 ? tick : tick.toFixed(1))}
+                      tick={{ fill: "white", fontSize: 7, textAnchor: "end", dx: 5, dy: 0 }}
+                      tickSize={2} 
+                      tickCount={5}
+                      minTickGap={2}
+                      interval={0}
+                      width={3} 
+                      axisLine={false} 
+                      tickLine={false} 
+                      orientation="right"
                     />
                     <Line type="monotone" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false} />
                     <Line type="monotone" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false} />

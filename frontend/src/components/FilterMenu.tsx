@@ -58,34 +58,34 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
   }, [sortBy]);
 
   return (
-    <div className="sticky top-0 z-20 bg-darkblue py-2 px-4 flex justify-between items-center shadow-xl">
-      <div className="flex flex-col space-y-1">
-        <h1 className="text-xs font-bold text-white">Markets</h1>
+    <div className="sticky top-0 z-20 bg-darkblue py-2 px-4 flex flex-col space-y-2 shadow-xl">
+      <h1 className="text-xs font-bold text-white">Markets</h1>
 
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-bold text-white">Category:</span>
-          <div className="relative">
-            <span
-              ref={categoryRef}
-              className="absolute opacity-0 pointer-events-none whitespace-nowrap text-sm font-bold"
-            >
-              {LEAGUES.find((league) => league.id === selectedLeague)?.name ?? "All Leagues"}
-            </span>
-            <select
-              className="select select-sm select-ghost text-white bg-darkblue font-bold text-sm transition-all duration-200 ease-in-out"
-              style={{ width: `${categoryWidth}px` }}
-              value={selectedLeague ?? ""}
-              onChange={(e) => setSelectedLeague(e.target.value === "" ? null : Number(e.target.value))}
-            >
-              {LEAGUES.map((league) => (
-                <option key={league.id} value={league.id ?? ""} className="font-bold text-sm">
-                  {league.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      <div className="flex items-center space-x-2">
+        <span className="text-sm font-bold text-white">Category:</span>
+        <div className="relative">
+          <span
+            ref={categoryRef}
+            className="absolute opacity-0 pointer-events-none whitespace-nowrap text-sm font-bold"
+          >
+            {LEAGUES.find((league) => league.id === selectedLeague)?.name ?? "All Leagues"}
+          </span>
+          <select
+            className="select select-sm select-ghost text-white bg-darkblue font-bold text-sm transition-all duration-200 ease-in-out"
+            style={{ width: `${categoryWidth}px` }}
+            value={selectedLeague ?? ""}
+            onChange={(e) => setSelectedLeague(e.target.value === "" ? null : Number(e.target.value))}
+          >
+            {LEAGUES.map((league) => (
+              <option key={league.id} value={league.id ?? ""} className="font-bold text-sm">
+                {league.name}
+              </option>
+            ))}
+          </select>
         </div>
+      </div>
 
+      <div className="flex items-center justify-between w-full">
         <div className="flex items-center space-x-2">
           <span className="text-sm font-bold text-white">Sort by:</span>
           <div className="relative">
@@ -109,18 +109,19 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
             </select>
           </div>
         </div>
-      </div>
 
-      <div className="flex items-center space-x-2">
-        <span className="text-sm font-bold text-white">Live Only</span>
-        <input
-          type="checkbox"
-          className="toggle toggle-sm"
-          checked={liveOnly}
-          onChange={() => setLiveOnly((prev: boolean) => !prev)}
-        />
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-bold text-white">Live Only</span>
+          <input
+            type="checkbox"
+            className="toggle toggle-sm"
+            checked={liveOnly}
+            onChange={() => setLiveOnly((prev: boolean) => !prev)}
+          />
+        </div>
       </div>
     </div>
+
   );
 };
 
