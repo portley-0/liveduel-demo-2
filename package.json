@@ -1,7 +1,7 @@
 {
     "name": "liveduel-demo-2",
     "private": true,
-    "workspaces": ["contracts"],
+    "workspaces": ["frontend", "backend", "contracts", "subgraph"],
     "pnpm": {
       "overrides": {
         "chai": "4.3.7"

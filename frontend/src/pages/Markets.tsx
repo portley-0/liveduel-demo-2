@@ -8,7 +8,7 @@ const Markets: React.FC = () => {
   const [liveOnly, setLiveOnly] = useState<boolean>(false);
 
   return (
-    <div className="w-full max-w-screen-xl mx-auto px-4 flex flex-col h-screen">
+    <div className="w-full min-h-screen flex flex-col">
       <FilterMenu
         selectedLeague={selectedLeague}
         setSelectedLeague={setSelectedLeague}
