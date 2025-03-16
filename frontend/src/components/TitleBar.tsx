@@ -44,7 +44,7 @@ const TitleBar = () => {
 
               <NavLink
                 to="/"
-                className="btn bg-transparent border-none hover:bg-transparent select-none p-0 hover:opacity-80 translate-y-[2px]"
+                className="btn bg-transparent border-none hover:bg-transparent select-none p-0 hover:opacity-80 translate-y-[3px]"
               >
                 <img
                   src="/images/Liveduel-Logo.png"
