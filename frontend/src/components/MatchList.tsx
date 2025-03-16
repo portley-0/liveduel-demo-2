@@ -33,7 +33,7 @@ interface MatchListProps {
 const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly }) => {
   const { matches } = useMatches();
   const [chartData, setChartData] = useState<Record<number, any>>({});
-
+  
   useEffect(() => {
     if (!matches) return;
   
@@ -42,11 +42,10 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
   
       Object.values(matches).forEach((match) => {
         const matchId = match.matchId;
-  
         if (!matchId) return;
   
-        // Use existing data if available
         const existingData = newChartData[matchId] ?? [];
+  
         const oddsData = match.oddsHistory?.timestamps?.length ? match.oddsHistory : generateFlatlineOdds();
   
         const newEntries = oddsData.timestamps.map((timestamp: number, index: number) => {
@@ -63,11 +62,10 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
           };
         });
   
-        // Merge new data while avoiding duplicates
         const mergedData = [...existingData, ...newEntries]
           .sort((a, b) => a.timestamp - b.timestamp)
           .reduce((acc, entry) => {
-            if (!acc.some((e: { timestamp: number }) => e.timestamp === entry.timestamp)) acc.push(entry);
+            if (!acc.some((e: typeof entry) => e.timestamp === entry.timestamp)) acc.push(entry);
             return acc;
           }, [] as typeof existingData);
   
@@ -77,9 +75,7 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
       return newChartData;
     });
   
-  }, [matches]); 
-  
-  
+  }, [matches]);  
   
   if (!matches || Object.keys(matches).length === 0) {
     return (
@@ -159,31 +155,31 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
                 </div>
 
                 <div className="bg-lightgreyblue h-[300px] min-w-[200px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData[match.matchId] ?? []} margin={{ left: 0, right: 7, top: 5, bottom: 5 }}>  
-                      <XAxis dataKey="time" hide />
-                      <YAxis
-                        domain={[0, 10]}
-                        allowDecimals={true}
-                        ticks={[0, 1, 2.5, 5, 7.5, 10]}
-                        tickFormatter={(tick) => (tick % 1 === 0 ? tick : tick.toFixed(1))}
-                        tick={{ fill: "white", fontSize: 7, textAnchor: "end", dx: 5, dy: 0 }}
-                        tickSize={2}
-                        tickCount={5}
-                        minTickGap={2}
-                        interval={0}
-                        width={3}
-                        axisLine={false}
-                        tickLine={false}
-                        orientation="right"
-                      />
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData[match.matchId]} margin={{ left: 0, right: 7, top: 5, bottom: 5 }}>  
+                        <XAxis dataKey="time" hide />
+                        <YAxis
+                          domain={[0, 10]}
+                          allowDecimals={true}
+                          ticks={[0, 1, 2.5, 5, 7.5, 10]}
+                          tickFormatter={(tick) => (tick % 1 === 0 ? tick : tick.toFixed(1))}
+                          tick={{ fill: "white", fontSize: 7, textAnchor: "end", dx: 5, dy: 0 }}
+                          tickSize={2}
+                          tickCount={5}
+                          minTickGap={2}
+                          interval={0}
+                          width={3}
+                          axisLine={false}
+                          tickLine={false}
+                          orientation="right"
+                        />
                         <Line type="linear" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false} />
                         <Line type="linear" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false} />
                         <Line type="linear" dataKey="away" stroke="rgba(220, 53, 69, 1)" strokeWidth={2} dot={false} />
-
-                    </LineChart>
-                  </ResponsiveContainer>
+                      </LineChart>
+                    </ResponsiveContainer>
                 </div>
+
 
                 <div className="flex justify-between items-end mt-2">
                   <div className="text-xs font-[Quicksand Bold]">
