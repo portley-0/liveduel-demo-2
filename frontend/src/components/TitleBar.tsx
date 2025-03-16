@@ -75,14 +75,14 @@ const TitleBar = () => {
                             className={`text-lg lg:text-xl ${
                               isActive
                                 ? "text-redmagenta group-hover:opacity-80" // Dims slightly on hover
-                                : "text-white group-hover:text-gray-300"
+                                : "text-white group-hover:text-gray-200/80"
                             }`}
                           />
                           <span
                             className={`text-xs lg:text-sm capitalize ${
                               isActive
                                 ? "text-redmagenta group-hover:opacity-80" // Dims slightly
-                                : "text-white group-hover:text-gray-300"
+                                : "text-white group-hover:text-gray-200/80"
                             }`}
                           >
                             {label}
