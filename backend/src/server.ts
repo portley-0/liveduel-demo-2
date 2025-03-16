@@ -22,7 +22,7 @@ async function main() {
   app.use((req, res, next) => {
     res.setHeader(
       "Content-Security-Policy",
-      "default-src 'self'; connect-src 'self' ws://16.16.142.192:3000 wss://16.16.142.192:3000"
+      "default-src 'self'; connect-src * ws://16.16.142.192:3000 wss://16.16.142.192:3000"
     );
     next();
   });
