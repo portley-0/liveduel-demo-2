@@ -151,6 +151,7 @@ export interface MatchData {
   matchId: number;
   contract?: string;
   leagueId?: number;
+  leagueName?: string;
   season?: number;
   homeTeamName?: string;
   homeTeamLogo?: string;

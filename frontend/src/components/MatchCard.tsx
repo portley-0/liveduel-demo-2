@@ -59,7 +59,7 @@ const MatchCard: React.FC<{ match: MatchData }> = ({ match }) => {
       <div className="flex justify-between items-center mb-3">
         <div className="flex flex-col items-start">
           <img src={match.homeTeamLogo} alt={match.homeTeamName} className="object-contain w-[100px] h-[100px]" />
-          <span className="text-2xl text-white font-[Lato-Bold] mt-1 truncate max-w-[250px]">
+          <span className="text-2xl text-white font-[Lato-Bold] mt-2 mb-2 truncate max-w-[250px]">
             {match.homeTeamName}
           </span>
         </div>
@@ -79,7 +79,7 @@ const MatchCard: React.FC<{ match: MatchData }> = ({ match }) => {
 
         <div className="flex flex-col items-end">
           <img src={match.awayTeamLogo} alt={match.awayTeamName} className="object-contain w-[100px] h-[100px]" />
-          <span className="text-2xl text-white font-[Lato-Bold] mt-1 truncate max-w-[250px]">
+          <span className="text-2xl text-white font-[Lato-Bold] mt-2 mb-2 truncate max-w-[250px]">
             {match.awayTeamName}
           </span>
         </div>

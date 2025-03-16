@@ -168,6 +168,7 @@ async function addUpcomingMatchesToCache() {
           updateMatchData(matchId, {
             matchId,
             leagueId,
+            leagueName: fixture.league.name,
             season,
             matchTimestamp: fixture.fixture.timestamp,
             homeTeamName: fixture.teams.home.name,
@@ -301,9 +302,6 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
     awayOdds: []
   };
 
-  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-  const currentTime = Date.now();
-
   for (const oddsItem of oddsData) {
     const newTimestamp = Number(oddsItem.timestamp) * 1000;
     const newHomeOdds = Number(oddsItem.home);
@@ -321,13 +319,6 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
       updatedHistory.drawOdds.push(newDrawOdds);
       updatedHistory.awayOdds.push(newAwayOdds);
     }
-  }
-
-  while (updatedHistory.timestamps.length > 0 && (currentTime - updatedHistory.timestamps[0]) > TWO_HOURS_MS) {
-    updatedHistory.timestamps.shift();
-    updatedHistory.homeOdds.shift();
-    updatedHistory.drawOdds.shift();
-    updatedHistory.awayOdds.shift();
   }
 
   updateMatchData(matchId, { oddsHistory: updatedHistory });

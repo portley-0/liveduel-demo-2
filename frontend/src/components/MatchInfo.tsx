@@ -3,7 +3,7 @@ import { MatchData } from "@/types/MatchData.ts"; // Import Match type
 
 const MatchInfo: React.FC<{ match: MatchData }> = ({ match }) => {
   return (
-    <div className="bg-greyblue p-6 rounded-lg text-white shadow-md">
+    <div className="bg-greyblue p-10 rounded-lg text-white shadow-md">
       <h2 className="text-lg font-bold">Match Information</h2>
       <p className="mt-2 text-sm">
         Details about {match.homeTeamName} vs {match.awayTeamName}.
