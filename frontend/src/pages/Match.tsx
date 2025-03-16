@@ -21,35 +21,29 @@ const Match: React.FC = () => {
   }
 
   return (
-    <div className="relative w-full flex flex-col lg:flex-row gap-4 mx-auto">
+    <div className="w-full h-screen flex flex-col lg:flex-row mx-auto">
 
-      {/* Breadcrumbs - Positioned Above Both Containers */}
-      <div className="breadcrumbs absolute top-0 left-0 w-full px-4 py-1 z-10 bg-darkblue text-white">
-        <ul className="flex gap-2 text-xs text-white">
-          <li className="font-bold text-white">
+      <div className="breadcrumbs fixed top-[80px] left-0 w-full px-4 py-2 z-50 bg-darkblue text-white">
+        <ul className="flex gap-2 text-xs">
+          <li>
             <Link to="/dashboard/markets" className="hover:underline font-bold text-white">
               Markets
             </Link>
           </li>
           <li className="font-bold text-white">{match.leagueName}</li>
-          <li className="font-bold text-white">
-            <span className="font-bold text-redmagenta">{match.homeTeamName} v {match.awayTeamName}</span>
+          <li className="font-bold">
+            <span className="text-redmagenta">{match.homeTeamName} v {match.awayTeamName}</span>
           </li>
         </ul>
       </div>
 
-      {/* Main Content: MatchCard on the Left, Betting & MatchInfo on the Right */}
-      <div className="flex flex-col lg:flex-row w-full gap-4 pt-6">
-        {/* Left Container: Match Card */}
-        <div className="w-full lg:w-1/2">
-          <MatchCard match={match} />
-        </div>
+      <div className="fixed top-[116px] left-0 w-full lg:w-1/2 h-[calc(100vh-116px)] bg-darkblue overflow-hidden">
+        <MatchCard match={match} />
+      </div>
 
-        {/* Right Container: Betting & Match Info */}
-        <div className="w-full lg:w-1/2 flex flex-col gap-6">
-          <Betting match={match} />
-          <MatchInfo match={match} />
-        </div>
+      <div className="w-full ml-auto lg:w-1/2 h-screen overflow-y-auto flex flex-col gap-6">
+        <Betting match={match} />
+        <MatchInfo match={match} />
       </div>
 
     </div>

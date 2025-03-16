@@ -12,15 +12,27 @@ const convertToDecimalOdds = (probability: number): number => {
   return probability > 0 ? 1 / probability : 10.0;
 };
 
+const generateFlatlineOdds = () => {
+  const now = Date.now();
+  return {
+    timestamps: Array.from({ length: 10 }, (_, i) => now - i * 60000), 
+    homeOdds: Array(10).fill(FIXED_192x64_SCALING_FACTOR / 3n), 
+    drawOdds: Array(10).fill(FIXED_192x64_SCALING_FACTOR / 3n),
+    awayOdds: Array(10).fill(FIXED_192x64_SCALING_FACTOR / 3n),
+  };
+};
+
 const MatchCard: React.FC<{ match: MatchData }> = ({ match }) => {
   const [chartData, setChartData] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!match || !match.oddsHistory) return;
+    if (!match) return;
 
-    const oddsData = match.oddsHistory.timestamps.length ? match.oddsHistory : null;
+    setChartData((prevChartData) => {
+      const existingData = prevChartData ?? [];
 
-    if (oddsData) {
+      const oddsData = match.oddsHistory?.timestamps?.length ? match.oddsHistory : generateFlatlineOdds();
+
       const newEntries = oddsData.timestamps.map((timestamp: number, index: number) => {
         const homeProbability = convertToDecimal(BigInt(oddsData.homeOdds[index]));
         const drawProbability = convertToDecimal(BigInt(oddsData.drawOdds[index]));
@@ -35,8 +47,13 @@ const MatchCard: React.FC<{ match: MatchData }> = ({ match }) => {
         };
       });
 
-      setChartData(newEntries);
-    }
+      return [...existingData, ...newEntries]
+        .sort((a, b) => a.timestamp - b.timestamp)
+        .reduce((acc, entry) => {
+          if (!acc.some((e: typeof entry) => e.timestamp === entry.timestamp)) acc.push(entry);
+          return acc;
+        }, [] as typeof existingData);
+    });
   }, [match]);
 
   const homePrice = convertToDecimalOdds(convertToDecimal(BigInt(match.latestOdds?.home ?? "6148914691236516864")));
@@ -54,21 +71,21 @@ const MatchCard: React.FC<{ match: MatchData }> = ({ match }) => {
   };
 
   return (
-    <div className="relative p-12 flex flex-col w-full h-auto aspect-[6/5]">
+    <div className="relative p-10 mt-[-20px] flex flex-col w-full max-h-screen overflow-hidden">
       {/* Team Logos & Score */}
       <div className="flex justify-between items-center mb-3">
         <div className="flex flex-col items-start">
           <img src={match.homeTeamLogo} alt={match.homeTeamName} className="object-contain w-[100px] h-[100px]" />
-          <span className="text-2xl text-white font-[Lato-Bold] mt-2 mb-2 truncate max-w-[250px]">
+          <span className="text-xl text-white font-[Lato-Bold] mt-3 mb-3 truncate max-w-[180px]">
             {match.homeTeamName}
           </span>
         </div>
 
-        <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-2 flex flex-col items-center">
-          <span className="text-3xl font-bold text-redmagenta">
+        <div className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center">
+          <span className="text-4xl font-bold text-redmagenta">
             {match.homeScore ?? 0}:{match.awayScore ?? 0}
           </span>
-          <span className="text-xl text-redmagenta font-semibold">
+          <span className="text-lg text-redmagenta font-semibold">
             {match.statusShort && ["FT", "AET", "PEN"].includes(match.statusShort)
               ? "Full Time"
               : match.statusShort && ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
@@ -79,13 +96,14 @@ const MatchCard: React.FC<{ match: MatchData }> = ({ match }) => {
 
         <div className="flex flex-col items-end">
           <img src={match.awayTeamLogo} alt={match.awayTeamName} className="object-contain w-[100px] h-[100px]" />
-          <span className="text-2xl text-white font-[Lato-Bold] mt-2 mb-2 truncate max-w-[250px]">
+          <span className="text-xl text-white font-[Lato-Bold] mt-3 mb-3 truncate max-w-[180px]">
             {match.awayTeamName}
           </span>
         </div>
       </div>
 
-      <div className="bg-lightgreyblue h-[300px] min-w-[200px]">
+      {/* Reduced Chart Height */}
+      <div className="bg-lightgreyblue h-[160px] min-w-[200px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ left: 0, right: 7, top: 5, bottom: 5 }}>  
               <XAxis dataKey="time" hide />
@@ -94,7 +112,7 @@ const MatchCard: React.FC<{ match: MatchData }> = ({ match }) => {
                 allowDecimals={true}
                 ticks={[0, 1, 2.5, 5, 7.5, 10]}
                 tickFormatter={(tick) => (tick % 1 === 0 ? tick : tick.toFixed(1))}
-                tick={{ fill: "white", fontSize: 7, textAnchor: "end", dx: 5, dy: 0 }}
+                tick={{ fill: "white", fontSize: 10, textAnchor: "end", dx: 5, dy: 0 }}
                 tickSize={2}
                 tickCount={5}
                 minTickGap={2}
@@ -111,7 +129,6 @@ const MatchCard: React.FC<{ match: MatchData }> = ({ match }) => {
         </ResponsiveContainer>
       </div>
 
-      {/* Betting Volume & Odds */}
       <div className="flex justify-between items-end mt-2 text-white">
         <div className="text-xl font-[Quicksand Bold]">
           <span className="block font-semibold">Volume</span>
@@ -139,4 +156,3 @@ const MatchCard: React.FC<{ match: MatchData }> = ({ match }) => {
 };
 
 export default MatchCard;
-
