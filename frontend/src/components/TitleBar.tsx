@@ -44,7 +44,7 @@ const TitleBar = () => {
 
               <NavLink
                 to="/"
-                className="btn bg-transparent border-none hover:bg-transparent select-none p-0 hover:opacity-80"
+                className="btn bg-transparent border-none hover:bg-transparent select-none p-0 hover:opacity-80 translate-y-[2px]"
               >
                 <img
                   src="/images/Liveduel-Logo.png"
@@ -54,6 +54,7 @@ const TitleBar = () => {
                   className="object-contain select-none"
                 />
               </NavLink>
+
             </div>
 
             <div className="flex items-center space-x-4 lg:space-x-6">
@@ -74,14 +75,14 @@ const TitleBar = () => {
                           <Icon
                             className={`text-lg lg:text-xl ${
                               isActive
-                                ? "text-redmagenta group-hover:opacity-80" // Dims slightly on hover
+                                ? "text-redmagenta group-hover:opacity-80" 
                                 : "text-white group-hover:text-gray-200/80"
                             }`}
                           />
                           <span
                             className={`text-xs lg:text-sm capitalize ${
                               isActive
-                                ? "text-redmagenta group-hover:opacity-80" // Dims slightly
+                                ? "text-redmagenta group-hover:opacity-80" 
                                 : "text-white group-hover:text-gray-200/80"
                             }`}
                           >
@@ -95,10 +96,17 @@ const TitleBar = () => {
               )}
               <NavLink
                 to="/login"
-                className="btn hover:bg-darkblue bg-darkblue border-2 border-white text-white hover:text-redmagenta px-5 py-2 rounded-full text-lg lg:text-base hover:border-redmagenta select-none flex items-center justify-center whitespace-nowrap"
+                className="btn hover:bg-darkblue bg-darkblue border-2 border-white text-white hover:text-redmagenta 
+                          w-[70px] h-[34px] 
+                          sm:w-[70px] sm:h-[34px] 
+                          md:w-[70px] md:h-[34px] 
+                          lg:w-[70px] lg:h-[34px] 
+                          text-lg sm:text-sm md:text-base 
+                          rounded-full hover:border-redmagenta select-none flex items-center justify-center whitespace-nowrap"
               >
                 Log in
               </NavLink>
+
             </div>
           </header>
 

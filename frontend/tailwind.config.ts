@@ -18,7 +18,15 @@ const config: Config = {
         'lightgreyblue': 'rgb(50, 65, 85)',
         'pinkred': 'rgb(255, 88, 98)'
       },
-    }, 
+    },
+    screens: {
+      xs: "400px",  
+      sm: "430px", 
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      "2xl": "1536px",
+    },
     aspectRatio: {
       '4/5': '4 / 5',
     },

@@ -108,25 +108,25 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
             to={`/dashboard/markets/${match.matchId}`}
             className="relative group transition-all duration-300 ease-in-out hover:bg-hovergreyblue bg-greyblue text-white rounded-xl shadow-md w-full h-auto aspect-[6/5] p-0 flex flex-col"
           >
-            <div className="p-5 flex flex-col h-full">
-              <div className="flex justify-between items-center mb-4">
+            <div className="p-5 xs:p-6 flex flex-col h-full">
+              <div className="flex justify-between items-center mb-3">
                 <div className="flex flex-col">
-                  <img src={match.homeTeamLogo} alt={match.homeTeamName} className="object-contain mb-1 w-20 h-20 sm:w-14 sm:h-14" />
-                  <span className="text-lg sm:text-xs font-[Lato-Bold] mt-1">{match.homeTeamName}</span>
+                  <img src={match.homeTeamLogo} alt={match.homeTeamName} className="object-contain w-16 h-16 xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] lg:w-14 lg:h-14" />
+                  <span className="text-sm xs:text-lg sm:text-lg lg:text-sm font-[Lato-Bold] mt-1 mb-1">{match.homeTeamName}</span>
                 </div>
                 <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-2 flex flex-col items-center">
-                  <span className="text-3xl sm:text-xl font-bold text-red-500">
+                  <span className="text-3xl xs:text-2xl font-bold text-red-500">
                     {match.homeScore ?? 0}:{match.awayScore ?? 0}
                   </span>
-                  <span className="text-xs text-red-500 font-semibold">
+                  <span className="text-xs xs:text-sm text-red-500 font-semibold">
                     {match.statusShort && LIVE_STATUSES.includes(match.statusShort)
                       ? `In Progress ${match.elapsed ? `(${match.elapsed}’)` : ""}`
                       : formatKickoffTime(match.matchTimestamp)}
                   </span>
                 </div>
                 <div className="flex flex-col items-end">
-                  <img src={match.awayTeamLogo} alt={match.awayTeamName} className="object-contain mb-1 w-20 h-20 sm:w-14 sm:h-14" />
-                  <span className="text-lg sm:text-xs font-[Lato-Bold] mt-1">{match.awayTeamName}</span>
+                  <img src={match.awayTeamLogo} alt={match.awayTeamName} className="object-contain w-16 h-16 xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] lg:w-14 lg:h-14" />
+                  <span className="text-sm xs:text-lg sm:text-lg lg:text-sm font-[Lato-Bold] mt-1 mb-1">{match.awayTeamName}</span>
                 </div>
               </div>
 
@@ -138,7 +138,7 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
                     <YAxis
                       domain={[0, 10]}
                       ticks={[0, 1, 2.5, 5, 7.5, 10]} // Ensure all levels are shown
-                      tick={{ fill: "white", fontSize: 9, textAnchor: "end" }}
+                      tick={{ fill: "white", fontSize: 7, textAnchor: "end" }}
                       tickSize={6} // Ensures proper spacing for each level
                       width={3} // Increase width for proper visibility
                       axisLine={false} // Removes axis bracket

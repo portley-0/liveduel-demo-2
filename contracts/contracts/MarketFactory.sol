@@ -97,7 +97,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
 
     function deployPredictionMarket(uint256 matchId, uint256 matchTimestamp) external onlyOwner {
         require(predictionMarkets[matchId] == address(0), "Market already exists");
-        require(matchTimestamp > block.timestamp, "Invalid timestamp");
+        require(block.timestamp <= matchTimestamp + 7200, "Invalid timestamp");
 
         uint256 initialFunding = 30000 * 1e6;
         liquidityPool.withdrawLiquidity(initialFunding);
