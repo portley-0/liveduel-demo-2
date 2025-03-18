@@ -54,7 +54,7 @@ export interface LeagueStanding {
     logo?: string;
     flag?: string;
     season: number;
-    standings: TeamStanding[][];
+    standings: TeamStanding[][] | TeamStanding[];
   };
 }
 

@@ -4,7 +4,7 @@ import TitleBar from "@/components/TitleBar.tsx";
 import { lazy, Suspense } from "react";
 
 const Markets = lazy(() => import("@/pages/Markets.tsx"));
-const Market = lazy(() => import("@/pages/Match.tsx")); // Added this for dynamic match pages
+const Market = lazy(() => import("@/pages/Match.tsx"));
 const Predictions = lazy(() => import("@/pages/Predictions.tsx"));
 const BuyDuel = lazy(() => import("@/pages/BuyDuel.tsx"));
 const Staking = lazy(() => import("@/pages/Staking.tsx"));
@@ -13,7 +13,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const routesToPrefetch = [
       () => import("@/pages/Markets.tsx"),
-      () => import("@/pages/Match.tsx"), // Prefetch match details page
+      () => import("@/pages/Match.tsx"), 
       () => import("@/pages/Predictions.tsx"),
       () => import("@/pages/BuyDuel.tsx"),
       () => import("@/pages/Staking.tsx"),
@@ -26,12 +26,10 @@ const App: React.FC = () => {
 
   return (
     <div className="bg-darkblue min-h-screen flex flex-col">
-      {/* Fixed TitleBar at the top */}
       <div className="fixed top-0 left-0 w-full z-50">
         <TitleBar />
       </div>
 
-      {/* Page content below the TitleBar, scrollable */}
       <div className="flex-grow overflow-y-auto mt-[84px]">
         <Suspense fallback={<div className="text-white text-center"></div>}>
           <Routes>

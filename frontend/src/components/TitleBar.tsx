@@ -33,7 +33,7 @@ const TitleBar = () => {
       <div className="drawer">
         <input id="my-drawer" type="checkbox" className="drawer-toggle" />
         <div className="drawer-content">
-          <header className="flex items-center justify-between px-4 py-2 bg-darkblue h-[84px] shadow-md z-40 select-none">
+          <header className="flex items-center justify-between px-4 py-2 bg-darkblue h-[84px] shadow-md z-50 select-none">
             <div className="flex items-center space-x-2 select-none">
               <label
                 htmlFor="my-drawer"
@@ -150,7 +150,7 @@ const TitleBar = () => {
 
         <div className="drawer-side z-50">
           <label htmlFor="my-drawer" className="drawer-overlay fixed z-50"></label>
-          <ul className="menu bg-base-200 text-base-content min-h-full w-80 p-4 z-50">
+          <ul className="menu bg-greyblue text-base-content min-h-full w-80 p-4 z-50">
             {navItems.map(({ path, label }) => (
               <li key={path}>
                 <NavLink
