@@ -6,6 +6,9 @@ import { BsArrowDownUp } from "react-icons/bs";
 import { RiExpandVerticalSLine } from "react-icons/ri"; 
 import { GoArrowUpRight, GoArrowDownRight } from "react-icons/go";
 import { TbCircleLetterDFilled } from "react-icons/tb";
+import PredictionMarketABI from "@/abis/PredictionMarket.json" with { type: "json" };
+import { ethers } from "ethers";
+import { useWalletClient } from "wagmi";
 
 const FIXED_192x64_SCALING_FACTOR = BigInt("18446744073709551616");
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
@@ -15,6 +18,16 @@ const convertToDecimal = (value: bigint): number => {
 };
 
 const DEFAULT_ODDS = convertToDecimal(BigInt("6148914691236516864"));
+const USDC_ADDRESS = "0xB1cC53DfF11c564Fbe22145a0b07588e7648db74"; 
+const CONDITIONAL_TOKENS_ADDRESS = "0x988A02b302AE410CA71f6A10ad218Da5c70b9f5a";
+
+const USDC_ABI = [
+  "function approve(address spender, uint256 amount) public returns (bool)",
+];
+
+const CONDITIONAL_TOKENS_ABI = [
+  "function setApprovalForAll(address operator, bool approved) public",
+];
 
 const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [selectedBet, setSelectedBet] = useState<"home" | "draw" | "away" | null>(null);
@@ -25,6 +38,11 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [deployedMarket, setDeployedMarket] = useState<string | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
   const [marketStatus, setMarketStatus] = useState<"loading" | "deploying" | "not_deployed" | "ready">("loading");
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [isTxPending, setIsTxPending] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const { data: walletClient } = useWalletClient(); 
+
 
   useEffect(() => {
     if (isLoading) {
@@ -57,6 +75,93 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
   const fee = netCost ? (netCost * 4n) / 100n : 0n;
   const totalCost = netCost ? netCost + fee : 0n;
+ 
+
+  const sendTransaction = async (contractAddress: string, functionName: string, args: any[]) => {
+    if (!walletClient) {
+      console.error("No wallet connected.");
+      return;
+    }
+
+    try {
+      setIsTxPending(true);
+      setIsSuccess(false);
+
+      const provider = new ethers.BrowserProvider(walletClient as any);
+      const signer = await provider.getSigner();
+  
+      const contract = new ethers.Contract(contractAddress, PredictionMarketABI.abi, signer);
+  
+      const tx = await contract[functionName](...args);
+      setTxHash(tx.hash);
+  
+      console.log(`Transaction sent: ${tx.hash}`);
+  
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
+  
+      setIsSuccess(true);
+      refetch(); 
+    } catch (error) {
+      console.error("Transaction failed:", error);
+    } finally {
+      setIsTxPending(false);
+    }
+  };
+
+  const approveContracts = async () => {
+    if (!walletClient || !marketAddress) {
+      console.error("No wallet connected or market address unavailable.");
+      return;
+    }
+  
+    try {
+      const provider = new ethers.BrowserProvider(walletClient as any);
+      const signer = await provider.getSigner();
+      
+      const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
+      console.log("Approving USDC...");
+      const approveTx = await usdcContract.approve(marketAddress, ethers.parseUnits("1000000", 6)); // Approve high amount
+      await approveTx.wait();
+      console.log("USDC approved.");
+  
+      const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
+      console.log("Approving Conditional Tokens...");
+      const approveCTx = await conditionalTokensContract.setApprovalForAll(marketAddress, true);
+      await approveCTx.wait();
+      console.log("Conditional Tokens approved.");
+      
+    } catch (error) {
+      console.error("Approval transaction failed:", error);
+    }
+  };
+  
+  
+  const buyShares = async () => {
+    if (!marketAddress || !isValidBet) return;
+  
+    await approveContracts(); 
+  
+    await sendTransaction(marketAddress, "buyShares", [betMapping[selectedBet!], betAmountBigInt]);
+  };
+  
+  const sellShares = async () => {
+    if (!marketAddress || !isValidBet) return;
+  
+    await approveContracts(); 
+  
+    await sendTransaction(marketAddress, "sellShares", [betMapping[selectedBet!], betAmountBigInt]);
+  };
+  
+
+  useEffect(() => {
+    if (isSuccess) {
+      console.log("Transaction confirmed. Refetching market data...");
+      refetch();
+    }
+  }, [isSuccess, refetch]);
+  
+
   
   const homePrice = convertToDecimal(BigInt(match.latestOdds?.home ?? "6148914691236516864"));
   const drawPrice = convertToDecimal(BigInt(match.latestOdds?.draw ?? "6148914691236516864"));
@@ -231,52 +336,52 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
             <div className="mt-3 text-sm text-white">
             
 
-            
-            <div className="mt-3 text-sm text-white">
-            <p><strong>{tradeType === "buy" ? "LMSR Net Cost:" : "LMSR Net Gain:"}</strong> 
-              {selectedBet === null || betAmount === "" 
-                ? " $0.00" 
-                : isFetchingNetCost 
-                  ? " Loading..."
-                  : netCost !== null 
-                    ? ` $${(Number(netCost) / 1e6).toFixed(2)}`  
-                    : " Error"
-              }
-            </p>
+              
+              <div className="mt-3 text-sm text-white">
+              <p><strong>{tradeType === "buy" ? "LMSR Net Cost:" : "LMSR Net Gain:"}</strong> 
+                {selectedBet === null || betAmount === "" 
+                  ? " $0.00" 
+                  : isFetchingNetCost 
+                    ? " Loading..."
+                    : netCost !== null 
+                      ? ` $${(Number(netCost) / 1e6).toFixed(2)}`  
+                      : " Error"
+                }
+              </p>
 
-            {tradeType === "buy" && (
-              <>
-                <p><strong>Transaction Fee (4%):</strong> 
-                  {selectedBet === null || betAmount === "" 
-                    ? " $0.00" 
-                    : fee 
-                      ? ` $${(Number(fee) / 1e6).toFixed(2)}` 
-                      : " Calculating..."
-                  }
-                </p>
+              {tradeType === "buy" && (
+                <>
+                  <p><strong>Transaction Fee (4%):</strong> 
+                    {selectedBet === null || betAmount === "" 
+                      ? " $0.00" 
+                      : fee 
+                        ? ` $${(Number(fee) / 1e6).toFixed(2)}` 
+                        : " Calculating..."
+                    }
+                  </p>
 
-                <p><strong>Total Cost:</strong> 
-                  {selectedBet === null || betAmount === "" 
-                    ? " $0.00" 
-                    : totalCost 
-                      ? ` $${(Number(totalCost) / 1e6).toFixed(2)}` 
-                      : " Calculating..."
-                  }
-                </p>
-              </>
-            )}
+                  <p><strong>Total Cost:</strong> 
+                    {selectedBet === null || betAmount === "" 
+                      ? " $0.00" 
+                      : totalCost 
+                        ? ` $${(Number(totalCost) / 1e6).toFixed(2)}` 
+                        : " Calculating..."
+                    }
+                  </p>
+                </>
+              )}
+              </div>
+              {marketStatus === "loading" && (
+                <p className="text-white font-semibold mt-2">🔄 Checking market status...</p>
+              )}
+              {marketStatus === "deploying" && (
+                <p className="text-white font-semibold mt-2">⏳ Deploying market... Please wait.</p>
+              )}
+              {marketStatus === "not_deployed" && !isDeploying && ( // Ensure it doesn't show while deploying
+                <p className="text-white font-semibold mt-2">⚠️ Market contract not deployed. Select an outcome to deploy.</p>
+              )}
+
             </div>
-            {marketStatus === "loading" && (
-              <p className="text-white font-semibold mt-2">🔄 Checking market status...</p>
-            )}
-            {marketStatus === "deploying" && (
-              <p className="text-white font-semibold mt-2">⏳ Deploying market... Please wait.</p>
-            )}
-            {marketStatus === "not_deployed" && !isDeploying && ( // Ensure it doesn't show while deploying
-              <p className="text-white font-semibold mt-2">⚠️ Market contract not deployed. Select an outcome to deploy.</p>
-            )}
-            
-          </div>
 
 
             <button
@@ -284,11 +389,13 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                 tradeType === "buy"
                   ? "bg-blue-500 hover:bg-blue-600 border-blue-700"
                   : "bg-red-500 hover:bg-red-600 border-red-700"
-              } ${marketStatus !== "ready" ? "opacity-50 cursor-not-allowed" : ""}`}
-              disabled={marketStatus !== "ready"}
+              } ${marketStatus !== "ready" || isTxPending ? "opacity-50 cursor-not-allowed" : ""}`}
+              onClick={tradeType === "buy" ? buyShares : sellShares}
+              disabled={marketStatus !== "ready" || isTxPending || !isValidBet}
             >
-              {tradeType === "buy" ? "BUY" : "SELL"}
+              {isTxPending ? "Processing..." : tradeType === "buy" ? "BUY" : "SELL"}
             </button>
+
 
           </div>
 
