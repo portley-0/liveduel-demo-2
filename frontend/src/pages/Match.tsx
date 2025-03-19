@@ -47,7 +47,7 @@ const Match: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: Betting & MatchInfo */}
-        <div className="w-full lg:w-1/2 lg:px-10 sm:px-7 xs:px-7 flex flex-col overflow-y-auto pb-20">
+        <div className="w-full lg:w-1/2 lg:px-10 sm:px-6 xs:px-6 flex flex-col overflow-y-auto pb-20">
           <Betting match={match} />
           <MatchInfo match={match} />
         </div>

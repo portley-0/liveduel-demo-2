@@ -48,7 +48,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   };
 
   return (
-    <div className="bg-greyblue p-5 rounded-2xl text-white shadow-md">
+    <div className="bg-greyblue p-4 rounded-2xl text-white shadow-md">
       <div className="flex items-center mb-3">
         <h2 className="text-xl font-bold pr-2">Full Time</h2>
 
@@ -72,7 +72,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
         </div>
       </div>
 
-      <div className="flex space-x-4 justify-center mb-1">
+      <div className="flex space-x-4 sm:space-x-2 xs:space-x-2 justify-center mb-1">
         {(["home", "draw", "away"] as const).map((outcome) => {
           const price = outcome === "home" ? homePrice : outcome === "draw" ? drawPrice : awayPrice;
           const isSelected = selectedBet === outcome;
@@ -86,23 +86,29 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
           return (
             <button
               key={outcome}
-              className={`border-2 shadow-md ${borderColor} text-white text-xl font-semibold w-[130px] h-[45px] rounded-full flex items-center justify-center space-x-2 transition-all focus:outline-none focus:ring-0 ${
-                isSelected ? "bg-hovergreyblue" : "bg-greyblue hover:bg-hovergreyblue"
-              }`}
+              className={`border-2 shadow-md ${borderColor} text-white font-semibold 
+                w-[128px] h-[45px] md:w-[125px] md:h-[43px] sm:w-[117px] sm:h-[42px] 
+                xs:w-[107px] xs:h-[40px] min-w-[105px] flex-shrink-0 
+                flex items-center justify-center space-x-2 transition-all 
+                rounded-full focus:outline-none focus:ring-0 ${
+                  isSelected ? "bg-hovergreyblue" : "bg-greyblue hover:bg-hovergreyblue"
+                }`}
               onClick={() => setSelectedBet(outcome)}
             >
               {outcome === "draw" ? (
-                <TbCircleLetterDFilled className="text-gray-400 text-3xl" />
+                <TbCircleLetterDFilled className="text-gray-400 text-[35px] md:text-[31px] sm:text-[29px] xs:text-[27px]" />
               ) : (
                 <img
                   src={outcome === "home" ? match.homeTeamLogo : match.awayTeamLogo}
                   alt={outcome}
-                  className="w-7 h-7 object-contain"
+                  className="w-[34px] h-[34px] md:w-[30px] md:h-[30px] sm:w-[28px] sm:h-[28px] xs:w-[26px] xs:h-[26px] object-contain"
                 />
               )}
-              <span>${price.toFixed(2)}</span>
+              <span className="text-xl md:text-lg sm:text-base xs:text-sm">${price.toFixed(2)}</span>
               {getOddsMovementIcon(prevOdds[outcome], price)}
             </button>
+
+
           );
         })}
       </div>
