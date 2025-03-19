@@ -21,7 +21,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [betAmount, setBetAmount] = useState<string>("");
   const [expanded, setExpanded] = useState(false);
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy"); 
-  const { data: marketAddress, isLoading } = useMarketFactory(match.matchId) as { data: `0x${string}` | null, isLoading: boolean }; 
+  const { data: marketAddress, isLoading, refetch } = useMarketFactory(match.matchId);
   const [deployedMarket, setDeployedMarket] = useState<string | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
   const [marketStatus, setMarketStatus] = useState<"loading" | "deploying" | "not_deployed" | "ready">("loading");
@@ -30,7 +30,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     if (isLoading) {
       setMarketStatus("loading");
     } else if (isDeploying) {
-      setMarketStatus("deploying");
+      setMarketStatus("deploying"); 
     } else if (!marketAddress && !deployedMarket) {
       setMarketStatus("not_deployed");
     } else {
@@ -63,24 +63,42 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const awayPrice = convertToDecimal(BigInt(match.latestOdds?.away ?? "6148914691236516864"));
 
   const deployMarket = async () => {
-    if (isDeploying || marketAddress || deployedMarket) return; 
+    if (isDeploying || marketAddress || deployedMarket) return;
     setIsDeploying(true);
+  
     try {
       console.log(`Deploying market for match ${match.matchId}...`);
+  
       const response = await fetch(`${SERVER_URL}/deploy`, {
         method: "POST",
         body: JSON.stringify({ matchId: match.matchId, matchTimestamp: match.matchTimestamp }),
         headers: { "Content-Type": "application/json" },
       });
-      const data = await response.json();
+  
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error("Invalid JSON response:", text);
+        throw new Error("Server returned invalid JSON");
+      }
+  
+      if (!response.ok) {
+        console.error("Deployment failed:", data);
+        throw new Error(data?.message || "Deployment failed");
+      }
+  
       console.log("Market Deployed:", data.newMarketAddress);
       setDeployedMarket(data.newMarketAddress);
+      refetch();
     } catch (error) {
       console.error("Deployment Error:", error);
     } finally {
       setIsDeploying(false);
     }
   };
+  
   
   const handleSelectBet = (outcome: "home" | "draw" | "away") => {
     setSelectedBet(outcome);
@@ -211,6 +229,10 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
 
             <div className="mt-3 text-sm text-white">
+            
+
+            
+            <div className="mt-3 text-sm text-white">
             <p><strong>{tradeType === "buy" ? "LMSR Net Cost:" : "LMSR Net Gain:"}</strong> 
               {selectedBet === null || betAmount === "" 
                 ? " $0.00" 
@@ -222,36 +244,39 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
               }
             </p>
 
-            <p><strong>Transaction Fee ( 4% ):</strong> 
-              {selectedBet === null || betAmount === "" 
-                ? " $0.00" 
-                : fee 
-                  ? ` $${(Number(fee) / 1e6).toFixed(2)}` 
-                  : " Calculating..."
-              }
-            </p>
+            {tradeType === "buy" && (
+              <>
+                <p><strong>Transaction Fee (4%):</strong> 
+                  {selectedBet === null || betAmount === "" 
+                    ? " $0.00" 
+                    : fee 
+                      ? ` $${(Number(fee) / 1e6).toFixed(2)}` 
+                      : " Calculating..."
+                  }
+                </p>
 
-            <p><strong>Total Cost:</strong> 
-              {selectedBet === null || betAmount === "" 
-                ? " $0.00" 
-                : totalCost 
-                  ? ` $${(Number(totalCost) / 1e6).toFixed(2)}` 
-                  : " Calculating..."
-              }
-            </p>
-
-
-              {marketStatus === "loading" && (
-                <p className="text-white font-semibold mt-2">🔄 Checking market status...</p>
-              )}
-              {marketStatus === "deploying" && (
-                <p className="text-white font-semibold mt-2">⏳ Deploying market... Please wait.</p>
-              )}
-              {marketStatus === "not_deployed" && (
-                <p className="text-white font-semibold mt-2">⚠️ Market contract not deployed. Select an outcome to deploy.</p>
-              )}
-
+                <p><strong>Total Cost:</strong> 
+                  {selectedBet === null || betAmount === "" 
+                    ? " $0.00" 
+                    : totalCost 
+                      ? ` $${(Number(totalCost) / 1e6).toFixed(2)}` 
+                      : " Calculating..."
+                  }
+                </p>
+              </>
+            )}
             </div>
+            {marketStatus === "loading" && (
+              <p className="text-white font-semibold mt-2">🔄 Checking market status...</p>
+            )}
+            {marketStatus === "deploying" && (
+              <p className="text-white font-semibold mt-2">⏳ Deploying market... Please wait.</p>
+            )}
+            {marketStatus === "not_deployed" && !isDeploying && ( // Ensure it doesn't show while deploying
+              <p className="text-white font-semibold mt-2">⚠️ Market contract not deployed. Select an outcome to deploy.</p>
+            )}
+            
+          </div>
 
 
             <button
