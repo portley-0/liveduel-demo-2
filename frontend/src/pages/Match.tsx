@@ -40,8 +40,7 @@ const Match: React.FC = () => {
               </li>
             </ul>
           </div>
-
-          <div className="lg:fixed left-0 w-full lg:w-1/2 bg-darkblue overflow-hidden">
+          <div className="lg:fixed top-[116px] left-0 w-full lg:w-1/2 bg-darkblue overflow-hidden">
             <MatchCard match={match} />
           </div>
         </div>

@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import http from 'http';
 import express from 'express';
+import cors from "cors";
 import { Server as SocketIOServer } from 'socket.io';
 import { deployMarket } from './services/deploy-market';
 import { getUserPredictions } from './services/get-predictions'
@@ -10,7 +11,14 @@ import { initSocket } from './socket';
 
 async function main() {
   const app = express();
-
+  app.use(cors({
+    origin: [
+      "http://localhost:5173", 
+      "https://http://liveduel-demo-2.app/" 
+    ],
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"]
+  }));
   const server = http.createServer(app);
   const io = new SocketIOServer(server, {
     cors: {

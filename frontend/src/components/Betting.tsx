@@ -1,13 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MatchData } from "@/types/MatchData.ts";
+import { useMarketFactory } from "@/hooks/useMarketFactory.ts";
+import { useNetCost } from "@/hooks/useNetCost.ts";
 import { BsArrowDownUp } from "react-icons/bs";
 import { RiExpandVerticalSLine } from "react-icons/ri"; 
 import { GoArrowUpRight, GoArrowDownRight } from "react-icons/go";
 import { TbCircleLetterDFilled } from "react-icons/tb";
 
-const FIXED_192x64_SCALING_FACTOR = BigInt("18446744073709551616");
+const FIXED_192x64_SCALING_FACTOR = BigInt("18446744073709551616")  ;
+const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
-const convertToDecimal = (value: bigint): number => {
+const convertToDecimal = (value: bigint): number => { 
   return Number((value * 10000n) / FIXED_192x64_SCALING_FACTOR) / 10000;
 };
 
@@ -18,10 +21,72 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [betAmount, setBetAmount] = useState<string>("");
   const [expanded, setExpanded] = useState(false);
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy"); 
+  const { data: marketAddress, isLoading } = useMarketFactory(match.matchId) as { data: `0x${string}` | null, isLoading: boolean }; 
+  const [deployedMarket, setDeployedMarket] = useState<string | null>(null);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [marketStatus, setMarketStatus] = useState<"loading" | "deploying" | "not_deployed" | "ready">("loading");
 
+  useEffect(() => {
+    if (isLoading) {
+      setMarketStatus("loading");
+    } else if (isDeploying) {
+      setMarketStatus("deploying");
+    } else if (!marketAddress && !deployedMarket) {
+      setMarketStatus("not_deployed");
+    } else {
+      setMarketStatus("ready");
+    }
+  }, [isLoading, isDeploying, marketAddress, deployedMarket]);
+
+  const betMapping: { [key in "home" | "draw" | "away"]: number } = {
+    home: 0,
+    draw: 1,
+    away: 2,
+  };
+
+  const isValidBet = selectedBet !== null && betAmount !== "";
+  const betAmountBigInt = isValidBet ? BigInt(betAmount) * 1_000_000n : null;
+
+  const { data: netCost, isLoading: isFetchingNetCost } = useNetCost(
+    marketAddress, 
+    isValidBet ? betMapping[selectedBet!] : null, 
+    betAmountBigInt
+  );
+
+  const fee = netCost ? (netCost * 4n) / 100n : 0n;
+  const totalCost = netCost ? netCost + fee : 0n;
+  
   const homePrice = convertToDecimal(BigInt(match.latestOdds?.home ?? "6148914691236516864"));
   const drawPrice = convertToDecimal(BigInt(match.latestOdds?.draw ?? "6148914691236516864"));
   const awayPrice = convertToDecimal(BigInt(match.latestOdds?.away ?? "6148914691236516864"));
+
+  const deployMarket = async () => {
+    if (isDeploying || marketAddress || deployedMarket) return; 
+    setIsDeploying(true);
+    try {
+      console.log(`Deploying market for match ${match.matchId}...`);
+      const response = await fetch(`${SERVER_URL}/deploy`, {
+        method: "POST",
+        body: JSON.stringify({ matchId: match.matchId, matchTimestamp: match.matchTimestamp }),
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+      console.log("Market Deployed:", data.newMarketAddress);
+      setDeployedMarket(data.newMarketAddress);
+    } catch (error) {
+      console.error("Deployment Error:", error);
+    } finally {
+      setIsDeploying(false);
+    }
+  };
+  
+  const handleSelectBet = (outcome: "home" | "draw" | "away") => {
+    setSelectedBet(outcome);
+    if (!marketAddress && !deployedMarket) {
+      deployMarket(); 
+    }
+  };
+  
 
   const prevOdds =
     (match.oddsHistory?.timestamps?.length ?? 0) > 1
@@ -72,6 +137,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
         </div>
       </div>
 
+
       <div className="flex space-x-4 sm:space-x-2 xs:space-x-2 justify-center mb-1">
         {(["home", "draw", "away"] as const).map((outcome) => {
           const price = outcome === "home" ? homePrice : outcome === "draw" ? drawPrice : awayPrice;
@@ -93,7 +159,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                 rounded-full focus:outline-none focus:ring-0 ${
                   isSelected ? "bg-hovergreyblue" : "bg-greyblue hover:bg-hovergreyblue"
                 }`}
-              onClick={() => setSelectedBet(outcome)}
+              onClick={() => handleSelectBet(outcome)}
             >
               {outcome === "draw" ? (
                 <TbCircleLetterDFilled className="text-gray-400 text-[35px] md:text-[31px] sm:text-[29px] xs:text-[27px]" />
@@ -140,11 +206,48 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
             />
 
             <div className="mt-3 text-sm text-white">
-              {tradeType === "buy" && <p><strong>Transaction Fee:</strong> 4%</p>}
-              <p><strong>Selected Outcome:</strong> {selectedBet ? selectedBet.toUpperCase() : "TBD"}</p>
-              <p><strong>Outcome Token Price:</strong> TBD</p>
-              <p><strong>{tradeType === "buy" ? "Net Cost" : "USDC Received"}:</strong> TBD</p>
+            <p><strong>LMSR Net Cost:</strong> 
+              {selectedBet === null || betAmount === "" 
+                ? " $0.00" 
+                : isFetchingNetCost 
+                  ? " Loading..."
+                  : netCost 
+                    ? ` $${(Number(netCost) / 1e6).toFixed(2)}` 
+                    : " Error"
+              }
+            </p>
+            
+            <p><strong>Transaction Fee ( 4% ):</strong> 
+              {selectedBet === null || betAmount === "" 
+                ? " $0.00" 
+                : fee 
+                  ? ` $${(Number(fee) / 1e6).toFixed(2)}` 
+                  : " Calculating..."
+              }
+            </p>
+
+            <p><strong>Total Cost:</strong> 
+              {selectedBet === null || betAmount === "" 
+                ? " $0.00" 
+                : totalCost 
+                  ? ` $${(Number(totalCost) / 1e6).toFixed(2)}` 
+                  : " Calculating..."
+              }
+            </p>
+
+
+              {marketStatus === "loading" && (
+                <p className="text-white font-semibold mt-2">🔄 Checking market status...</p>
+              )}
+              {marketStatus === "deploying" && (
+                <p className="text-white font-semibold mt-2">⏳ Deploying market... Please wait.</p>
+              )}
+              {marketStatus === "not_deployed" && (
+                <p className="text-white font-semibold mt-2">⚠️ Market contract not deployed. Select an outcome to deploy.</p>
+              )}
+
             </div>
+
 
             <button
               className={`w-full mt-4 py-2 h-[45px] text-lg font-semibold border-2 rounded-full text-white ${

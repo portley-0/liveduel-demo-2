@@ -1,8 +1,9 @@
 "use client";
-
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { FaChartLine, FaFutbol, FaCreditCard, FaCoins } from "react-icons/fa";
+import { MdAccountBalanceWallet } from "react-icons/md";
 
 const TitleBar = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -35,6 +36,7 @@ const TitleBar = () => {
         <div className="drawer-content">
           <header className="flex items-center justify-between px-4 py-2 bg-darkblue h-[84px] shadow-md z-50 select-none">
             <div className="flex items-center space-x-2 select-none">
+
               <label
                 htmlFor="my-drawer"
                 className="drawer-button btn bg-transparent border-0 text-white text-3xl rounded-full hover:bg-gray-200 hover:text-darkblue select-none z-50 flex items-center justify-center w-12 h-12"
@@ -51,9 +53,10 @@ const TitleBar = () => {
                   alt="Liveduel Logo"
                   width={200}
                   height={62}
-                  className="object-contain select-none"
+                  className="object-contain select-none sm:h-[50px] sx:h-[50px]"
                 />
               </NavLink>
+
 
             </div>
 
@@ -94,18 +97,62 @@ const TitleBar = () => {
                   ))}
                 </div>
               )}
-              <NavLink
-                to="/login"
-                className="btn hover:bg-darkblue bg-darkblue border-2 border-white text-white hover:text-redmagenta 
-                          w-[70px] h-[34px] 
-                          sm:w-[70px] sm:h-[34px] 
-                          md:w-[70px] md:h-[34px] 
-                          lg:w-[70px] lg:h-[34px] 
-                          text-lg sm:text-sm md:text-base 
-                          rounded-full hover:border-redmagenta select-none flex items-center justify-center whitespace-nowrap"
-              >
-                Log in
-              </NavLink>
+
+              <ConnectButton.Custom>
+                {({
+                  account,
+                  openConnectModal,
+                  openAccountModal,
+                  mounted,
+                  connector,
+                }: {
+                  account: { address: string } | null;
+                  openConnectModal: () => void;
+                  openAccountModal: () => void;
+                  mounted: boolean;
+                  connector: { icon: string; name: string } | null;
+                }) => {
+                  const ready = mounted;
+                  const connected = ready && account;
+
+                  return (
+                    <button
+                      onClick={connected ? openAccountModal : openConnectModal}
+                      className={`btn text-white w-auto min-w-[100px] px-3 h-[28px] sm:px-2 sm:h-[26px] 
+                                  md:px-4 md:h-[30px] lg:px-5 lg:h-[34px] text-sm sm:text-xs md:text-sm rounded-full 
+                                  select-none flex items-center justify-center gap-2 whitespace-nowrap transition-all
+                                  ${
+                                    connected
+                                      ? "bg-darkblue border-2 border-white hover:border-blue-500" 
+                                      : "bg-darkblue border-2 border-white hover:border-blue-500" 
+                                  }`}
+                    >
+                      {connected ? (
+                        <>
+                          <MdAccountBalanceWallet className="text-base sm:text-xs" />
+                          <span className="hidden sm:inline">
+                            {account.address.slice(0, 6)}...{account.address.slice(-4)}
+                          </span> 
+                          <span className="sm:hidden">{account.address.slice(0, 4)}..</span> 
+                          {connector?.icon && (
+                            <img
+                              src={connector.icon}
+                              alt={connector.name}
+                              className="w-4 h-4 sm:w-3 sm:h-3"
+                              onError={(e) => (e.currentTarget.style.display = "none")} 
+                            />
+                          )}
+                        </>
+                      ) : (
+                        "Log in"
+                      )}
+                    </button>
+                  );
+                }}
+              </ConnectButton.Custom>
+
+
+
 
             </div>
           </header>

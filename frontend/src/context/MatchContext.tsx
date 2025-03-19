@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from "r
 import io, { Socket } from "socket.io-client";
 import { MatchData } from "../types/MatchData.ts";
 
-const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
+const SOCKET_SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
 interface MatchContextType {
   matches: Record<number, MatchData>;
