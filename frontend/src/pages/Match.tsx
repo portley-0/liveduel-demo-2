@@ -21,28 +21,36 @@ const Match: React.FC = () => {
   const match = matches[matchId];
 
   return (
-    <div className="w-full h-auto flex flex-col lg:flex-row mx-auto">
-      <div className="breadcrumbs fixed top-[80px] left-0 lg:w-1/2 px-4 py-2 z-40 bg-darkblue text-white">
-        <ul className="flex gap-2 text-xs">
-          <li>
-            <Link to="/dashboard/markets" className="hover:underline font-bold text-white">
-              Markets
-            </Link>
-          </li>
-          <li className="font-bold text-white">{match.leagueName}</li>
-          <li className="font-bold">
-            <span className="text-redmagenta">{match.homeTeamName} v {match.awayTeamName}</span>
-          </li>
-        </ul>
-      </div>
+    <div className="w-full min-h-screen bg-darkblue">
+      {/* Main Content Wrapper */}
+      <div className="w-full flex flex-col lg:flex-row">
+        {/* LEFT COLUMN: Breadcrumbs & MatchCard */}
+        <div className="w-full lg:w-1/2 lg:max-h-[calc(100vh-80px)] bg-darkblue flex flex-col lg:overflow-hidden">
+          {/* Breadcrumbs - Moved Inside Left Column */}
+          <div className="breadcrumbs lg:fixed px-4 py-2 bg-darkblue text-white">
+            <ul className="flex gap-2 text-xs">
+              <li>
+                <Link to="/dashboard/markets" className="hover:underline font-bold text-white">
+                  Markets
+                </Link>
+              </li>
+              <li className="font-bold text-white">{match.leagueName}</li>
+              <li className="font-bold">
+                <span className="text-redmagenta">{match.homeTeamName} v {match.awayTeamName}</span>
+              </li>
+            </ul>
+          </div>
 
-      <div className="fixed top-[116px] left-0 w-full lg:w-1/2 h-[calc(100vh-116px)] bg-darkblue overflow-hidden">
-        <MatchCard match={match} />
-      </div>
+          <div className="lg:fixed left-0 w-full lg:w-1/2 bg-darkblue overflow-hidden">
+            <MatchCard match={match} />
+          </div>
+        </div>
 
-      <div className="w-full ml-auto lg:w-1/2 h-auto overflow-y-auto flex flex-col px-10 mt-3">
-        <Betting match={match} />
-        <MatchInfo match={match} />
+        {/* RIGHT COLUMN: Betting & MatchInfo */}
+        <div className="w-full lg:w-1/2 lg:px-10 sm:px-7 xs:px-7 flex flex-col overflow-y-auto pb-20">
+          <Betting match={match} />
+          <MatchInfo match={match} />
+        </div>
       </div>
     </div>
   );

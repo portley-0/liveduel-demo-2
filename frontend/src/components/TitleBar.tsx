@@ -150,7 +150,7 @@ const TitleBar = () => {
 
         <div className="drawer-side z-50">
           <label htmlFor="my-drawer" className="drawer-overlay fixed z-50"></label>
-          <ul className="menu bg-greyblue text-base-content min-h-full w-80 p-4 z-50">
+          <ul className="menu bg-gray-900 text-base-content min-h-full w-80 p-4 z-50">
             {navItems.map(({ path, label }) => (
               <li key={path}>
                 <NavLink

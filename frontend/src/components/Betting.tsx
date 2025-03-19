@@ -59,7 +59,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
             }`}
             onClick={() => setTradeType("buy")}
           >
-            Buy
+            BUY
           </button>
           <button
             className={`px-1.5 py-0.75 text-[13px] font-semibold border-2 rounded text-white ${
@@ -67,7 +67,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
             }`}
             onClick={() => setTradeType("sell")}
           >
-            Sell
+            SELL
           </button>
         </div>
       </div>
@@ -123,10 +123,14 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
             <label className="block text-md font-semibold">Enter Outcome Share Amount</label>
             <input
               type="number"
+              min="0"
               className="w-full p-2 mt-2 focus:outline-none focus:ring-0 rounded bg-darkblue text-white text-lg"
               placeholder="Enter share amount"
               value={betAmount}
-              onChange={(e) => setBetAmount(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9.]/g, ""); 
+                setBetAmount(value);
+              }}
             />
 
             <div className="mt-3 text-sm text-white">
@@ -143,7 +147,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                   : "bg-red-500 hover:bg-red-600 border-red-700"
               }`}
             >
-              {tradeType === "buy" ? "Buy" : "Sell"}
+              {tradeType === "buy" ? "BUY" : "SELL"}
             </button>
           </div>
 

@@ -110,14 +110,16 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-bold text-white">Live Only</span>
-          <input
-            type="checkbox"
-            className="toggle toggle-sm"
-            checked={liveOnly}
-            onChange={() => setLiveOnly((prev: boolean) => !prev)}
-          />
+        <div data-theme="dark" className="bg-darkblue">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-bold text-white">Live Only</span>
+            <input
+              type="checkbox"
+              className="toggle toggle-sm"
+              checked={liveOnly}
+              onChange={() => setLiveOnly((prev: boolean) => !prev)}
+            />
+          </div>
         </div>
       </div>
     </div>

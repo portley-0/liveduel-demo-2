@@ -145,7 +145,7 @@ async function addUpcomingMatchesToCache() {
   const fromDate = today.toISOString().split('T')[0];
 
   const futureDate = new Date();
-  futureDate.setDate(today.getDate() + 7);
+  futureDate.setDate(today.getDate() + 10);
   const toDate = futureDate.toISOString().split('T')[0];
 
   const statuses = ['NS', '1H', 'HT', '2H', 'ET', 'P', 'LIVE'];
@@ -342,7 +342,7 @@ async function computeBettingVolume(matchId: number, marketAddress: string) {
 
 function cleanupOldMatches() {
   const now = Date.now();
-  const TWO_HOURS_MS = 2 * 60 * 60 * 1000; 
+  const THREE_HOURS_MS = 3 * 60 * 60 * 1000; 
   const TWO_MONTHS_MS = 60 * 24 * 60 * 60 * 1000; 
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -354,7 +354,7 @@ function cleanupOldMatches() {
     const matchEndTimeMs = match.matchTimestamp * 1000;
     const isResolved = !!match.resolvedAt; 
     const hasContract = !!match.contract;
-    const isPastTwoHours = now > matchEndTimeMs + TWO_HOURS_MS;
+    const isPastThreeHours = now > matchEndTimeMs + THREE_HOURS_MS; //another bit of time, in case someone was looking at it
 
     if (isResolved && match.resolvedAt) {
       const resolvedTimeElapsed = now - match.resolvedAt;
@@ -370,7 +370,7 @@ function cleanupOldMatches() {
       }
     }
 
-    if (!hasContract && isPastTwoHours) {
+    if (!hasContract && isPastThreeHours) {
       console.log(`[Cleanup] Removing match ${match.matchId} (no contract, 2 hours past)`);
       deleteMatchData(match.matchId);
       continue;

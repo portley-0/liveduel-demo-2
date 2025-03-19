@@ -30,7 +30,7 @@ const App: React.FC = () => {
         <TitleBar />
       </div>
 
-      <div className="flex-grow overflow-y-auto mt-[84px]">
+      <div className="flex-grow min-h-screen overflow-y-auto mt-[84px] bg-darkblue">
         <Suspense fallback={<div className="text-white text-center"></div>}>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard/markets" />} />

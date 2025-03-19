@@ -4,17 +4,17 @@ import { LeagueStanding, FixtureEvent, FixtureStatistics, FixtureLineups, MatchD
 const MENU_ITEMS = ["Events", "Statistics", "Lineups", "Standings"];
 
 const MatchInfo: React.FC<{ match: MatchData }> = ({ match }) => {
-  const [activeTab, setActiveTab] = useState<string>("Events");
+  const [activeTab, setActiveTab] = useState<string>("Standings");
 
   return (
-    <div className="bg-darkblue p-2 text-white shadow-md h-full max-h-screen flex flex-col">
+    <div className="bg-darkblue p-1 text-white shadow-md flex flex-col">
       <div className="flex border-b border-gray-600">
         {MENU_ITEMS.map((item) => (
           <button
             key={item}
             className={`flex-1 text-center py-2 font-semibold transition-all ${
               activeTab === item
-                ? "text-red-500 border-b-2 border-red-500"
+                ? "text-redmagenta border-b-2 border-redmagenta"
                 : "text-white hover:text-gray-300"
             }`}
             onClick={() => setActiveTab(item)}
@@ -129,7 +129,7 @@ const StandingsSection: React.FC<{ standings?: LeagueStanding }> = ({ standings 
       <div className="overflow-x-auto">
         {Object.entries(groupedStandings).map(([groupName, teams]) => (
           <div key={groupName} className="mb-6">
-            <h4 className="text-md font-semibold mt-2 mb-1 text-red-500">{groupName}</h4>
+            <h4 className="text-md font-semibold mt-2 mb-1 text-redmagenta">{groupName}</h4>
 
             <table className="w-full text-sm mt-2 border border-gray-700">
               <thead>
