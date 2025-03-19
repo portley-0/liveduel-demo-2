@@ -166,7 +166,7 @@ contract PredictionMarket is Ownable, ERC1155Holder {
         emit OddsUpdated(matchId, home, draw, away);
     }
 
-    function getNetCost(uint8 outcome, uint256 amount) external view returns (int) {
+    function getNetCost(uint8 outcome, int256 amount) external view returns (int) {
         int[] memory tradeAmounts = new int[](3);
         tradeAmounts[outcome] = int(amount);
         return marketMaker.calcNetCost(tradeAmounts);

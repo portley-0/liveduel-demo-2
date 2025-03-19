@@ -3,7 +3,7 @@ import MarketFactory from "@/abis/MarketFactory.json" with { type: "json" };
 const MarketFactoryABI = MarketFactory.abi;
 import { Address } from "viem";
 
-const MARKET_FACTORY_ADDRESS: Address = "0x5EBf1a84158d38f000c5045ED6854Bcc752E9D6b"; 
+const MARKET_FACTORY_ADDRESS: Address = "0x9b532eB694eC397f6eB6C22e450F95222Cb3b1dd"; 
 
 export function useMarketFactory(matchId: number) {
   return useReadContract({

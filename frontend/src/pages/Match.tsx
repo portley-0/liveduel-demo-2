@@ -1,4 +1,5 @@
 import React from "react";
+import { useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useMatches } from "@/context/MatchContext.tsx";
 import MatchCard from "@/components/MatchCard.tsx";
@@ -9,6 +10,13 @@ import { MatchData } from "@/types/MatchData.ts";
 const Match: React.FC = () => {
   const { matchId } = useParams();
   const { matches }: { matches: { [key: string]: MatchData } } = useMatches();
+  const rightColumnRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (rightColumnRef.current) {
+      window.scrollTo({ top: 0, behavior: "smooth" }); 
+    }
+  }, [matchId]);
 
   if (!matchId || !matches || !matches[matchId]) {
     return (
@@ -46,7 +54,7 @@ const Match: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: Betting & MatchInfo */}
-        <div className="w-full lg:w-1/2 lg:px-10 sm:px-6 xs:px-6 flex flex-col overflow-y-auto pb-20">
+        <div ref={rightColumnRef} className="w-full lg:w-1/2 lg:px-10 sm:px-6 xs:px-6 flex flex-col overflow-y-auto pb-20">
           <Betting match={match} />
           <MatchInfo match={match} />
         </div>

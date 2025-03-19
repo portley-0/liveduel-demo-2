@@ -7,7 +7,7 @@ import { RiExpandVerticalSLine } from "react-icons/ri";
 import { GoArrowUpRight, GoArrowDownRight } from "react-icons/go";
 import { TbCircleLetterDFilled } from "react-icons/tb";
 
-const FIXED_192x64_SCALING_FACTOR = BigInt("18446744073709551616")  ;
+const FIXED_192x64_SCALING_FACTOR = BigInt("18446744073709551616");
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
 const convertToDecimal = (value: bigint): number => { 
@@ -50,7 +50,9 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const { data: netCost, isLoading: isFetchingNetCost } = useNetCost(
     marketAddress, 
     isValidBet ? betMapping[selectedBet!] : null, 
-    betAmountBigInt
+    betAmountBigInt,
+    tradeType,
+    marketStatus,
   );
 
   const fee = netCost ? (netCost * 4n) / 100n : 0n;
@@ -197,26 +199,29 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
               type="number"
               min="0"
               className="w-full p-2 mt-2 focus:outline-none focus:ring-0 rounded bg-darkblue text-white text-lg"
-              placeholder="Enter share amount"
+              placeholder={marketStatus !== "ready" ? "Market not deployed" : "Enter share amount"}
               value={betAmount}
               onChange={(e) => {
+                if (marketStatus !== "ready") return; 
                 const value = e.target.value.replace(/[^0-9.]/g, ""); 
                 setBetAmount(value);
               }}
+              disabled={marketStatus !== "ready"} 
             />
 
+
             <div className="mt-3 text-sm text-white">
-            <p><strong>LMSR Net Cost:</strong> 
+            <p><strong>{tradeType === "buy" ? "LMSR Net Cost:" : "LMSR Net Gain:"}</strong> 
               {selectedBet === null || betAmount === "" 
                 ? " $0.00" 
                 : isFetchingNetCost 
                   ? " Loading..."
-                  : netCost 
-                    ? ` $${(Number(netCost) / 1e6).toFixed(2)}` 
+                  : netCost !== null 
+                    ? ` $${(Number(netCost) / 1e6).toFixed(2)}`  
                     : " Error"
               }
             </p>
-            
+
             <p><strong>Transaction Fee ( 4% ):</strong> 
               {selectedBet === null || betAmount === "" 
                 ? " $0.00" 
@@ -254,10 +259,12 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                 tradeType === "buy"
                   ? "bg-blue-500 hover:bg-blue-600 border-blue-700"
                   : "bg-red-500 hover:bg-red-600 border-red-700"
-              }`}
+              } ${marketStatus !== "ready" ? "opacity-50 cursor-not-allowed" : ""}`}
+              disabled={marketStatus !== "ready"}
             >
               {tradeType === "buy" ? "BUY" : "SELL"}
             </button>
+
           </div>
 
           <button
