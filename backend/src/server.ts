@@ -5,7 +5,7 @@ import cors from "cors";
 import { Server as SocketIOServer } from 'socket.io';
 import { deployMarket } from './services/deploy-market';
 import { getUserPredictions } from './services/get-predictions'
-import { startDataPolling, startMatchCachePolling, startStandingsPolling } from './services/polling-aggregator';
+import { startDataPolling, startFastSubgraphPolling, startMatchCachePolling, startStandingsPolling } from './services/polling-aggregator';
 import { initCache, getMatchData } from './cache';
 import { initSocket } from './socket';
 
@@ -42,6 +42,7 @@ async function main() {
   startMatchCachePolling();
   startStandingsPolling();
   startDataPolling();
+  startFastSubgraphPolling();
 
   app.post('/deploy', async (req, res) => {
     try {

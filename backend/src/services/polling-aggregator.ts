@@ -30,6 +30,26 @@ const SEASONS = [2024, 2025];
 
 let dataUpdateInterval: NodeJS.Timeout | undefined;
 let matchCacheInterval: NodeJS.Timeout | undefined;
+let subgraphRefreshInterval: NodeJS.Timeout | undefined;
+
+export function startFastSubgraphPolling() {
+  if (subgraphRefreshInterval) return;
+
+  console.log('[SubgraphPolling] Starting high-frequency subgraph refresh loop...');
+
+  subgraphRefreshInterval = setInterval(async () => {
+    try {
+      const allMatches = getAllMatches();
+      for (const match of allMatches) {
+        if (match.resolvedAt || !match.contract) continue;
+        console.log(`[SubgraphPolling] Refreshing match ${match.matchId}`);
+        await refreshSubgraphData(match.matchId);
+      }
+    } catch (err) {
+      console.error('[SubgraphPolling] Error during fast polling:', err);
+    }
+  }, 5000); 
+}
 
 export function startMatchCachePolling() {
   if (matchCacheInterval) return;
@@ -203,10 +223,14 @@ async function updateCachedMatches() {
     const predictionMarket = await getPredictionMarketByMatchId(match.matchId);
     const hasPredictionMarket = !!predictionMarket;
 
+    if (hasPredictionMarket && !match.contract) {
+      console.log(`[updateCachedMatches] Setting contract for match ${match.matchId}: ${predictionMarket.id}`);
+      updateMatchData(match.matchId, { contract: predictionMarket.id });
+    }
+
     if (matchStartTimeMs && currentTime >= matchStartTimeMs || hasPredictionMarket) {
       console.log(`Refreshing data for match ${match.matchId}`);
       await refreshFootballData(match.matchId);
-      await refreshSubgraphData(match.matchId);
     } else {
       console.log(`Skipping data refresh for match ${match.matchId}`);
     }
@@ -264,15 +288,12 @@ async function mergeFootballDetails(matchId: number, fixtureData: any) {
 
 async function refreshSubgraphData(matchId: number) {
   try {
-    // 1) Odds
     const oddsUpdatesData = await getOddsUpdatesByMatchId(matchId);
     integrateOddsUpdates(matchId, oddsUpdatesData);
 
-    // 2) Prediction Market info
     const predictionMarket = await getPredictionMarketByMatchId(matchId);
-    if (predictionMarket) {
-      updateMatchData(matchId, { contract: predictionMarket.id });
 
+    if (predictionMarket) {
       if (predictionMarket.isResolved) {
         updateMatchData(matchId, {
           resolvedAt: Date.now(),
@@ -280,14 +301,13 @@ async function refreshSubgraphData(matchId: number) {
         });
       }
 
-      // 3) Betting volume
       await computeBettingVolume(matchId, predictionMarket.id);
     }
-
   } catch (error) {
     console.error(`[refreshSubgraphData] Error for matchId=${matchId}`, error);
   }
 }
+
 
 function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
   if (oddsData.length === 0) return;
@@ -465,24 +485,28 @@ function parseFootballLineups(
         colors: lineupObject.team.colors
       },
       formation: lineupObject.formation,
-      startXI: lineupObject.startXI.map((startPlayer: any) => ({
-        player: {
-          id: startPlayer.player.id,
-          name: startPlayer.player.name,
-          number: startPlayer.player.number,
-          pos: startPlayer.player.pos,
-          grid: startPlayer.player.grid ?? null
-        }
-      })),
-      substitutes: lineupObject.substitutes.map((substitutePlayer: any) => ({
-        player: {
-          id: substitutePlayer.player.id,
-          name: substitutePlayer.player.name,
-          number: substitutePlayer.player.number,
-          pos: substitutePlayer.player.pos,
-          grid: substitutePlayer.player.grid ?? null
-        }
-      })),
+      startXI: Array.isArray(lineupObject.startXI)
+        ? lineupObject.startXI.map((startPlayer: any) => ({
+            player: {
+              id: startPlayer.player.id,
+              name: startPlayer.player.name,
+              number: startPlayer.player.number,
+              pos: startPlayer.player.pos,
+              grid: startPlayer.player.grid ?? null
+            }
+          }))
+        : [],
+      substitutes: Array.isArray(lineupObject.substitutes)
+        ? lineupObject.substitutes.map((substitutePlayer: any) => ({
+            player: {
+              id: substitutePlayer.player.id,
+              name: substitutePlayer.player.name,
+              number: substitutePlayer.player.number,
+              pos: substitutePlayer.player.pos,
+              grid: substitutePlayer.player.grid ?? null
+            }
+          }))
+        : [],
       coach: {
         id: lineupObject.coach?.id,
         name: lineupObject.coach?.name,
@@ -498,6 +522,7 @@ function parseFootballLineups(
   }
   return lineups;
 }
+
 
 function parseFootballStandings(rawStandings: any[]): LeagueStanding | undefined {
   if (!rawStandings.length) return undefined;

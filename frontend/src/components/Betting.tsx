@@ -52,15 +52,62 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [modalData, setModalData] = useState({ shares: 0, cost: 0 });
   const [outcomeBalance, setOutcomeBalance] = useState<string | null>(null);
   const [isBalanceLoading, setIsBalanceLoading] = useState(false);
-
+  const [conditionId, setConditionId] = useState<string | null>(null);
+  const [outcomeTokenIds, setOutcomeTokenIds] = useState<{ [key: number]: string }>({});
 
   const closeModal = () => setIsModalOpen(false);
   const { openConnectModal } = useConnectModal();
 
-  useEffect(() => {
-    if (tradeType === "sell") fetchOutcomeBalance();
-  }, [tradeType, selectedBet, walletClient, marketAddress]);
+  const fetchConditionId = async () => {
+    if (!walletClient || !match.matchId || !marketAddress) return;
+  
+    try {
+      const provider = new ethers.BrowserProvider(walletClient as any);
+      const signer = await provider.getSigner();
+      const marketFactory = new ethers.Contract(MARKET_FACTORY_ADDRESS, MARKET_FACTORY_ABI, signer);
+  
+      const fetchedId = await marketFactory.matchConditionIds(match.matchId);
+      if (fetchedId !== conditionId) {
+        setConditionId(fetchedId);
+  
+        const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
+        const tokens: { [key: number]: string } = {};
+  
+        for (let i = 0; i < 3; i++) {
+          const indexSet = 1 << i;
+          const collectionId = await conditionalTokensContract.getCollectionId(ethers.ZeroHash, fetchedId, indexSet);
+          const positionId = await conditionalTokensContract.getPositionId(USDC_ADDRESS, collectionId);
+          tokens[i] = positionId;
+        }
+  
+        setOutcomeTokenIds(tokens);
+      }
+    } catch (error) {
+      console.error("Error fetching conditionId or outcome token IDs:", error);
+    }
+  };
 
+  useEffect(() => {
+    fetchConditionId();
+  }, [walletClient, match.matchId, marketAddress]);
+  
+  useEffect(() => {
+    if (tradeType !== "sell" || !walletClient || !marketAddress || selectedBet === null || !conditionId) return;
+  
+    const timeout = setTimeout(() => {
+      fetchOutcomeBalance();
+    }, 250); 
+  
+    return () => clearTimeout(timeout);
+  }, [tradeType, selectedBet, walletClient, marketAddress, conditionId]);
+
+  useEffect(() => {
+    if (tradeType === "buy") {
+      setOutcomeBalance(null);
+      setIsBalanceLoading(false);
+    }
+  }, [tradeType]);
+  
   useEffect(() => {
     if (isLoading) {
       setMarketStatus("loading");
@@ -162,40 +209,32 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   };
 
   const fetchOutcomeBalance = async () => {
-    if (!walletClient || !marketAddress || selectedBet === null) return;
+    if (!walletClient || !marketAddress || selectedBet === null || !conditionId) return;
   
-    setIsBalanceLoading(true); // Set loading state before fetching new balance
+    setIsBalanceLoading(true);
   
     try {
       const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
   
-      const marketFactory = new ethers.Contract(MARKET_FACTORY_ADDRESS, MARKET_FACTORY_ABI, signer);
       const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
   
-      const conditionId = await marketFactory.matchConditionIds(match.matchId);
-      if (!conditionId) {
-        console.error("Condition ID not found.");
-        setIsBalanceLoading(false);
-        return;
-      }
+      const outcomeIndex = betMapping[selectedBet];  
+    
+      const tokenId = outcomeTokenIds[outcomeIndex];
+
   
-      const outcomeIndex = betMapping[selectedBet];
-      const indexSet = 1 << outcomeIndex;
-      const collectionId = await conditionalTokensContract.getCollectionId(ethers.ZeroHash, conditionId, indexSet);
-      const outcomeTokenId = await conditionalTokensContract.getPositionId(USDC_ADDRESS, collectionId);
-  
-      // Fetch balance
-      const balance = await conditionalTokensContract.balanceOf(userAddress, outcomeTokenId);
+      const balance = await conditionalTokensContract.balanceOf(userAddress, tokenId);
       setOutcomeBalance((Number(balance) / 1e6).toFixed(2));
     } catch (error) {
       console.error("Failed to fetch outcome balance:", error);
       setOutcomeBalance(null);
     } finally {
-      setIsBalanceLoading(false); 
+      setIsBalanceLoading(false);
     }
   };
+  
   
   const buyShares = async () => {
     if (!walletClient) {
@@ -238,10 +277,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       console.error("Transaction failed:", error);
     }
   };
-  
-  useEffect(() => {
-    if (tradeType === "sell") fetchOutcomeBalance();
-  }, [tradeType, selectedBet, walletClient, marketAddress]);
   
   useEffect(() => {
     if (isSuccess) {
@@ -488,18 +523,16 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
               className={`btn w-full mt-4 py-2 h-[45px] text-lg font-semibold border-2 rounded-full text-white transition-all 
                 ${
                   isTxPending
-                    ? "bg-gray-600 opacity-70 border-gray-400 cursor-not-allowed"  
+                    ? "bg-gray-400 border-gray-300 text-white cursor-not-allowed" // Disabled state (during transaction)
                     : tradeType === "buy"
-                    ? "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-700"
-                    : "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-700"
+                    ? "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-700" // Always blue for buy
+                    : "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-700" // Always red for sell
                 }`}
               onClick={tradeType === "buy" ? buyShares : sellShares}
-              disabled={marketStatus !== "ready" || isTxPending || !isValidBet}
+              disabled={isTxPending} 
             >
               {isTxPending ? "Processing..." : tradeType === "buy" ? "BUY" : "SELL"}
             </button>
-
-
 
           </div>
 
