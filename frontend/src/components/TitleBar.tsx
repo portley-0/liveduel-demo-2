@@ -46,7 +46,7 @@ const TitleBar = () => {
 
               <NavLink
                 to="/"
-                className="btn bg-transparent border-none hover:bg-transparent select-none p-0 hover:opacity-80 translate-y-[3px]"
+                className="btn bg-transparent border-none hover:bg-transparent select-none p-0 hover:opacity-80 translate-y-[1px]"
               >
                 <img
                   src="/images/Liveduel-Logo.png"
@@ -119,17 +119,17 @@ const TitleBar = () => {
                     <button
                       onClick={connected ? openAccountModal : openConnectModal}
                       className={`btn text-white w-auto min-w-[100px] px-3 h-[28px] sm:px-2 sm:h-[26px] 
-                                  md:px-4 md:h-[30px] lg:px-5 lg:h-[34px] text-sm sm:text-xs md:text-sm rounded-full 
+                                  md:px-4 md:h-[30px] lg:px-5 lg:h-[34px] text-md sm:text-sm md:text-sm rounded-full 
                                   select-none flex items-center justify-center gap-2 whitespace-nowrap transition-all
                                   ${
                                     connected
-                                      ? "bg-darkblue border-2 border-white hover:border-blue-500" 
-                                      : "bg-darkblue border-2 border-white hover:border-blue-500" 
+                                      ? "bg-darkblue border-2 border-white hover:text-redmagenta hover:border-redmagenta" 
+                                      : "bg-darkblue border-2 border-white hover:text-redmagenta hover:border-redmagenta" 
                                   }`}
                     >
                       {connected ? (
                         <>
-                          <MdAccountBalanceWallet className="text-base sm:text-xs" />
+                          <MdAccountBalanceWallet className="text-lg sm:text-md" />
                           <span className="hidden sm:inline">
                             {account.address.slice(0, 6)}...{account.address.slice(-4)}
                           </span> 
