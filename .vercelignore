@@ -1,0 +1,4 @@
+# .vercelignore
+contracts/
+subgraph/
+backend/
