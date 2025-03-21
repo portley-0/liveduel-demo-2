@@ -74,7 +74,7 @@ const Predictions: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="fixed inset-0 z-50 flex justify-center items-center">
         <span className="loading loading-spinner text-blue-700 h-10 w-10"></span>
       </div>
     );
@@ -89,7 +89,7 @@ const Predictions: React.FC = () => {
   }
 
   return (
-    <div className="text-white p-4">
+    <div className="text-white px-4 pt-4 h-[calc(100vh-80px)] overflow-y-auto">
       <h1 className="text-2xl font-bold mb-4">My Predictions</h1>
       {predictions.length === 0 ? (
         <p>No predictions yet.</p>

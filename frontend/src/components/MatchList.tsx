@@ -79,7 +79,7 @@ const MatchList: React.FC<MatchListProps> = ({ selectedLeague, sortBy, liveOnly 
   
   if (!matches || Object.keys(matches).length === 0) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="fixed inset-0 z-50 flex justify-center items-center">
         <span className="loading loading-spinner text-blue-700 h-10 w-10"></span>
       </div>
     );

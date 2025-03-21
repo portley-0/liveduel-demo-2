@@ -13,16 +13,17 @@ async function main() {
   const app = express();
   app.use(cors({
     origin: [
-      "http://localhost:5173", 
-      "https://http://liveduel-demo-2.app/" 
+      "http://localhost:5173",
+      "https://liveduel-demo-2.app",
+      "https://www.liveduel-demo-2.app",
+      "https://api.liveduel-demo-2.app"
     ],
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"]
   }));
   const server = http.createServer(app);
   const io = new SocketIOServer(server, {
-    cors: {
-      origin: '*',  
+    cors: {  
       methods: ["GET", "POST"],
     },
   });
@@ -30,7 +31,7 @@ async function main() {
   app.use((req, res, next) => {
     res.setHeader(
       "Content-Security-Policy",
-      "default-src 'self'; connect-src * ws://16.16.142.192:3000 wss://16.16.142.192:3000"
+      "default-src 'self'; connect-src 'self' https://api.liveduel-demo-2.app wss://api.liveduel-demo-2.app ws://localhost:3000; img-src * data: blob:; script-src 'self';"
     );
     next();
   });
@@ -77,9 +78,9 @@ async function main() {
   });
 
   const PORT = process.env.PORT || 3000;
-  server.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-  });
+  server.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });  
 }
 
 main().catch((error) => {
