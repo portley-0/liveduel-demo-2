@@ -20,7 +20,8 @@ const App: React.FC = () => {
     ];
 
     routesToPrefetch.forEach((preloadRoute) => {
-      window.requestIdleCallback(() => preloadRoute());
+      const idleCallback = window.requestIdleCallback || function (cb: any) { setTimeout(cb, 1); };
+      idleCallback(() => preloadRoute());
     });
   }, []);
 
@@ -31,7 +32,10 @@ const App: React.FC = () => {
       </div>
 
       <div className="flex-grow min-h-screen overflow-y-auto mt-[84px] bg-darkblue">
-        <Suspense fallback={<div className="text-white text-center"></div>}>
+        <Suspense fallback={
+          <div className="fixed inset-0 z-50 flex justify-center items-center">
+            <span className="loading loading-spinner text-blue-700 h-10 w-10"></span>
+          </div>}>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard/markets" />} />
             <Route path="/dashboard/markets" element={<Markets />} />
