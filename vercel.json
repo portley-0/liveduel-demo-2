@@ -1,4 +1,4 @@
 {
-  "buildCommand": "pnpm build",
+  "buildCommand": "npm run build --workspace=frontend",
   "outputDirectory": "dist"
 }
