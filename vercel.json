@@ -1,12 +1,4 @@
 {
-    "projects": [
-      {
-        "src": "frontend/**/*",
-        "use": "@vercel/static-build",
-        "config": {
-          "distDir": "dist"
-        }
-      }
-    ]
-  }
-  
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist"
+}
