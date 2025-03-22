@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { FaChartLine, FaFutbol, FaCreditCard, FaCoins } from "react-icons/fa";
 import { MdAccountBalanceWallet } from "react-icons/md";
+import { RiMenuLine } from "react-icons/ri";
 
 const TitleBar = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -37,16 +38,16 @@ const TitleBar = () => {
           <header className="flex items-center justify-between px-4 py-2 bg-darkblue h-[84px] shadow-md z-50 select-none">
             <div className="flex items-center space-x-2 select-none">
 
-              <label
-                htmlFor="my-drawer"
-                className="drawer-button btn bg-transparent border-0 text-white text-3xl rounded-full hover:bg-gray-200 hover:text-darkblue select-none z-50 flex items-center justify-center w-[56px] h-[56px] sm:w-12 sm:h-12  "
-              >
-                &#9776;
-              </label>
+            <label
+              htmlFor="my-drawer"
+              className="drawer-button bg-transparent border-0 text-white rounded-full hover:bg-gray-200 hover:text-darkblue select-none z-50 flex items-center justify-center w-12 h-12"
+            >
+              <RiMenuLine className="!text-3xl !sm:text-2xl" />
+            </label>
 
               <NavLink
                 to="/"
-                className="btn bg-transparent border-none hover:bg-transparent select-none p-0 hover:opacity-80 translate-y-[1px]"
+                className="btn bg-transparent border-none hover:bg-transparent select-none p-0 hover:opacity-80"
               >
                 <img
                   src="/images/Liveduel-Logo.png"
