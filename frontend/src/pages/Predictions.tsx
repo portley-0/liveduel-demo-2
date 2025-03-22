@@ -83,7 +83,7 @@ const Predictions: React.FC = () => {
 
   return (
     <div className="text-white px-4 pt-4 h-[calc(100vh-80px)] overflow-y-auto">
-      <h1 className="text-2xl font-bold mb-4">My Predictions</h1>
+      <h1 className="text-xl font-bold mb-4">My Predictions</h1>
       {predictions.length === 0 ? (
         <p>No predictions yet.</p>
       ) : (

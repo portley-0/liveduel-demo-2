@@ -79,7 +79,7 @@ const MatchList: React.FC<MatchListProps> = ({
               className="relative group bg-greyblue text-white rounded-xl shadow-md w-full h-full flex flex-col hover:bg-hovergreyblue active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <div className="p-5 xs:p-6 flex flex-col h-full">
-                <div className="flex justify-between items-center mb-3">
+                <div className="relative w-full flex items-center justify-between mb-3">
                   <div className="flex flex-col">
                     <img
                       src={match.homeTeamLogo}
