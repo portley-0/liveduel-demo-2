@@ -20,15 +20,12 @@ function convert192x64ToDecimal(rawVal: number): number {
   if (rawVal < 2e9) {
     return Number(rawVal);
   }
-
   const bigVal = BigInt(rawVal);
   const scaled = (bigVal * 10000n) / FIXED_192x64_FACTOR;
   return Number(scaled) / 10000;
 }
 
-
 const DEFAULT_ODDS = 0.3333;
-
 const USDC_ADDRESS = "0xB1cC53DfF11c564Fbe22145a0b07588e7648db74";
 const CONDITIONAL_TOKENS_ADDRESS = "0x988A02b302AE410CA71f6A10ad218Da5c70b9f5a";
 const MARKET_FACTORY_ADDRESS = "0x9b532eB694eC397f6eB6C22e450F95222Cb3b1dd";
@@ -36,7 +33,6 @@ const MARKET_FACTORY_ADDRESS = "0x9b532eB694eC397f6eB6C22e450F95222Cb3b1dd";
 const USDC_ABI = MockUSDCABI.abi;
 const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 const MARKET_FACTORY_ABI = MarketFactoryABI.abi;
-
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
 const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
@@ -44,31 +40,23 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [betAmount, setBetAmount] = useState<string>("");
   const [expanded, setExpanded] = useState(false);
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
-
   const { data: marketAddress, isLoading, refetch } = useMarketFactory(match.matchId);
   const [deployedMarket, setDeployedMarket] = useState<string | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
   const [marketStatus, setMarketStatus] = useState<"loading" | "deploying" | "not_deployed" | "ready">("loading");
-
   const [txHash, setTxHash] = useState<string | null>(null);
   const [isTxPending, setIsTxPending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-
   const { data: walletClient } = useWalletClient();
   const { openConnectModal } = useConnectModal();
-
   const [refreshKey, setRefreshKey] = useState(0);
-
   const [homePrice, setHomePrice] = useState<number>(DEFAULT_ODDS);
   const [drawPrice, setDrawPrice] = useState<number>(DEFAULT_ODDS);
   const [awayPrice, setAwayPrice] = useState<number>(DEFAULT_ODDS);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState({ shares: 0, cost: 0 });
-
   const [outcomeBalance, setOutcomeBalance] = useState<string | null>(null);
   const [isBalanceLoading, setIsBalanceLoading] = useState(false);
-
   const [conditionId, setConditionId] = useState<string | null>(null);
   const [outcomeTokenIds, setOutcomeTokenIds] = useState<{ [key: number]: string }>({});
 
@@ -76,26 +64,21 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
   const fetchConditionId = async () => {
     if (!walletClient || !match.matchId || !marketAddress) return;
-
     try {
       const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
       const marketFactory = new ethers.Contract(MARKET_FACTORY_ADDRESS, MARKET_FACTORY_ABI, signer);
-
       const fetchedId = await marketFactory.matchConditionIds(match.matchId);
       if (fetchedId !== conditionId) {
         setConditionId(fetchedId);
-
         const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
         const tokens: { [key: number]: string } = {};
-
         for (let i = 0; i < 3; i++) {
-          const indexSet = 1 << i; 
+          const indexSet = 1 << i;
           const collectionId = await conditionalTokensContract.getCollectionId(ethers.ZeroHash, fetchedId, indexSet);
           const positionId = await conditionalTokensContract.getPositionId(USDC_ADDRESS, collectionId);
           tokens[i] = positionId;
         }
-
         setOutcomeTokenIds(tokens);
       }
     } catch (error) {
@@ -109,11 +92,9 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
   useEffect(() => {
     if (tradeType !== "sell" || !walletClient || !marketAddress || selectedBet === null || !conditionId) return;
-
     const timeout = setTimeout(() => {
       fetchOutcomeBalance();
     }, 250);
-
     return () => clearTimeout(timeout);
   }, [tradeType, selectedBet, walletClient, marketAddress, conditionId]);
 
@@ -147,8 +128,8 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   };
 
   const isValidBet = selectedBet !== null && betAmount !== "";
-  const betAmountBigInt = isValidBet ? BigInt(Math.round(parseFloat(betAmount) * 1_000_000)) : null;
-
+  const numericBetAmount = parseFloat(betAmount || "0");
+  const betAmountBigInt = isValidBet ? BigInt(Math.round(numericBetAmount * 1_000_000)) : null;
   const { data: netCost, isLoading: isFetchingNetCost } = useNetCost(
     marketAddress,
     isValidBet ? betMapping[selectedBet!] : null,
@@ -156,7 +137,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     tradeType,
     marketStatus
   );
-
   const fee = netCost ? (netCost * 4n) / 100n : 0n;
   const totalCost = netCost ? netCost + fee : 0n;
 
@@ -165,25 +145,19 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       console.error("No wallet connected.");
       return;
     }
-
     try {
       setIsTxPending(true);
       setIsSuccess(false);
-
       const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
-
       const contract = new ethers.Contract(contractAddress, PredictionMarketABI.abi, signer);
-
       const tx = await contract[functionName](...args);
       setTxHash(tx.hash);
       console.log(`Transaction sent: ${tx.hash}`);
-
       const receipt = await tx.wait();
       console.log("Transaction confirmed:", receipt);
-
       setIsSuccess(true);
-      refetch(); 
+      refetch();
     } catch (error) {
       console.error("Transaction failed:", error);
     } finally {
@@ -196,11 +170,9 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       console.error("No wallet or market address.");
       return;
     }
-
     try {
       const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
-
       if (which === "buy") {
         const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
         console.log(`Approving USDC for total cost: ${totalCost.toString()}`);
@@ -208,7 +180,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
         await approveTx.wait();
         console.log("USDC approved.");
       }
-
       if (which === "sell") {
         const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
         console.log("Approving Conditional Tokens...");
@@ -223,19 +194,14 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
   const fetchOutcomeBalance = async () => {
     if (!walletClient || !marketAddress || selectedBet === null || !conditionId) return;
-
     setIsBalanceLoading(true);
-
     try {
       const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
-
       const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
-
       const outcomeIndex = betMapping[selectedBet];
       const tokenId = outcomeTokenIds[outcomeIndex];
-
       const balance = await conditionalTokensContract.balanceOf(userAddress, tokenId);
       setOutcomeBalance((Number(balance) / 1e6).toFixed(2));
     } catch (error) {
@@ -248,17 +214,15 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
   const buyShares = async () => {
     if (!walletClient) {
-      console.error("No wallet. Opening connect modal.");
+      console.error("No wallet connected. Opening connect modal.");
       openConnectModal?.();
       return;
     }
     if (!marketAddress || !isValidBet) return;
-
     await approveContracts("buy");
-
     try {
       await sendTransaction(marketAddress, "buyShares", [betMapping[selectedBet!], betAmountBigInt]);
-      setModalData({ shares: Number(betAmount), cost: Number(totalCost) / 1e6 });
+      setModalData({ shares: numericBetAmount, cost: Number(totalCost) / 1e6 });
       setIsModalOpen(true);
     } catch (error) {
       console.error("Transaction failed:", error);
@@ -267,17 +231,15 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
   const sellShares = async () => {
     if (!walletClient) {
-      console.error("No wallet. Opening connect modal.");
+      console.error("No wallet connected. Opening connect modal.");
       openConnectModal?.();
       return;
     }
     if (!marketAddress || !isValidBet) return;
-
     await approveContracts("sell");
-
     try {
       await sendTransaction(marketAddress, "sellShares", [betMapping[selectedBet!], betAmountBigInt]);
-      setModalData({ shares: Number(betAmount), cost: Number(netCost) / 1e6 });
+      setModalData({ shares: numericBetAmount, cost: Number(netCost) / 1e6 });
       setIsModalOpen(true);
     } catch (error) {
       console.error("Transaction failed:", error);
@@ -302,16 +264,13 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const deployMarket = async () => {
     if (isDeploying || marketAddress || deployedMarket) return;
     setIsDeploying(true);
-
     try {
       console.log(`Deploying market for match ${match.matchId}...`);
-
       const response = await fetch(`${SERVER_URL}/deploy`, {
         method: "POST",
         body: JSON.stringify({ matchId: match.matchId, matchTimestamp: match.matchTimestamp }),
         headers: { "Content-Type": "application/json" },
       });
-
       const text = await response.text();
       let data;
       try {
@@ -320,12 +279,10 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
         console.error("Invalid JSON response:", text);
         throw new Error("Server returned invalid JSON");
       }
-
       if (!response.ok) {
         console.error("Deployment failed:", data);
         throw new Error(data?.message || "Deployment failed");
       }
-
       console.log("Market Deployed:", data.newMarketAddress);
       setDeployedMarket(data.newMarketAddress);
       refetch();
@@ -349,11 +306,10 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       const rawHome = match.oddsHistory?.homeOdds?.at(-2);
       const rawDraw = match.oddsHistory?.drawOdds?.at(-2);
       const rawAway = match.oddsHistory?.awayOdds?.at(-2);
-
       return {
-        home: rawHome != null ? convert192x64ToDecimal(Number(rawHome)) : (match.latestOdds?.home ?? DEFAULT_ODDS),
-        draw: rawDraw != null ? convert192x64ToDecimal(Number(rawDraw)) : (match.latestOdds?.draw ?? DEFAULT_ODDS),
-        away: rawAway != null ? convert192x64ToDecimal(Number(rawAway)) : (match.latestOdds?.away ?? DEFAULT_ODDS),
+        home: rawHome != null ? convert192x64ToDecimal(Number(rawHome)) : match.latestOdds?.home ?? DEFAULT_ODDS,
+        draw: rawDraw != null ? convert192x64ToDecimal(Number(rawDraw)) : match.latestOdds?.draw ?? DEFAULT_ODDS,
+        away: rawAway != null ? convert192x64ToDecimal(Number(rawAway)) : match.latestOdds?.away ?? DEFAULT_ODDS,
       };
     } else {
       return {
@@ -365,7 +321,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   })();
 
   function getOddsMovementIcon(prev: number, current: number) {
-
     if (prev === DEFAULT_ODDS && current === DEFAULT_ODDS) {
       return <BsArrowDownUp className="text-gray-400 text-lg" />;
     }
@@ -406,9 +361,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
         {(["home", "draw", "away"] as const).map((outcome) => {
           const price = outcome === "home" ? homePrice : outcome === "draw" ? drawPrice : awayPrice;
           const isSelected = selectedBet === outcome;
-
           const prevVal = prevOdds[outcome];
-
           const borderColor =
             isSelected && tradeType === "buy"
               ? "border-blue-500"
@@ -421,6 +374,10 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
               key={`bet-button-${outcome}-${refreshKey}`}
               className={`border-2 shadow-md ${borderColor} text-white font-semibold 
                 w-[128px] h-[45px] 
+                md:w-[125px] md:h-[43px] 
+                sm:w-[117px] sm:h-[42px] 
+                xs:w-[107px] xs:h-[40px] 
+                min-w-[105px] flex-shrink-0
                 flex items-center justify-center space-x-2 transition-all 
                 rounded-full focus:outline-none focus:ring-0 ${
                   isSelected ? "bg-hovergreyblue" : "bg-greyblue hover:bg-hovergreyblue"
@@ -428,15 +385,15 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
               onClick={() => handleSelectBet(outcome)}
             >
               {outcome === "draw" ? (
-                <TbCircleLetterDFilled className="text-gray-400 text-[35px]" />
+                <TbCircleLetterDFilled className="text-gray-400 text-[35px] md:text-[31px] sm:text-[29px] xs:text-[27px]" />
               ) : (
                 <img
                   src={outcome === "home" ? match.homeTeamLogo : match.awayTeamLogo}
                   alt={outcome}
-                  className="w-[34px] h-[34px] object-contain"
+                  className="w-[34px] h-[34px] md:w-[30px] md:h-[30px] sm:w-[28px] sm:h-[28px] xs:w-[26px] xs:h-[26px] object-contain"
                 />
               )}
-              <span className="text-xl">${price.toFixed(2)}</span>
+              <span className="text-xl md:text-lg sm:text-base xs:text-sm">${price.toFixed(2)}</span>
               {getOddsMovementIcon(prevVal, price)}
             </button>
           );
@@ -459,14 +416,12 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
             <label className="block text-md font-semibold">
               {tradeType === "buy" ? "Enter Outcome Shares To Buy" : "Enter Outcome Shares To Sell"}
             </label>
-
             {tradeType === "sell" && (
               <p>
                 <strong className="text-sm">Balance: </strong>
                 {isBalanceLoading ? "Checking..." : outcomeBalance !== null ? `${outcomeBalance} Shares` : "N/A"}
               </p>
             )}
-
             <input
               type="number"
               min="0"
@@ -480,7 +435,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
               }}
               disabled={marketStatus !== "ready"}
             />
-
             <div className="mt-3 text-sm text-white">
               <p>
                 <strong>{tradeType === "buy" ? "LMSR Net Cost:" : "You Receive:"}</strong>
@@ -492,7 +446,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                   ? ` $${(Number(netCost) / 1e6).toFixed(2)} USDC`
                   : " Error"}
               </p>
-
               {tradeType === "buy" && (
                 <>
                   <p>
@@ -513,7 +466,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                   </p>
                 </>
               )}
-
               {marketStatus === "loading" && (
                 <p className="text-white font-semibold mt-2">🔄 Checking market status...</p>
               )}
@@ -521,12 +473,9 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                 <p className="text-white font-semibold mt-2">⏳ Deploying market... Please wait.</p>
               )}
               {marketStatus === "not_deployed" && !isDeploying && (
-                <p className="text-white font-semibold mt-2">
-                  ⚠️ Market contract not deployed. Select an outcome to deploy.
-                </p>
+                <p className="text-white font-semibold mt-2">⚠️ Market contract not deployed. Select an outcome to deploy.</p>
               )}
             </div>
-
             <button
               className={`btn w-full mt-4 py-2 h-[45px] text-lg font-semibold border-2 rounded-full text-white transition-all 
                 ${
@@ -542,7 +491,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
               {isTxPending ? "Processing..." : tradeType === "buy" ? "BUY" : "SELL"}
             </button>
           </div>
-
           <button
             className="w-full mt-2 flex items-center justify-center text-white text-md font-semibold space-x-2"
             onClick={() => setExpanded(false)}
@@ -564,7 +512,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
           <p className="text-gray-300 text-lg sm:text-base">
             for <span className="text-white font-bold">${modalData.cost.toFixed(2)}</span> USDC
           </p>
-
           <button
             className="mt-4 bg-greyblue border-2 border-white hover:border-blue-500 text-white font-semibold px-6 py-2 sm:px-4 sm:py-1.5 rounded-full transition"
             onClick={closeModal}
