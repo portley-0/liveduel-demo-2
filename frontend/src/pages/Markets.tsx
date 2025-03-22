@@ -18,7 +18,7 @@ const Markets: React.FC = () => {
         setLiveOnly={setLiveOnly}
       />
 
-      <div className="flex-grow">
+      <div className="flex-grow will-change-scroll overscroll-y-contain">
         <MatchList selectedLeague={selectedLeague} sortBy={sortBy} liveOnly={liveOnly} />
       </div>
     </div>

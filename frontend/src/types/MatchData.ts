@@ -169,6 +169,12 @@ export interface MatchData {
     drawOdds: number[];
     awayOdds: number[];
   };
+  chartData?: Array<{
+    timestamp: number;
+    home: number;
+    draw: number;
+    away: number;
+  }>;
   latestOdds?: {
     home: number;
     draw: number;

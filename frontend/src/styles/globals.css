@@ -26,3 +26,8 @@ html, body {
   --b2: rgb(0, 0, 30) !important;
   --b3: rgb(0, 0, 30) !important;
 }
+
+html, body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+}

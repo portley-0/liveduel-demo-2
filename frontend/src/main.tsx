@@ -7,13 +7,11 @@ import WalletProvider from "@/context/WalletProvider.tsx";
 import "./styles/tailwind.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <WalletProvider> 
-      <MatchProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </MatchProvider>
-    </WalletProvider>
-  </React.StrictMode>
+  <WalletProvider> 
+    <MatchProvider>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </MatchProvider>
+  </WalletProvider>
 );

@@ -3,7 +3,6 @@ import {
   getDefaultConfig,
   RainbowKitProvider,
   darkTheme,
-  midnightTheme
 } from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
 import { avalancheFuji } from "wagmi/chains";
@@ -15,7 +14,7 @@ import {
 const queryClient = new QueryClient();
 
 const config = getDefaultConfig({
-  appName: "LiveDuel",
+  appName: "LiveDuel Demo 2",
   projectId: "e87d4bfd159146fc8d6fb15484d62a2c", 
   chains: [avalancheFuji],
 });
