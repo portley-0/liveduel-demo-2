@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
 import { TbCircleLetterDFilled } from "react-icons/tb";
+import { useAccount, useWalletClient } from "wagmi";
 import PredictionMarketABI from "@/abis/PredictionMarket.json" with { type: "json" };
 
 interface UserPrediction {
@@ -23,24 +24,18 @@ interface UserPrediction {
 const Predictions: React.FC = () => {
   const [predictions, setPredictions] = useState<UserPrediction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const { address, isConnected } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPredictions = async () => {
+      setLoading(true);
       try {
-        const ethereum = (window as any).ethereum;
-        if (!ethereum) {
-          console.error("No wallet found");
-          setWalletAddress(null);
+        if (!isConnected || !address) {
+          setLoading(false);
           return;
         }
-
-        const provider = new ethers.BrowserProvider(ethereum);
-        const signer = await provider.getSigner();
-        const address = await signer.getAddress();
-        setWalletAddress(address);
-
         const res = await fetch(`${import.meta.env.VITE_SERVER_URL}/predictions/${address}`);
         const json = await res.json();
         if (json.success) {
@@ -52,15 +47,13 @@ const Predictions: React.FC = () => {
         setLoading(false);
       }
     };
-
     fetchPredictions();
-  }, []);
+  }, [isConnected, address]);
 
   const handleRedeem = async (marketAddress: string) => {
     try {
-      const ethereum = (window as any).ethereum;
-      if (!ethereum) return;
-      const provider = new ethers.BrowserProvider(ethereum);
+      if (!walletClient || !address) return;
+      const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
       const market = new ethers.Contract(marketAddress, PredictionMarketABI.abi, signer);
       const tx = await market.redeem();
@@ -80,7 +73,7 @@ const Predictions: React.FC = () => {
     );
   }
 
-  if (!walletAddress) {
+  if (!isConnected || !address) {
     return (
       <div className="text-white text-center mt-10">
         <p className="text-lg font-semibold">Log in to view predictions</p>
@@ -120,7 +113,6 @@ const Predictions: React.FC = () => {
                       : "Draw"}
                   </span>
                 </div>
-
                 <div className="flex items-center space-x-2">
                   {p.homeTeamLogo && (
                     <img src={p.homeTeamLogo} alt="Home" className="h-7 w-auto object-contain" />
@@ -133,12 +125,10 @@ const Predictions: React.FC = () => {
                   )}
                 </div>
               </div>
-
               <div className="flex justify-between items-center text-sm text-gray-300 mt-2">
                 <span>
                   Shares: {(p.netShares / 1e6).toFixed(2)} | Cost: ${(p.netCost / 1e6).toFixed(2)}
                 </span>
-
                 {p.isResolved && !p.hasRedeemed && p.resolvedOutcome === p.outcome && (
                   <button
                     className="px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs"
@@ -151,11 +141,9 @@ const Predictions: React.FC = () => {
                   </button>
                 )}
               </div>
-
               {p.isResolved && p.resolvedOutcome !== p.outcome && (
                 <p className="text-red-400 text-sm mt-2">Incorrect prediction</p>
               )}
-
               {p.isResolved && p.hasRedeemed && (
                 <p className="text-green-400 text-sm mt-2">Redeemed</p>
               )}

@@ -32,7 +32,7 @@ const Match: React.FC = () => {
     <div className="w-full min-h-screen bg-darkblue">
       <div className="w-full flex flex-col lg:flex-row">
         <div className="w-full lg:w-1/2 lg:max-h-[calc(100vh-80px)] bg-darkblue flex flex-col lg:overflow-hidden">
-          <div className="breadcrumbs lg:fixed px-4 py-2 bg-darkblue text-white">
+          <div className="breadcrumbs lg:fixed px-4 py-2 bg-darkblue text-white transform translate-y-[-4px]">
             <ul className="flex gap-2 text-xs">
               <li>
                 <Link to="/dashboard/markets" className="hover:underline font-bold text-white">
