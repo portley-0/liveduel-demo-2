@@ -73,12 +73,12 @@ const MatchList: React.FC<MatchListProps> = ({
           <Link
             key={match.matchId}
             to={`/dashboard/markets/${match.matchId}`}
-            className="w-full h-auto aspect-[6/5]"
+            className="w-full h-auto aspect-[6/5] block"
           >
             <button
               className="relative group bg-greyblue text-white rounded-xl shadow-md w-full h-full flex flex-col hover:bg-hovergreyblue active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <div className="p-5 xs:p-6 flex flex-col h-full">
+              <div className="p-5 xs:p-6 flex flex-col h-full w-full">
                 <div className="relative w-full flex items-center justify-between mb-3">
                   <div className="flex flex-col">
                     <img
