@@ -39,7 +39,7 @@ const TitleBar = () => {
 
               <label
                 htmlFor="my-drawer"
-                className="drawer-button btn bg-transparent border-0 text-white text-3xl rounded-full hover:bg-gray-200 hover:text-darkblue select-none z-50 flex items-center justify-center w-12 h-12 sm:h-[50px] sx:h-[50px]"
+                className="drawer-button btn bg-transparent border-0 text-white text-3xl rounded-full hover:bg-gray-200 hover:text-darkblue select-none z-50 flex items-center justify-center w-[56px] h-[56px] sm:w-12 sm:h-12  "
               >
                 &#9776;
               </label>
