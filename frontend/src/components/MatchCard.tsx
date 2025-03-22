@@ -32,7 +32,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
           <img
             src={match.homeTeamLogo}
             alt={match.homeTeamName}
-            className="object-contain lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px]"
+            className="object-contain xl:w-[140px] xl:h-[140px] lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px]"
           />
           <span className="lg:text-xl text-white font-[Lato-Bold] mt-3 mb-3 xs:mb-1 sm:mb-2 truncate max-w-[180px]">
             {match.homeTeamName}
@@ -56,7 +56,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
           <img
             src={match.awayTeamLogo}
             alt={match.awayTeamName}
-            className="object-contain lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px]"
+            className="object-contain xl:w-[140px] xl:h-[140px] lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px]"
           />
           <span className="lg:text-xl text-white font-[Lato-Bold] mt-3 mb-3 sm:mb-1 xs:mb-1 truncate max-w-[180px]">
             {match.awayTeamName}
