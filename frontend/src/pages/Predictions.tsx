@@ -21,6 +21,12 @@ interface UserPrediction {
   awayTeamLogo?: string;
 }
 
+// Helper to truncate text to a maximum of 6 letters
+const truncateText = (text: string | undefined, maxLength: number = 6) => {
+  if (!text) return "";
+  return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
+};
+
 const Predictions: React.FC = () => {
   const [predictions, setPredictions] = useState<UserPrediction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +62,7 @@ const Predictions: React.FC = () => {
       const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
       const market = new ethers.Contract(marketAddress, PredictionMarketABI.abi, signer);
-      const tx = await market.redeem();
+      const tx = await market.redeemPayouts();
       await tx.wait();
       alert("Redeemed successfully!");
       window.location.reload();
@@ -94,8 +100,9 @@ const Predictions: React.FC = () => {
               className="bg-greyblue p-4 rounded-xl shadow-md cursor-pointer hover:bg-hovergreyblue"
               onClick={() => navigate(`/dashboard/markets/${p.matchId}`)}
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center mb-2">
+                {/* Left container: Prediction team name with fixed width */}
+                <div className="flex items-center space-x-2 w-[120px]">
                   {p.outcome === 0 && p.homeTeamLogo && (
                     <img src={p.homeTeamLogo} alt="Home" className="h-10 w-10 object-contain" />
                   )}
@@ -105,21 +112,43 @@ const Predictions: React.FC = () => {
                   {p.outcome === 2 && p.awayTeamLogo && (
                     <img src={p.awayTeamLogo} alt="Away" className="h-10 w-10 object-contain" />
                   )}
-                  <span className="text-lg font-semibold text-white">
-                    {p.outcome === 0
-                      ? p.homeTeamName
-                      : p.outcome === 2
-                      ? p.awayTeamName
-                      : "Draw"}
+                  <span className="text-lg font-semibold text-white truncate">
+                    <span className="block sm:hidden">
+                      {truncateText(
+                        p.outcome === 0
+                          ? p.homeTeamName
+                          : p.outcome === 2
+                          ? p.awayTeamName
+                          : "Draw"
+                      )}
+                    </span>
+                    <span className="hidden sm:inline">
+                      {p.outcome === 0
+                        ? p.homeTeamName
+                        : p.outcome === 2
+                        ? p.awayTeamName
+                        : "Draw"}
+                    </span>
                   </span>
                 </div>
-                <div className="flex items-center space-x-2">
+                {/* Right container: Team vs Team display */}
+                <div className="flex-1 ml-2 flex items-center space-x-2">
                   {p.homeTeamLogo && (
                     <img src={p.homeTeamLogo} alt="Home" className="h-7 w-auto object-contain" />
                   )}
-                  <span className="text-sm text-gray-300">{p.homeTeamName}</span>
+                  <span className="text-sm text-gray-300">
+                    <span className="block sm:hidden">
+                      {truncateText(p.homeTeamName)}
+                    </span>
+                    <span className="hidden sm:block">{p.homeTeamName}</span>
+                  </span>
                   <span className="text-sm text-gray-400 mx-1">vs</span>
-                  <span className="text-sm text-gray-300">{p.awayTeamName}</span>
+                  <span className="text-sm text-gray-300">
+                    <span className="block sm:hidden">
+                      {truncateText(p.awayTeamName)}
+                    </span>
+                    <span className="hidden sm:block">{p.awayTeamName}</span>
+                  </span>
                   {p.awayTeamLogo && (
                     <img src={p.awayTeamLogo} alt="Away" className="h-7 w-auto object-contain" />
                   )}
