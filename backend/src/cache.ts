@@ -202,17 +202,6 @@ export function updateMatchData(matchId: number, partialData: Partial<MatchData>
     matchCache[matchId] = { matchId };
   }
 
-  if (partialData.oddsHistory && partialData.oddsHistory.homeOdds?.length) {
-    const { homeOdds, drawOdds, awayOdds } = partialData.oddsHistory;
-    const lastIndex = homeOdds.length - 1;
-
-    partialData.latestOdds = {
-      home: homeOdds[lastIndex],
-      draw: drawOdds[lastIndex],
-      away: awayOdds[lastIndex],
-    };
-  }
-
   matchCache[matchId] = {
     ...matchCache[matchId],
     ...partialData,

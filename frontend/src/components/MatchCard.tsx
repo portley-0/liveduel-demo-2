@@ -2,18 +2,23 @@ import React from "react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { MatchData } from "@/types/MatchData.ts";
 
-function convertToDecimalOdds(probability: number): number {
-  return probability > 0 ? 1 / probability : 10.0;
-}
-
 interface MatchCardProps {
   match: MatchData;
 }
 
 const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
-  const homePrice = convertToDecimalOdds(match.latestOdds?.home ?? 0.3333);
-  const drawPrice = convertToDecimalOdds(match.latestOdds?.draw ?? 0.3333);
-  const awayPrice = convertToDecimalOdds(match.latestOdds?.away ?? 0.3333);
+  // Outcome token prices (assumed to be already computed on the server)
+  const homePrice = match.latestOdds?.home ?? 0.3333;
+  const drawPrice = match.latestOdds?.draw ?? 0.3333;
+  const awayPrice = match.latestOdds?.away ?? 0.3333;
+
+  // Map the oddsHistory into an array of data points for the chart.
+  const chartData = (match.oddsHistory?.timestamps || []).map((timestamp, index) => ({
+    timestamp,
+    home: match.oddsHistory?.homeOdds[index],
+    draw: match.oddsHistory?.drawOdds[index],
+    away: match.oddsHistory?.awayOdds[index],
+  }));
 
   const formatKickoffTime = (timestamp?: number) => {
     if (!timestamp) return "TBD";
@@ -46,7 +51,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
           <span className="lg:text-lg sm:text-md text-redmagenta font-semibold">
             {match.statusShort && ["FT", "AET", "PEN"].includes(match.statusShort)
               ? "Full Time"
-              : match.statusShort && ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
+              : match.statusShort &&
+                ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
               ? `In Progress ${match.elapsed ? `(${match.elapsed}’)` : ""}`
               : formatKickoffTime(match.matchTimestamp)}
           </span>
@@ -63,14 +69,11 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
           </span>
         </div>
       </div>
-
+      
       <div className="bg-lightgreyblue lg:h-[160px] sm:h-[100px] xs:h-[100px] min-w-[200px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={match.chartData ?? []}
-            margin={{ left: 0, right: 7, top: 5, bottom: 5 }}
-          >
-            <XAxis dataKey="time" hide />
+          <LineChart data={chartData} margin={{ left: 0, right: 7, top: 5, bottom: 5 }}>
+            <XAxis dataKey="timestamp" hide />
             <YAxis
               domain={[0, 10]}
               allowDecimals
@@ -86,27 +89,9 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
               tickLine={false}
               orientation="right"
             />
-            <Line
-              type="linear"
-              dataKey="home"
-              stroke="rgba(0, 123, 255, 1)"
-              strokeWidth={2}
-              dot={false}
-            />
-            <Line
-              type="linear"
-              dataKey="draw"
-              stroke="rgba(128, 128, 128, 1)"
-              strokeWidth={2}
-              dot={false}
-            />
-            <Line
-              type="linear"
-              dataKey="away"
-              stroke="rgb(225, 29, 72)"
-              strokeWidth={2}
-              dot={false}
-            />
+            <Line type="linear" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false} />
+            <Line type="linear" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false} />
+            <Line type="linear" dataKey="away" stroke="rgb(225, 29, 72)" strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -115,29 +100,26 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
         <div className="lg:text-xl sm:text-sm xs:text-sm font-[Quicksand Bold]">
           <span className="block font-semibold">Volume</span>
           <div className="text-white font-semibold">
-            $
-            {match.bettingVolume
-              ? (match.bettingVolume / 1_000_000).toFixed(2)
-              : "0.00"}
+            ${match.bettingVolume ? (match.bettingVolume / 1_000_000).toFixed(2) : "0.00"}
           </div>
         </div>
         <div className="flex space-x-4 lg:text-xl sm:text-sm xs:text-sm font-[Quicksand Bold]">
           <div className="flex flex-col items-center">
             <span className="text-blue-400 font-semibold">$HOME</span>
             <span className="text-blue-400 font-semibold">
-              {homePrice.toFixed(1)}
+              {match.oddsHistory?.homeOdds.slice(-1)[0]?.toFixed(1) ?? homePrice.toFixed(1)}
             </span>
           </div>
           <div className="flex flex-col items-center">
             <span className="text-gray-400 font-semibold">$DRAW</span>
             <span className="text-gray-400 font-semibold">
-              {drawPrice.toFixed(1)}
+              {match.oddsHistory?.drawOdds.slice(-1)[0]?.toFixed(1) ?? drawPrice.toFixed(1)}
             </span>
           </div>
           <div className="flex flex-col items-center">
             <span className="text-redmagenta font-semibold">$AWAY</span>
             <span className="text-redmagenta font-semibold">
-              {awayPrice.toFixed(1)}
+              {match.oddsHistory?.awayOdds.slice(-1)[0]?.toFixed(1) ?? awayPrice.toFixed(1)}
             </span>
           </div>
         </div>

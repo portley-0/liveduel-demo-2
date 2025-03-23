@@ -8,11 +8,16 @@ const LEAGUES = [
   { id: 140, name: "La Liga" },
   { id: 78, name: "Bundesliga" },
   { id: 61, name: "Ligue 1" },
-  { id: 71, name: "Serie A" },
-  { id: 128, name: "Eredivisie" },
-  { id: 135, name: "Brasileirão" },
-  { id: 82, name: "MLS" },
+  { id: 135, name: "Serie A" },
+  { id: 88, name: "Eredivisie" },
+  { id: 71, name: "Brazil Serie A" },
+  { id: 253, name: "MLS" },
+  { id: 130, name: "Copa Argentina" },
+  { id: 94, name: "Primeira Liga" },
+  { id: 98, name: "J1 League" },
+  { id: 848, name: "UEFA Conference League" }
 ];
+
 
 // Sorting Options
 const SORT_OPTIONS = [

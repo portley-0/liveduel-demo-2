@@ -15,21 +15,10 @@ import MockUSDCABI from "@/abis/MockUSDC.json" with { type: "json" };
 import { ethers } from "ethers";
 import { useWalletClient } from "wagmi";
 
-const FIXED_192x64_FACTOR = BigInt("18446744073709551616");
-function convert192x64ToDecimal(rawVal: number): number {
-  if (rawVal < 2e9) {
-    return Number(rawVal);
-  }
-  const bigVal = BigInt(rawVal);
-  const scaled = (bigVal * 10000n) / FIXED_192x64_FACTOR;
-  return Number(scaled) / 10000;
-}
-
-const DEFAULT_ODDS = 0.3333;
+const DEFAULT_DECIMAL_ODDS = 3.0;
 const USDC_ADDRESS = "0xB1cC53DfF11c564Fbe22145a0b07588e7648db74";
 const CONDITIONAL_TOKENS_ADDRESS = "0x988A02b302AE410CA71f6A10ad218Da5c70b9f5a";
 const MARKET_FACTORY_ADDRESS = "0x9b532eB694eC397f6eB6C22e450F95222Cb3b1dd";
-
 const USDC_ABI = MockUSDCABI.abi;
 const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 const MARKET_FACTORY_ABI = MarketFactoryABI.abi;
@@ -50,9 +39,9 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const { data: walletClient } = useWalletClient();
   const { openConnectModal } = useConnectModal();
   const [refreshKey, setRefreshKey] = useState(0);
-  const [homePrice, setHomePrice] = useState<number>(DEFAULT_ODDS);
-  const [drawPrice, setDrawPrice] = useState<number>(DEFAULT_ODDS);
-  const [awayPrice, setAwayPrice] = useState<number>(DEFAULT_ODDS);
+  const [homePrice, setHomePrice] = useState<number>(DEFAULT_DECIMAL_ODDS);
+  const [drawPrice, setDrawPrice] = useState<number>(DEFAULT_DECIMAL_ODDS);
+  const [awayPrice, setAwayPrice] = useState<number>(DEFAULT_DECIMAL_ODDS);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState({ shares: 0, cost: 0 });
   const [outcomeBalance, setOutcomeBalance] = useState<string | null>(null);
@@ -255,9 +244,9 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
   useEffect(() => {
     if (match.latestOdds) {
-      setHomePrice(match.latestOdds.home ?? DEFAULT_ODDS);
-      setDrawPrice(match.latestOdds.draw ?? DEFAULT_ODDS);
-      setAwayPrice(match.latestOdds.away ?? DEFAULT_ODDS);
+      setHomePrice(match.latestOdds.home ?? DEFAULT_DECIMAL_ODDS);
+      setDrawPrice(match.latestOdds.draw ?? DEFAULT_DECIMAL_ODDS);
+      setAwayPrice(match.latestOdds.away ?? DEFAULT_DECIMAL_ODDS);
     }
   }, [match.latestOdds]);
 
@@ -300,32 +289,35 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     }
   };
 
+  // Compute previous odds directly from oddsHistory (assumed to be in decimal odds)
   const prevOdds = (() => {
     const histCount = match.oddsHistory?.timestamps?.length ?? 0;
-    if (histCount > 1) {
-      const rawHome = match.oddsHistory?.homeOdds?.at(-2);
-      const rawDraw = match.oddsHistory?.drawOdds?.at(-2);
-      const rawAway = match.oddsHistory?.awayOdds?.at(-2);
+    if (histCount >= 2) {
       return {
-        home: rawHome != null ? convert192x64ToDecimal(Number(rawHome)) : match.latestOdds?.home ?? DEFAULT_ODDS,
-        draw: rawDraw != null ? convert192x64ToDecimal(Number(rawDraw)) : match.latestOdds?.draw ?? DEFAULT_ODDS,
-        away: rawAway != null ? convert192x64ToDecimal(Number(rawAway)) : match.latestOdds?.away ?? DEFAULT_ODDS,
+        home: match.oddsHistory?.homeOdds?.[histCount - 2] ?? match.latestOdds?.home ?? DEFAULT_DECIMAL_ODDS,
+        draw: match.oddsHistory?.drawOdds?.[histCount - 2] ?? match.latestOdds?.draw ?? DEFAULT_DECIMAL_ODDS,
+        away: match.oddsHistory?.awayOdds?.[histCount - 2] ?? match.latestOdds?.away ?? DEFAULT_DECIMAL_ODDS,
       };
     } else {
       return {
-        home: match.latestOdds?.home ?? DEFAULT_ODDS,
-        draw: match.latestOdds?.draw ?? DEFAULT_ODDS,
-        away: match.latestOdds?.away ?? DEFAULT_ODDS,
+        home: DEFAULT_DECIMAL_ODDS,
+        draw: DEFAULT_DECIMAL_ODDS,
+        away: DEFAULT_DECIMAL_ODDS,
       };
     }
   })();
 
+  // Determine arrow icons based on previous vs. current odds
   function getOddsMovementIcon(prev: number, current: number) {
-    if (prev === DEFAULT_ODDS && current === DEFAULT_ODDS) {
+    if (current === prev) {
       return <BsArrowDownUp className="text-gray-400 text-lg" />;
     }
-    if (current > prev) return <GoArrowUpRight className="text-green-400 text-lg" />;
-    if (current < prev) return <GoArrowDownRight className="text-red-500 text-lg" />;
+    if (current > prev) {
+      return <GoArrowUpRight className="text-green-400 text-lg" />;
+    }
+    if (current < prev) {
+      return <GoArrowDownRight className="text-red-500 text-lg" />;
+    }
     return <BsArrowDownUp className="text-gray-400 text-lg" />;
   }
 

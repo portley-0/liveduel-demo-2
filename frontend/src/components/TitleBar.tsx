@@ -124,8 +124,8 @@ const TitleBar = () => {
                                   select-none flex items-center justify-center gap-2 whitespace-nowrap transition-all
                                   ${
                                     connected
-                                      ? "bg-darkblue border-2 border-white hover:text-redmagenta hover:border-redmagenta" 
-                                      : "bg-darkblue border-2 border-white hover:text-redmagenta hover:border-redmagenta" 
+                                      ? "bg-darkblue border-2 border-white hover:text-gray-300 hover:border-gray-300" 
+                                      : "bg-darkblue border-2 border-white hover:text-gray-300 hover:border-gray-300" 
                                   }`}
                     >
                       {connected ? (

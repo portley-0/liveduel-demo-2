@@ -3,10 +3,6 @@ import { Link } from "react-router-dom";
 import { useMatches } from "@/context/MatchContext.tsx";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
 
-function convertToDecimalOdds(probability: number): number {
-  return probability > 0 ? 1 / probability : 10.0;
-}
-
 interface MatchListProps {
   selectedLeague: number | null;
   sortBy: string;
@@ -52,22 +48,23 @@ const MatchList: React.FC<MatchListProps> = ({
     filteredMatches.sort((a, b) => (b.matchTimestamp ?? 0) - (a.matchTimestamp ?? 0));
   }
 
+  const formatKickoffTime = (timestamp?: number) => {
+    if (!timestamp) return "TBD";
+    return new Date(timestamp * 1000).toLocaleString([], {
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  };
+
   return (
     <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-6 3xl:grid-cols-7 gap-4 p-4 pb-[80px]">
       {filteredMatches.map((match) => {
-        const homePrice = convertToDecimalOdds(match.latestOdds?.home ?? 0.3333);
-        const drawPrice = convertToDecimalOdds(match.latestOdds?.draw ?? 0.3333);
-        const awayPrice = convertToDecimalOdds(match.latestOdds?.away ?? 0.3333);
-
-        const formatKickoffTime = (timestamp?: number) => {
-          if (!timestamp) return "TBD";
-          return new Date(timestamp * 1000).toLocaleString([], {
-            weekday: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          });
-        };
+        // Read outcome token prices directly from latestOdds.
+        const homePrice = match.latestOdds?.home ?? 0.3333;
+        const drawPrice = match.latestOdds?.draw ?? 0.3333;
+        const awayPrice = match.latestOdds?.away ?? 0.3333;
 
         return (
           <Link
@@ -75,9 +72,7 @@ const MatchList: React.FC<MatchListProps> = ({
             to={`/dashboard/markets/${match.matchId}`}
             className="w-full h-auto aspect-[6/5] block"
           >
-            <button
-              className="relative group bg-greyblue text-white rounded-xl shadow-md w-full h-full flex flex-col hover:bg-hovergreyblue active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
+            <button className="relative group bg-greyblue text-white rounded-xl shadow-md w-full h-full flex flex-col hover:bg-hovergreyblue active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500">
               <div className="p-5 xs:p-6 flex flex-col h-full w-full">
                 <div className="relative w-full flex items-center justify-between mb-3">
                   <div className="flex flex-col">
@@ -113,11 +108,15 @@ const MatchList: React.FC<MatchListProps> = ({
                     </span>
                   </div>
                 </div>
-
                 <div className="bg-lightgreyblue flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
-                      data={match.chartData ?? []}
+                      data={(match.oddsHistory?.timestamps || []).map((timestamp, index) => ({
+                        timestamp,
+                        home: match.oddsHistory?.homeOdds[index],
+                        draw: match.oddsHistory?.drawOdds[index],
+                        away: match.oddsHistory?.awayOdds[index],
+                      })) ?? []}
                       margin={{ left: 0, right: 7, top: 5, bottom: 5 }}
                     >
                       <XAxis dataKey="timestamp" hide />
@@ -125,9 +124,7 @@ const MatchList: React.FC<MatchListProps> = ({
                         domain={[0, 10]}
                         allowDecimals
                         ticks={[0, 1, 2.5, 5, 7.5, 10]}
-                        tickFormatter={(tick) =>
-                          tick % 1 === 0 ? tick : tick.toFixed(1)
-                        }
+                        tickFormatter={(tick) => (tick % 1 === 0 ? tick : tick.toFixed(1))}
                         tick={{
                           fill: "white",
                           fontSize: 7,
@@ -143,39 +140,17 @@ const MatchList: React.FC<MatchListProps> = ({
                         tickLine={false}
                         orientation="right"
                       />
-                      <Line
-                        type="linear"
-                        dataKey="home"
-                        stroke="rgba(0, 123, 255, 1)"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                      <Line
-                        type="linear"
-                        dataKey="draw"
-                        stroke="rgba(128, 128, 128, 1)"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                      <Line
-                        type="linear"
-                        dataKey="away"
-                        stroke="rgb(225, 29, 72)"
-                        strokeWidth={2}
-                        dot={false}
-                      />
+                      <Line type="linear" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false} />
+                      <Line type="linear" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false} />
+                      <Line type="linear" dataKey="away" stroke="rgb(225, 29, 72)" strokeWidth={2} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-
                 <div className="flex justify-between items-end mt-2">
                   <div className="text-xs font-[Quicksand Bold]">
                     <span className="block font-semibold">Volume</span>
                     <div className="text-white font-semibold">
-                      $
-                      {match.bettingVolume
-                        ? (match.bettingVolume / 1_000_000).toFixed(2)
-                        : "0.00"}
+                      ${match.bettingVolume ? (match.bettingVolume / 1_000_000).toFixed(2) : "0.00"}
                     </div>
                   </div>
                   <div className="flex space-x-4 text-xs font-[Quicksand Bold]">
