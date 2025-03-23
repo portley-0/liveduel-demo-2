@@ -95,7 +95,7 @@ const Predictions: React.FC = () => {
 
   if (!isConnected || !address) {
     return (
-      <div className="text-white h-[calc(100vh-80px)] flex justify-center items-center">
+      <div className="text-white flex justify-center items-center">
         <p className="text-lg font-semibold">Log in to view predictions</p>
       </div>
     );
