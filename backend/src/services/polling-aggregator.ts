@@ -309,9 +309,9 @@ async function refreshSubgraphData(matchId: number) {
 }
 
 const FIXED_192x64_SCALING_FACTOR = BigInt("18446744073709551616");
-const DEFAULT_PROB = 0.3333333; // default probability (1/3)
-const FLATLINE_ODDS = decimalProbabilityToOdds(DEFAULT_PROB); // ~3.0
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000; // one week in milliseconds
+const DEFAULT_PROB = 0.3333333;
+const FLATLINE_ODDS = decimalProbabilityToOdds(DEFAULT_PROB); 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000; 
 
 function convert192x64ToDecimal(fixedVal: number): number {
   const bigVal = BigInt(fixedVal);
@@ -334,7 +334,6 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
   const currentMatchData = getMatchData(matchId);
   if (!currentMatchData) return;
 
-  // Get existing history or initialize a new one.
   let updatedHistory: OddsHistory = currentMatchData.oddsHistory || {
     timestamps: [],
     homeOdds: [],
@@ -342,11 +341,9 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
     awayOdds: [],
   };
 
-  // CASE 1: No new odds data provided.
   if (oddsData.length === 0) {
     if (updatedHistory.timestamps.length === 0) {
       const now = Date.now();
-      // Create three flatline points (earliest one is one week ago).
       const flatTimestamps = [now - WEEK_MS, now - WEEK_MS + 60000, now];
       flatTimestamps.forEach(ts => {
         updatedHistory.timestamps.push(ts);
@@ -362,7 +359,6 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
     return;
   }
 
-  // CASE 2: No history exists yet -> add all incoming odds updates.
   if (updatedHistory.timestamps.length === 0) {
     oddsData.forEach(oddsItem => {
       const ts = Number(oddsItem.timestamp) * 1000;
@@ -384,7 +380,6 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
       updatedHistory.awayOdds.unshift(FLATLINE_ODDS);
     }
   } else {
-    // CASE 3: History exists -> only append the latest update if it's new.
     const lastOddsUpdate = oddsData[oddsData.length - 1];
     const newTimestamp = Number(lastOddsUpdate.timestamp) * 1000;
     const newHomeProb = convert192x64ToDecimal(Number(lastOddsUpdate.home));
@@ -392,7 +387,6 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
     const newAwayProb = convert192x64ToDecimal(Number(lastOddsUpdate.away));
     const lastIndex = updatedHistory.timestamps.length - 1;
     if (updatedHistory.timestamps[lastIndex] !== newTimestamp) {
-      // Convert stored decimal odds back to probabilities.
       const lastHomeProb = 1 / updatedHistory.homeOdds[lastIndex];
       const lastDrawProb = 1 / updatedHistory.drawOdds[lastIndex];
       const lastAwayProb = 1 / updatedHistory.awayOdds[lastIndex];
@@ -409,8 +403,6 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
     }
   }
 
-  // ALWAYS ensure a flatline reference point is present at the beginning.
-  // Instead of checking the timestamp, simply check if the first odds are flatline odds.
   if (updatedHistory.timestamps.length > 0) {
     if (
       updatedHistory.homeOdds[0] !== FLATLINE_ODDS ||
@@ -426,7 +418,6 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
     }
   }
 
-  // Update latestOdds using the last odds update.
   const lastOddsItem = oddsData[oddsData.length - 1];
   const latestHomeProb = convert192x64ToDecimal(Number(lastOddsItem.home));
   const latestDrawProb = convert192x64ToDecimal(Number(lastOddsItem.draw));

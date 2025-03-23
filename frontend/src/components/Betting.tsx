@@ -15,8 +15,8 @@ import MockUSDCABI from "@/abis/MockUSDC.json" with { type: "json" };
 import { ethers } from "ethers";
 import { useWalletClient } from "wagmi";
 
-const DEFAULT_PROB = 0.3333333; // latest odds as probability (i.e. 33.33333%)
-const DEFAULT_DECIMAL_ODDS = 3.0; // display value if needed
+const DEFAULT_PROB = 0.3333333; 
+const DEFAULT_DECIMAL_ODDS = 3.0; 
 const USDC_ADDRESS = "0xB1cC53DfF11c564Fbe22145a0b07588e7648db74";
 const CONDITIONAL_TOKENS_ADDRESS = "0x988A02b302AE410CA71f6A10ad218Da5c70b9f5a";
 const MARKET_FACTORY_ADDRESS = "0x9b532eB694eC397f6eB6C22e450F95222Cb3b1dd";
@@ -25,7 +25,6 @@ const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 const MARKET_FACTORY_ABI = MarketFactoryABI.abi;
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
-// This function converts a probability (e.g. 0.3333333) to decimal odds (e.g. 3.0) if needed.
 function convertToDecimalOdds(probability: number): number {
   return probability > 0 ? 1 / probability : 10.0;
 }
@@ -45,7 +44,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const { data: walletClient } = useWalletClient();
   const { openConnectModal } = useConnectModal();
   const [refreshKey, setRefreshKey] = useState(0);
-  // Latest odds are stored as probabilities.
   const [homePrice, setHomePrice] = useState<number>(DEFAULT_PROB);
   const [drawPrice, setDrawPrice] = useState<number>(DEFAULT_PROB);
   const [awayPrice, setAwayPrice] = useState<number>(DEFAULT_PROB);
@@ -296,7 +294,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     }
   };
 
-  // Compute previous odds from oddsHistory (if available) by converting stored decimal odds back to probabilities.
   const prevOdds = (() => {
     const histCount = match.oddsHistory?.timestamps?.length ?? 0;
     if (histCount >= 2) {
@@ -323,8 +320,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     }
   })();
 
-  // Arrow icon logic: compare probabilities.
-  // Show neutral icon only when current probability equals 0.3333333 (within a very small tolerance).
   function getOddsMovementIcon(prev: number, current: number) {
     const NEUTRAL_PROB = 0.3333333;
     const tol = 1e-7;
@@ -370,7 +365,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
       <div className="flex space-x-4 sm:space-x-2 xs:space-x-2 justify-center mb-1">
         {(["home", "draw", "away"] as const).map((outcome) => {
-          // Use latest odds as probability.
           const price = outcome === "home" ? homePrice : outcome === "draw" ? drawPrice : awayPrice;
           const isSelected = selectedBet === outcome;
           const prevVal = prevOdds[outcome];
