@@ -102,7 +102,7 @@ const Predictions: React.FC = () => {
   }
 
   return (
-    <div className="text-white px-4 pt-4">
+    <div className="text-white px-4 pt-4 pb-20">
       <h1 className="text-xl font-bold mb-4">My Predictions</h1>
       {predictions.length === 0 ? (
         <p>No predictions yet.</p>
