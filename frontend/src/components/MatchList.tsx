@@ -61,10 +61,16 @@ const MatchList: React.FC<MatchListProps> = ({
   return (
     <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-6 3xl:grid-cols-7 gap-4 p-4 pb-[80px]">
       {filteredMatches.map((match) => {
-        // Read outcome token prices directly from latestOdds.
-        const homePrice = match.latestOdds?.home ?? 0.3333;
-        const drawPrice = match.latestOdds?.draw ?? 0.3333;
-        const awayPrice = match.latestOdds?.away ?? 0.3333;
+
+      const homeOddsArray = match.oddsHistory?.homeOdds || [];
+      const homeOdds = homeOddsArray.length > 0 ? homeOddsArray[homeOddsArray.length - 1] : 3.0;
+
+      const drawOddsArray = match.oddsHistory?.drawOdds || [];
+      const drawOdds = drawOddsArray.length > 0 ? drawOddsArray[drawOddsArray.length - 1] : 3.0;
+
+      const awayOddsArray = match.oddsHistory?.awayOdds || [];
+      const awayOdds = awayOddsArray.length > 0 ? awayOddsArray[awayOddsArray.length - 1] : 3.0;
+
 
         return (
           <Link
@@ -157,19 +163,19 @@ const MatchList: React.FC<MatchListProps> = ({
                     <div className="flex flex-col items-center">
                       <span className="text-blue-400 font-semibold">$HOME</span>
                       <span className="text-blue-400 font-semibold">
-                        {homePrice.toFixed(1)}
+                        {homeOdds.toFixed(1)}
                       </span>
                     </div>
                     <div className="flex flex-col items-center">
                       <span className="text-gray-400 font-semibold">$DRAW</span>
                       <span className="text-gray-400 font-semibold">
-                        {drawPrice.toFixed(1)}
+                        {drawOdds.toFixed(1)}
                       </span>
                     </div>
                     <div className="flex flex-col items-center">
                       <span className="text-redmagenta font-semibold">$AWAY</span>
                       <span className="text-redmagenta font-semibold">
-                        {awayPrice.toFixed(1)}
+                        {awayOdds.toFixed(1)}
                       </span>
                     </div>
                   </div>

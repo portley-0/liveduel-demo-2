@@ -7,12 +7,10 @@ interface MatchCardProps {
 }
 
 const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
-  // Outcome token prices (assumed to be already computed on the server)
   const homePrice = match.latestOdds?.home ?? 0.3333;
   const drawPrice = match.latestOdds?.draw ?? 0.3333;
   const awayPrice = match.latestOdds?.away ?? 0.3333;
 
-  // Map the oddsHistory into an array of data points for the chart.
   const chartData = (match.oddsHistory?.timestamps || []).map((timestamp, index) => ({
     timestamp,
     home: match.oddsHistory?.homeOdds[index],

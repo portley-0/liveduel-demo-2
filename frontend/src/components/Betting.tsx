@@ -15,7 +15,8 @@ import MockUSDCABI from "@/abis/MockUSDC.json" with { type: "json" };
 import { ethers } from "ethers";
 import { useWalletClient } from "wagmi";
 
-const DEFAULT_DECIMAL_ODDS = 3.0;
+const DEFAULT_PROB = 0.3333333; // latest odds as probability (i.e. 33.33333%)
+const DEFAULT_DECIMAL_ODDS = 3.0; // display value if needed
 const USDC_ADDRESS = "0xB1cC53DfF11c564Fbe22145a0b07588e7648db74";
 const CONDITIONAL_TOKENS_ADDRESS = "0x988A02b302AE410CA71f6A10ad218Da5c70b9f5a";
 const MARKET_FACTORY_ADDRESS = "0x9b532eB694eC397f6eB6C22e450F95222Cb3b1dd";
@@ -23,6 +24,11 @@ const USDC_ABI = MockUSDCABI.abi;
 const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 const MARKET_FACTORY_ABI = MarketFactoryABI.abi;
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+
+// This function converts a probability (e.g. 0.3333333) to decimal odds (e.g. 3.0) if needed.
+function convertToDecimalOdds(probability: number): number {
+  return probability > 0 ? 1 / probability : 10.0;
+}
 
 const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [selectedBet, setSelectedBet] = useState<"home" | "draw" | "away" | null>(null);
@@ -39,9 +45,10 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const { data: walletClient } = useWalletClient();
   const { openConnectModal } = useConnectModal();
   const [refreshKey, setRefreshKey] = useState(0);
-  const [homePrice, setHomePrice] = useState<number>(DEFAULT_DECIMAL_ODDS);
-  const [drawPrice, setDrawPrice] = useState<number>(DEFAULT_DECIMAL_ODDS);
-  const [awayPrice, setAwayPrice] = useState<number>(DEFAULT_DECIMAL_ODDS);
+  // Latest odds are stored as probabilities.
+  const [homePrice, setHomePrice] = useState<number>(DEFAULT_PROB);
+  const [drawPrice, setDrawPrice] = useState<number>(DEFAULT_PROB);
+  const [awayPrice, setAwayPrice] = useState<number>(DEFAULT_PROB);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState({ shares: 0, cost: 0 });
   const [outcomeBalance, setOutcomeBalance] = useState<string | null>(null);
@@ -244,9 +251,9 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
   useEffect(() => {
     if (match.latestOdds) {
-      setHomePrice(match.latestOdds.home ?? DEFAULT_DECIMAL_ODDS);
-      setDrawPrice(match.latestOdds.draw ?? DEFAULT_DECIMAL_ODDS);
-      setAwayPrice(match.latestOdds.away ?? DEFAULT_DECIMAL_ODDS);
+      setHomePrice(match.latestOdds.home ?? DEFAULT_PROB);
+      setDrawPrice(match.latestOdds.draw ?? DEFAULT_PROB);
+      setAwayPrice(match.latestOdds.away ?? DEFAULT_PROB);
     }
   }, [match.latestOdds]);
 
@@ -289,27 +296,39 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     }
   };
 
-  // Compute previous odds directly from oddsHistory (assumed to be in decimal odds)
+  // Compute previous odds from oddsHistory (if available) by converting stored decimal odds back to probabilities.
   const prevOdds = (() => {
     const histCount = match.oddsHistory?.timestamps?.length ?? 0;
     if (histCount >= 2) {
       return {
-        home: match.oddsHistory?.homeOdds?.[histCount - 2] ?? match.latestOdds?.home ?? DEFAULT_DECIMAL_ODDS,
-        draw: match.oddsHistory?.drawOdds?.[histCount - 2] ?? match.latestOdds?.draw ?? DEFAULT_DECIMAL_ODDS,
-        away: match.oddsHistory?.awayOdds?.[histCount - 2] ?? match.latestOdds?.away ?? DEFAULT_DECIMAL_ODDS,
+        home:
+          match.oddsHistory!.homeOdds[histCount - 2] !== undefined
+            ? 1 / match.oddsHistory!.homeOdds[histCount - 2]
+            : match.latestOdds?.home ?? DEFAULT_PROB,
+        draw:
+          match.oddsHistory!.drawOdds[histCount - 2] !== undefined
+            ? 1 / match.oddsHistory!.drawOdds[histCount - 2]
+            : match.latestOdds?.draw ?? DEFAULT_PROB,
+        away:
+          match.oddsHistory!.awayOdds[histCount - 2] !== undefined
+            ? 1 / match.oddsHistory!.awayOdds[histCount - 2]
+            : match.latestOdds?.away ?? DEFAULT_PROB,
       };
     } else {
       return {
-        home: DEFAULT_DECIMAL_ODDS,
-        draw: DEFAULT_DECIMAL_ODDS,
-        away: DEFAULT_DECIMAL_ODDS,
+        home: DEFAULT_PROB,
+        draw: DEFAULT_PROB,
+        away: DEFAULT_PROB,
       };
     }
   })();
 
-  // Determine arrow icons based on previous vs. current odds
+  // Arrow icon logic: compare probabilities.
+  // Show neutral icon only when current probability equals 0.3333333 (within a very small tolerance).
   function getOddsMovementIcon(prev: number, current: number) {
-    if (current === prev) {
+    const NEUTRAL_PROB = 0.3333333;
+    const tol = 1e-7;
+    if (Math.abs(current - NEUTRAL_PROB) < tol) {
       return <BsArrowDownUp className="text-gray-400 text-lg" />;
     }
     if (current > prev) {
@@ -351,6 +370,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
       <div className="flex space-x-4 sm:space-x-2 xs:space-x-2 justify-center mb-1">
         {(["home", "draw", "away"] as const).map((outcome) => {
+          // Use latest odds as probability.
           const price = outcome === "home" ? homePrice : outcome === "draw" ? drawPrice : awayPrice;
           const isSelected = selectedBet === outcome;
           const prevVal = prevOdds[outcome];
@@ -465,7 +485,9 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                 <p className="text-white font-semibold mt-2">⏳ Deploying market... Please wait.</p>
               )}
               {marketStatus === "not_deployed" && !isDeploying && (
-                <p className="text-white font-semibold mt-2">⚠️ Market contract not deployed. Select an outcome to deploy.</p>
+                <p className="text-white font-semibold mt-2">
+                  ⚠️ Market contract not deployed. Select an outcome to deploy.
+                </p>
               )}
             </div>
             <button

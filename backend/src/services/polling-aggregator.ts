@@ -334,19 +334,19 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
   const currentMatchData = getMatchData(matchId);
   if (!currentMatchData) return;
 
-  // Explicitly type the history.
+  // Get existing history or initialize a new one.
   let updatedHistory: OddsHistory = currentMatchData.oddsHistory || {
-    timestamps: [] as number[],
-    homeOdds: [] as number[],
-    drawOdds: [] as number[],
-    awayOdds: [] as number[],
+    timestamps: [],
+    homeOdds: [],
+    drawOdds: [],
+    awayOdds: [],
   };
 
   // CASE 1: No new odds data provided.
   if (oddsData.length === 0) {
     if (updatedHistory.timestamps.length === 0) {
       const now = Date.now();
-      // Create three flatline points with the earliest being one week ago.
+      // Create three flatline points (earliest one is one week ago).
       const flatTimestamps = [now - WEEK_MS, now - WEEK_MS + 60000, now];
       flatTimestamps.forEach(ts => {
         updatedHistory.timestamps.push(ts);
@@ -374,21 +374,17 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
       updatedHistory.drawOdds.push(decimalProbabilityToOdds(drawProb));
       updatedHistory.awayOdds.push(decimalProbabilityToOdds(awayProb));
     });
-    // Force TS to treat the length as a number.
     const currentLength: number = updatedHistory.timestamps.length;
     if (currentLength === 1) {
       const firstTimestamp = updatedHistory.timestamps[0];
-      // Prepend two flatline points with timestamps one week ago and one week ago plus 1 minute.
-      const flatTimestamps = [firstTimestamp - WEEK_MS, firstTimestamp - WEEK_MS + 60000];
-      flatTimestamps.reverse().forEach(ts => {
-        updatedHistory.timestamps.unshift(ts);
-        updatedHistory.homeOdds.unshift(FLATLINE_ODDS);
-        updatedHistory.drawOdds.unshift(FLATLINE_ODDS);
-        updatedHistory.awayOdds.unshift(FLATLINE_ODDS);
-      });
+      const flatTimestamp = firstTimestamp - WEEK_MS;
+      updatedHistory.timestamps.unshift(flatTimestamp);
+      updatedHistory.homeOdds.unshift(FLATLINE_ODDS);
+      updatedHistory.drawOdds.unshift(FLATLINE_ODDS);
+      updatedHistory.awayOdds.unshift(FLATLINE_ODDS);
     }
   } else {
-    // CASE 3: History exists -> only add the last update if it's new.
+    // CASE 3: History exists -> only append the latest update if it's new.
     const lastOddsUpdate = oddsData[oddsData.length - 1];
     const newTimestamp = Number(lastOddsUpdate.timestamp) * 1000;
     const newHomeProb = convert192x64ToDecimal(Number(lastOddsUpdate.home));
@@ -413,16 +409,16 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
     }
   }
 
-  // ALWAYS ensure a flatline reference point at the beginning.
+  // ALWAYS ensure a flatline reference point is present at the beginning.
+  // Instead of checking the timestamp, simply check if the first odds are flatline odds.
   if (updatedHistory.timestamps.length > 0) {
-    const firstTimestamp: number = updatedHistory.timestamps[0];
-    const flatTimestamp = firstTimestamp - WEEK_MS; // one week before the earliest update
     if (
-      updatedHistory.timestamps[0] !== flatTimestamp ||
       updatedHistory.homeOdds[0] !== FLATLINE_ODDS ||
       updatedHistory.drawOdds[0] !== FLATLINE_ODDS ||
       updatedHistory.awayOdds[0] !== FLATLINE_ODDS
     ) {
+      const firstTimestamp = updatedHistory.timestamps[0];
+      const flatTimestamp = firstTimestamp - WEEK_MS;
       updatedHistory.timestamps.unshift(flatTimestamp);
       updatedHistory.homeOdds.unshift(FLATLINE_ODDS);
       updatedHistory.drawOdds.unshift(FLATLINE_ODDS);
@@ -445,7 +441,6 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
     },
   });
 }
-
 
 async function computeBettingVolume(matchId: number, marketAddress: string) {
   const purchasedData = await getSharesPurchasedByMarket(marketAddress);
