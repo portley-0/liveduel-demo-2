@@ -41,7 +41,7 @@ export function startFastSubgraphPolling() {
     try {
       const allMatches = getAllMatches();
       for (const match of allMatches) {
-        if (match.resolvedAt || !match.contract) continue;
+        if (match.resolvedAt) continue;
         console.log(`[SubgraphPolling] Refreshing match ${match.matchId}`);
         await refreshSubgraphData(match.matchId);
       }
