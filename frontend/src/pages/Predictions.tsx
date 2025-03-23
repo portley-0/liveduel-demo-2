@@ -34,17 +34,22 @@ const Predictions: React.FC = () => {
   const { data: walletClient } = useWalletClient();
   const navigate = useNavigate();
 
-  // Helper to determine redeem button properties
+  // Updated helper function for redeem button properties
   const getRedeemButtonProps = (p: UserPrediction) => {
     if (!p.isResolved) {
-      return { label: "Redeem", colorClasses: "bg-gray-700", disabled: true };
+      // When the match hasn't been resolved, show "Pending"
+      return { label: "Pending", colorClasses: "bg-gray-700", disabled: true };
     }
     if (p.hasRedeemed) {
-      return { label: "Redeemed", colorClasses: "bg-green-500", disabled: true };
+      // Once redeemed, show "Redeemed" with a neutral color
+      return { label: "Redeemed", colorClasses: "bg-gray-500", disabled: true };
     }
     if (p.resolvedOutcome === p.outcome) {
-      return { label: "Redeem", colorClasses: "bg-blue-600 hover:bg-blue-700", disabled: false };
+      // Only when the outcome is correct and the match is resolved,
+      // enable the button with a green color and label "Redeem"
+      return { label: "Redeem", colorClasses: "bg-green-500 hover:bg-green-600", disabled: false };
     }
+    // For predictions that lost, indicate with "Lost"
     return { label: "Lost", colorClasses: "bg-red-500", disabled: true };
   };
 
@@ -137,7 +142,7 @@ const Predictions: React.FC = () => {
                     )}
                   </div>
                   <div className="ml-2 text-lg font-semibold text-gray-300">
-                    {(p.netShares / 1e6).toFixed(2)} | Cost: ${ (p.netCost / 1e6).toFixed(2) }
+                    {(p.netShares / 1e6).toFixed(2)} | Cost: ${(p.netCost / 1e6).toFixed(2)}
                   </div>
                 </div>
 
@@ -180,7 +185,9 @@ const Predictions: React.FC = () => {
                   <div className="ml-2 flex-shrink-0">
                     <button
                       disabled={redeemProps.disabled}
-                      className={`px-3 py-1 rounded-md ${redeemProps.colorClasses} text-white font-semibold text-sm ${redeemProps.disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+                      className={`px-3 py-1 rounded-md ${redeemProps.colorClasses} text-white font-semibold text-sm ${
+                        redeemProps.disabled ? "cursor-not-allowed" : "cursor-pointer"
+                      }`}
                       onClick={(e) => {
                         e.stopPropagation();
                         if (!redeemProps.disabled) {
@@ -206,4 +213,3 @@ const Predictions: React.FC = () => {
 };
 
 export default Predictions;
-
