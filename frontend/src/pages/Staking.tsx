@@ -144,7 +144,7 @@ const Staking: React.FC = () => {
               {formatLargeNumber(duelReserve)} $DUEL | {formatLargeNumber(usdcReserve)} USDC
             </div>
             <div className="text-right">
-              Staked Balance
+              Stake Balance
             </div>
           </div>
           <div className="flex justify-between items-center whitespace-nowrap mt-[2px]">
