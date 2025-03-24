@@ -1,6 +1,6 @@
 # Contracts Module
 
-## 📜 Overview
+## Overview
 
 The **Contracts Module** provides the core smart contracts for the decentralized prediction market. It includes:
 
@@ -17,7 +17,7 @@ Gnosis source repositories (Solidity 0.5.1):
 - **[Conditional Tokens](https://github.com/gnosis/conditional-tokens-contracts)** – Framework for creating conditional token markets.
 - **[Market Makers](https://github.com/gnosis/conditional-tokens-market-makers)** – Provides market makers built with Gnosis CTF, including **LMSRMarketMaker**, used in this project.
 
-## 🛠 Dependencies
+## Dependencies
 
 This module relies on:
 
@@ -26,7 +26,7 @@ This module relies on:
 - **OpenZeppelin Contracts** (Ownable, ERC20, ERC1155Holder)
 - **Hardhat** (Testing & Deployment)
 
-## 📂 Directory Structure
+## Directory Structure
 
 ```
 ├── contracts
@@ -69,22 +69,22 @@ This module relies on:
 ├── tsconfig.json
 ```
 
-## 🚀 Setup & Deployment
+## Setup & Deployment
 
-### 1️⃣ Install Dependencies
+### Install Dependencies
 
 ```bash
 pnpm install
 ```
 
-### 2️⃣ Compile Contracts
+### Compile Contracts
 
 ```bash
 npx hardhat compile
 npx hardhat typechain
 ```
 
-### 3️⃣ Set Up Environment Variables
+### Set Up Environment Variables
 
 Before deploying the contracts, the **.env-enc** file must be set using the following commands:
 
@@ -101,7 +101,7 @@ Required environment variables:
 - **GITHUB\_API\_TOKEN** (Must be generated with read and write Gists permission)
 - **FUJI\_SNOWTRACE\_API\_KEY** (Can be left blank)
 
-### 4️⃣ Create a Chainlink Functions Subscription
+### Create a Chainlink Functions Subscription
 
 * Go to **[functions.chain.link](https://functions.chain.link)**
 * Create a new subscription on Avalanche Fuji.
@@ -111,7 +111,7 @@ Required environment variables:
 > Note: Testnet LINK can be obtained from **[faucets.chain.link](https://faucets.chain.link)**
 
 
-### 5️⃣ Deploy Contracts
+### Deploy Contracts
 
 > Note: Chainlink SubscriptionID must be provided to DeployResultsConsumer.ts
 
@@ -121,7 +121,7 @@ pnpm run deploy:resultsconsumer
 pnpm run deploy:system
 ```
 
-### 6️⃣ Configure Chainlink Functions & Automation
+### Configure Chainlink Functions & Automation
 
 After deploying:
 
@@ -138,7 +138,7 @@ After deploying:
 3. Acquire Additional Testnet LINK
     If needed, request more testnet LINK from **[faucets.chain.link](https://faucets.chain.link)**
 
-### 7️⃣ Run Tests
+### Run Tests
 
 > Note: factory.test.ts requires setting matchId and timestamp.
 
@@ -154,6 +154,6 @@ pnpm run test:redemption
 
 ---
 
-## 📄 License
+## License
 This project is licensed under the [MIT License](LICENSE).
 

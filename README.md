@@ -2,12 +2,12 @@
      alt="Liveduel Demo 2" 
      width="320" />
 
-## ⚽ Overview
+## Overview
 This demo project is a decentralized soccer prediction market platform built on the **Avalanche Fuji Testnet**. This monorepo contains all core components needed to operate the system, including smart contracts, a web frontend, a backend server, and a subgraph.
 
 A **Mock USDC** faucet is provided. This faucet dispenses mUSDC (test tokens) for use on the Avalanche Fuji Testnet, ensuring you can seamlessly test the prediction markets without needing real USDC.
 
-## 🛠 Technologies
+## Technologies
 - **Solidity** – Core logic for the prediction markets via smart contracts.
 - **Chainlink Functions** – Acts as an Oracle for match result retrieval from API Football.
 - **Chainlink Automation** – Executes smart contract actions (e.g., match resolution) automatically.
@@ -19,7 +19,7 @@ A **Mock USDC** faucet is provided. This faucet dispenses mUSDC (test tokens) fo
 
 ---
 
-## 🌍 Deployment
+## Deployment
 - **Contracts**: Deployed on **Avalanche Fuji Testnet**
 - **Frontend**: Hosted on **Vercel**
 - **Backend**: Hosted on **AWS EC2**
@@ -29,7 +29,7 @@ A **Mock USDC** faucet is provided. This faucet dispenses mUSDC (test tokens) fo
 
 ---
 
-## 📂 Directory Structure
+## Directory Structure
 ```
 ├── contracts   # Solidity smart contracts 
 ├── frontend    # React web interface
@@ -40,7 +40,7 @@ Each module has its own **README.md** with setup and deployment instructions.
 
 ---
 
-## 📝 Documentation
+## Documentation
 For module-specific setup instructions, refer to:
 - [Contracts README](./contracts/README.md)
 - [Frontend README](./frontend/README.md)

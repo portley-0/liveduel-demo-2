@@ -18,13 +18,13 @@ The **Backend Module** handles match data aggregation and caching, websocket com
 ### Artifacts
 - **`MarketFactory.json`** - ABI for the smart contract factory used to deploy new prediction markets.
 
-## 🛠 Dependencies
+## Dependencies
 - **Express.js** - Backend framework for handling HTTP requests.
 - **Socket.io** - WebSocket communication for real-time updates.
 - **GraphQL** - Queries blockchain data from The Graph.
 - **Axios** - HTTP client for fetching external API data.
 
-## 📂 Directory Structure
+## Directory Structure
 ```
 backend/
 ├── src/
@@ -41,14 +41,14 @@ backend/
 │   ├── socket.ts               # WebSocket handling
 ```
 
-## 🚀 Setup Instructions
+## Setup Instructions
 
-### 1️⃣ Install Dependencies
+### 1Install Dependencies
 ```bash
 pnpm install
 ```
 
-### 2️⃣ Set Up Environment Variables
+### Set Up Environment Variables
 Create a `.env` file in the `backend/` directory with the following variables:
 ```
 API_KEY=<your-api-key>
@@ -58,7 +58,7 @@ AVALANCHE_FUJI_RPC_URL=<your-rpc-url>
 MARKET_FACTORY_ADDRESS=<your-market-factory-contract-address>
 ```
 
-### 3️⃣ Start the Server
+### Start the Server
 ```bash
 pnpm run start
 ```
