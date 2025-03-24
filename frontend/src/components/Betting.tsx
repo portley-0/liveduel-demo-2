@@ -16,7 +16,6 @@ import { ethers } from "ethers";
 import { useWalletClient } from "wagmi";
 
 const DEFAULT_PROB = 0.3333333; 
-const DEFAULT_DECIMAL_ODDS = 3.0; 
 const USDC_ADDRESS = "0xB1cC53DfF11c564Fbe22145a0b07588e7648db74";
 const CONDITIONAL_TOKENS_ADDRESS = "0x988A02b302AE410CA71f6A10ad218Da5c70b9f5a";
 const MARKET_FACTORY_ADDRESS = "0x9b532eB694eC397f6eB6C22e450F95222Cb3b1dd";
@@ -25,9 +24,6 @@ const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 const MARKET_FACTORY_ABI = MarketFactoryABI.abi;
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
-function convertToDecimalOdds(probability: number): number {
-  return probability > 0 ? 1 / probability : 10.0;
-}
 
 const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [selectedBet, setSelectedBet] = useState<"home" | "draw" | "away" | null>(null);
@@ -134,7 +130,11 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const fee = netCost ? (netCost * 4n) / 100n : 0n;
   const totalCost = netCost ? netCost + fee : 0n;
 
-  const sendTransaction = async (contractAddress: string, functionName: string, args: any[]) => {
+  const sendTransaction = async (
+    contractAddress: string,
+    functionName: string,
+    args: any[]
+  ): Promise<any> => {
     if (!walletClient) {
       console.error("No wallet connected.");
       return;
@@ -150,15 +150,21 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       console.log(`Transaction sent: ${tx.hash}`);
       const receipt = await tx.wait();
       console.log("Transaction confirmed:", receipt);
+      if (receipt.status !== 1) {
+        throw new Error("Transaction failed");
+      }
       setIsSuccess(true);
       refetch();
+      return receipt;
     } catch (error) {
       console.error("Transaction failed:", error);
+      throw error;
     } finally {
       setIsTxPending(false);
     }
   };
-
+  
+  
   const approveContracts = async (which: "buy" | "sell") => {
     if (!walletClient || !marketAddress) {
       console.error("No wallet or market address.");
@@ -215,15 +221,21 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     if (!marketAddress || !isValidBet) return;
     await approveContracts("buy");
     try {
-      await sendTransaction(marketAddress, "buyShares", [betMapping[selectedBet!], betAmountBigInt]);
-      setModalData({ shares: numericBetAmount, cost: Number(totalCost) / 1e6 });
-      setIsModalOpen(true);
+      const receipt = await sendTransaction(
+        marketAddress,
+        "buyShares",
+        [betMapping[selectedBet!], betAmountBigInt]
+      );
+      if (receipt && receipt.status === 1) {
+        setModalData({ shares: numericBetAmount, cost: Number(totalCost) / 1e6 });
+        setIsModalOpen(true);
+      }
     } catch (error) {
       console.error("Transaction failed:", error);
     }
   };
 
-  const sellShares = async () => {
+  const sellShares = async (): Promise<void> => {
     if (!walletClient) {
       console.error("No wallet connected. Opening connect modal.");
       openConnectModal?.();
@@ -232,14 +244,20 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     if (!marketAddress || !isValidBet) return;
     await approveContracts("sell");
     try {
-      await sendTransaction(marketAddress, "sellShares", [betMapping[selectedBet!], betAmountBigInt]);
-      setModalData({ shares: numericBetAmount, cost: Number(netCost) / 1e6 });
-      setIsModalOpen(true);
+      const receipt = await sendTransaction(
+        marketAddress,
+        "sellShares",
+        [betMapping[selectedBet!], betAmountBigInt]
+      );
+      if (receipt && receipt.status === 1) {
+        setModalData({ shares: numericBetAmount, cost: Number(netCost) / 1e6 });
+        setIsModalOpen(true);
+      }
     } catch (error) {
       console.error("Transaction failed:", error);
     }
   };
-
+  
   useEffect(() => {
     if (isSuccess) {
       console.log("Transaction confirmed. Refetching market data...");
