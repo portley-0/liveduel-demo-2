@@ -24,7 +24,6 @@ const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 const MARKET_FACTORY_ABI = MarketFactoryABI.abi;
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
-
 const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [selectedBet, setSelectedBet] = useState<"home" | "draw" | "away" | null>(null);
   const [betAmount, setBetAmount] = useState<string>("");
@@ -49,6 +48,8 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [isBalanceLoading, setIsBalanceLoading] = useState(false);
   const [conditionId, setConditionId] = useState<string | null>(null);
   const [outcomeTokenIds, setOutcomeTokenIds] = useState<{ [key: number]: string }>({});
+
+  const isResolved = !!match.resolvedAt;
 
   const closeModal = () => setIsModalOpen(false);
 
@@ -163,7 +164,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       setIsTxPending(false);
     }
   };
-  
   
   const approveContracts = async (which: "buy" | "sell") => {
     if (!walletClient || !marketAddress) {
@@ -396,6 +396,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
           return (
             <button
               key={`bet-button-${outcome}-${refreshKey}`}
+              disabled={isResolved}
               className={`border-2 shadow-md ${borderColor} text-white font-semibold 
                 w-[128px] h-[45px] 
                 md:w-[125px] md:h-[43px] 
@@ -404,9 +405,13 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                 min-w-[105px] flex-shrink-0
                 flex items-center justify-center space-x-2 transition-all 
                 rounded-full focus:outline-none focus:ring-0 ${
-                  isSelected ? "bg-hovergreyblue" : "bg-greyblue hover:bg-hovergreyblue"
+                  isResolved
+                    ? "opacity-50 cursor-not-allowed"
+                    : isSelected
+                    ? "bg-hovergreyblue"
+                    : "bg-greyblue hover:bg-hovergreyblue"
                 }`}
-              onClick={() => handleSelectBet(outcome)}
+              onClick={() => !isResolved && handleSelectBet(outcome)}
             >
               {outcome === "draw" ? (
                 <TbCircleLetterDFilled className="text-gray-400 text-[35px] md:text-[31px] sm:text-[29px] xs:text-[27px]" />
@@ -426,8 +431,11 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
       {!expanded && (
         <button
-          className="w-full mt-2 flex items-center justify-center text-white text-md font-semibold space-x-2"
-          onClick={() => setExpanded(true)}
+          disabled={isResolved}
+          className={`w-full mt-2 flex items-center justify-center text-white text-md font-semibold space-x-2 ${
+            isResolved ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          onClick={() => !isResolved && setExpanded(true)}
         >
           <PiCaretUpDownBold className="text-lg" />
           <span>More Betting Options</span>
