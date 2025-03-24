@@ -187,7 +187,7 @@ const Predictions: React.FC = () => {
                     <div className="ml-2 flex-shrink-0">
                       <button
                         disabled={redeemProps.disabled}
-                        className={`w-28 text-center px-3 py-1 rounded-md ${redeemProps.colorClasses} text-white font-semibold text-sm ${
+                        className={`w-24 text-center px-3 py-1 rounded-md ${redeemProps.colorClasses} text-white font-semibold text-sm ${
                           redeemProps.disabled ? "cursor-not-allowed" : "cursor-pointer"
                         }`}
                         onClick={(e) => {
