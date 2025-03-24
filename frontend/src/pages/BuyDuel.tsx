@@ -25,13 +25,6 @@ const BuyDuel: React.FC = () => {
 
   const closeModal = () => setIsModalOpen(false);
 
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, []);
-
   const publicProvider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
 
   useEffect(() => {

@@ -69,12 +69,6 @@ const Staking: React.FC = () => {
     fetchData();
   }, [walletClient]);
 
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, []);
 
   const claimRewards = async () => {
     if (!walletClient) return;
@@ -147,19 +141,20 @@ const Staking: React.FC = () => {
         <div className="flex justify-between items-start text-sm md:text-lg font-semibold">
           <div className="flex flex-col">
             <div>
-              {formatLargeNumber(duelReserve)} DUEL | {formatLargeNumber(usdcReserve)} USDC
+              {formatLargeNumber(duelReserve)} $DUEL | {formatLargeNumber(usdcReserve)} USDC
             </div>
-            <div className="mt-1 hidden md:block">
+            <div className="mt-[2px]">
               1 $DUEL = ${duelPrice.toFixed(2)} USDC
             </div>
           </div>
           <div className="text-right">
-            <div className="hidden md:block">Staked Balance</div>
-            <div className="mt-1">
+            <div>Staked Balance</div>
+            <div className="mt-[2px]">
               {stakedBalance > 0 ? formatLargeNumber(stakedBalance) : "0.00"} $DUEL
             </div>
           </div>
         </div>
+
         <hr className="border-t-2 border-white my-4" />
         <div className="flex justify-between items-center text-sm md:text-lg font-semibold">
           <div className="text-left hidden md:block">
@@ -206,7 +201,7 @@ const Staking: React.FC = () => {
           </div>
           <div className="bg-greyblue p-4 mt-4 rounded-lg text-lg font-semibold">
             <div className="mb-3">
-              <label className="block mb-2">DUEL Amount</label>
+              <label className="block mb-2">$DUEL Amount</label>
               <input
                 type="number"
                 value={inputAmount}
