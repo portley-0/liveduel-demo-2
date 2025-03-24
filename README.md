@@ -49,6 +49,6 @@ For module-specific setup instructions, refer to:
 
 ---
 
-## 📄 License
+## License
 This project is licensed under the [MIT License](LICENSE).
 
