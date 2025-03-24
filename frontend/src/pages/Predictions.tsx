@@ -5,6 +5,10 @@ import { TbCircleLetterDFilled } from "react-icons/tb";
 import { useAccount, useWalletClient } from "wagmi";
 import { Dialog } from "@headlessui/react";
 import PredictionMarketABI from "@/abis/PredictionMarket.json" with { type: "json" };
+import ConditionalTokensABI from "@/abis/ConditionalTokens.json" with { type: "json" };
+
+const CONDITIONAL_TOKENS_ADDRESS = "0x988A02b302AE410CA71f6A10ad218Da5c70b9f5a";
+const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 
 interface UserPrediction {
   marketAddress: string;
@@ -37,6 +41,8 @@ const Predictions: React.FC = () => {
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [redeemModalData, setRedeemModalData] = useState({ shares: "", cost: 0 });
   const closeRedeemModal = () => setIsRedeemModalOpen(false);
+
+  const [redeemingMarketAddress, setRedeemingMarketAddress] = useState<string | null>(null);
 
   const getRedeemButtonProps = (p: UserPrediction) => {
     if (!p.isResolved) {
@@ -76,11 +82,22 @@ const Predictions: React.FC = () => {
   const handleRedeem = async (prediction: UserPrediction) => {
     try {
       if (!walletClient || !address) return;
+      setRedeemingMarketAddress(prediction.marketAddress);
       const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
+
+      const conditionalTokens = new ethers.Contract(
+        CONDITIONAL_TOKENS_ADDRESS,
+        CONDITIONAL_TOKENS_ABI,
+        signer
+      );
+      const approvalTx = await conditionalTokens.setApprovalForAll(prediction.marketAddress, true);
+      await approvalTx.wait();
+
       const market = new ethers.Contract(prediction.marketAddress, PredictionMarketABI.abi, signer);
       const tx = await market.redeemPayouts();
       await tx.wait();
+
       setRedeemModalData({
         shares: (prediction.netShares / 1e6).toFixed(2),
         cost: prediction.netCost / 1e6,
@@ -88,6 +105,8 @@ const Predictions: React.FC = () => {
       setIsRedeemModalOpen(true);
     } catch (error) {
       console.error("Redemption failed", error);
+    } finally {
+      setRedeemingMarketAddress(null);
     }
   };
 
@@ -117,6 +136,10 @@ const Predictions: React.FC = () => {
           <div className="grid gap-4 md:grid-cols-2">
             {predictions.map((p) => {
               const redeemProps = getRedeemButtonProps(p);
+              const isRedeeming = redeemingMarketAddress === p.marketAddress;
+              const finalButtonProps = isRedeeming
+                ? { label: "Redeeming...", colorClasses: redeemProps.colorClasses, disabled: true }
+                : redeemProps;
               return (
                 <div
                   key={`${p.marketAddress}-${p.outcome}`}
@@ -158,23 +181,13 @@ const Predictions: React.FC = () => {
                         />
                       )}
                       <span className="text-sm text-gray-300 inline-block ml-1">
-                        <span className="block sm:hidden">
-                          {truncateText(p.homeTeamName)}
-                        </span>
-                        <span className="hidden sm:inline">
-                          {p.homeTeamName}
-                        </span>
+                        <span className="block sm:hidden">{truncateText(p.homeTeamName)}</span>
+                        <span className="hidden sm:inline">{p.homeTeamName}</span>
                       </span>
-                      <span className="text-sm text-gray-400 inline-block mx-1">
-                        vs
-                      </span>
+                      <span className="text-sm text-gray-400 inline-block mx-1">vs</span>
                       <span className="text-sm text-gray-300 inline-block">
-                        <span className="block sm:hidden">
-                          {truncateText(p.awayTeamName)}
-                        </span>
-                        <span className="hidden sm:inline">
-                          {p.awayTeamName}
-                        </span>
+                        <span className="block sm:hidden">{truncateText(p.awayTeamName)}</span>
+                        <span className="hidden sm:inline">{p.awayTeamName}</span>
                       </span>
                       {p.awayTeamLogo && (
                         <img
@@ -186,18 +199,18 @@ const Predictions: React.FC = () => {
                     </div>
                     <div className="ml-2 flex-shrink-0">
                       <button
-                        disabled={redeemProps.disabled}
-                        className={`w-24 text-center px-3 py-1 rounded-md ${redeemProps.colorClasses} text-white font-semibold text-sm ${
-                          redeemProps.disabled ? "cursor-not-allowed" : "cursor-pointer"
+                        disabled={finalButtonProps.disabled}
+                        className={`w-24 text-center px-3 py-1 rounded-md ${finalButtonProps.colorClasses} text-white font-semibold text-sm ${
+                          finalButtonProps.disabled ? "cursor-not-allowed" : "cursor-pointer"
                         }`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (!redeemProps.disabled) {
+                          if (!finalButtonProps.disabled) {
                             handleRedeem(p);
                           }
                         }}
                       >
-                        {redeemProps.label}
+                        {finalButtonProps.label}
                       </button>
                     </div>
                   </div>
@@ -208,7 +221,11 @@ const Predictions: React.FC = () => {
         )}
       </div>
 
-      <Dialog open={isRedeemModalOpen} onClose={closeRedeemModal} className="fixed inset-0 flex items-center justify-center z-50">
+      <Dialog
+        open={isRedeemModalOpen}
+        onClose={closeRedeemModal}
+        className="fixed inset-0 flex items-center justify-center z-50"
+      >
         <div className="fixed inset-0 bg-black opacity-50"></div>
         <div className="bg-greyblue p-6 rounded-lg shadow-lg w-auto max-w-md sm:max-w-xs mx-4 sm:mx-auto text-center relative z-50">
           <h2 className="text-white text-2xl sm:text-xl font-semibold mb-3">Success</h2>
