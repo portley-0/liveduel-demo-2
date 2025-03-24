@@ -20,6 +20,7 @@ const BuyDuel: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState({ shares: "", cost: 0 });
+  const [isProcessing, setIsProcessing] = useState(false);
   const tradeType = "buy";
 
   const closeModal = () => setIsModalOpen(false);
@@ -40,7 +41,11 @@ const BuyDuel: React.FC = () => {
         return;
       }
       try {
-        const liquidityPoolContract = new ethers.Contract(LIQUIDITY_POOL_ADDRESS, LIQUIDITY_POOL_ABI, publicProvider);
+        const liquidityPoolContract = new ethers.Contract(
+          LIQUIDITY_POOL_ADDRESS, 
+          LIQUIDITY_POOL_ABI, 
+          publicProvider
+        );
         const [usdcReserve, duelReserve] = await liquidityPoolContract.getReserves();
         const amountIn = ethers.parseUnits(usdcAmount, 6);
         const estimated = await liquidityPoolContract.getSwapAmount(amountIn, usdcReserve, duelReserve);
@@ -61,6 +66,7 @@ const BuyDuel: React.FC = () => {
       return;
     }
     try {
+      setIsProcessing(true);
       const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
 
@@ -79,6 +85,8 @@ const BuyDuel: React.FC = () => {
     } catch (error) {
       console.error("Transaction error:", error);
       alert("Transaction failed!");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -112,9 +120,10 @@ const BuyDuel: React.FC = () => {
 
           <button
             onClick={handleBuyDuel}
-            className="w-full bg-darkblue rounded-full border-2 border-bg-grey-300 btn"
+            disabled={isProcessing}
+            className={`w-full bg-darkblue rounded-full border-2 border-bg-grey-300 btn ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            Confirm
+            {isProcessing ? "Processing..." : "Confirm"}
           </button>
         </div>
       </div>
