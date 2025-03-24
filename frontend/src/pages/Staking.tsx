@@ -47,15 +47,12 @@ const Staking: React.FC = () => {
 
       if (address) {
         const staked = await contract.stakedBalances(address);
-        // DUEL token has 18 decimals
         setStakedBalance(parseFloat(ethers.formatUnits(staked, 18)));
 
         const rewards = await contract.pendingRewards(address);
-        // USDC has 6 decimals
         setPendingRewards(parseFloat(ethers.formatUnits(rewards, 6)));
       }
       const reserves = await contract.getReserves();
-      // reserves: [usdcReserve (6 decimals), duelReserve (18 decimals)]
       const usdcVal = parseFloat(ethers.formatUnits(reserves[0], 6));
       const duelVal = parseFloat(ethers.formatUnits(reserves[1], 18));
       setUsdcReserve(usdcVal);
@@ -146,44 +143,43 @@ const Staking: React.FC = () => {
   return (
     <div className="max-w-xl mx-auto p-6 lg:-mt-4 sm:mt-4 sx:mt-4">
       <div className="space-y-0">
-        <div className="bg-cyan-500 text-white rounded-xl p-4 relative">
-          <div className="flex justify-between items-start text-lg font-semibold">
-            <div className="flex flex-col">
-              <div>
-                {formatLargeNumber(duelReserve)} DUEL | {formatLargeNumber(usdcReserve)} USDC
-              </div>
-              <div className="mt-1">
-                1 $DUEL = ${duelPrice.toFixed(2)} USDC
-              </div>
+      <div className="bg-cyan-500 text-white rounded-xl p-4 relative">
+        <div className="flex justify-between items-start text-sm md:text-lg font-semibold">
+          <div className="flex flex-col">
+            <div>
+              {formatLargeNumber(duelReserve)} DUEL | {formatLargeNumber(usdcReserve)} USDC
             </div>
-            {/* Right: Staked Balance */}
-            <div className="text-right">
-              <div>Staked Balance</div>
-              <div className="mt-1">
-                {stakedBalance > 0 ? formatLargeNumber(stakedBalance) : "0.00"} $DUEL
-              </div>
+            <div className="mt-1 hidden md:block">
+              1 $DUEL = ${duelPrice.toFixed(2)} USDC
             </div>
           </div>
-          <hr className="border-t-2 border-white my-4" />
-          {/* Bottom Row */}
-          <div className="flex justify-between items-center text-lg font-semibold">
-            <div className="text-left">
-              <span>2% per TX added to rewards</span>
-            </div>
-            <div className="text-center">
-              <div>Claimable Rewards:</div>
-              <div>{pendingRewards.toFixed(2)} USDC</div>
-            </div>
-            <div className="text-right">
-              <button
-                className="border-2 border-white rounded-full px-4 py-1 text-lg"
-                onClick={claimRewards}
-              >
-                Claim
-              </button>
+          <div className="text-right">
+            <div className="hidden md:block">Staked Balance</div>
+            <div className="mt-1">
+              {stakedBalance > 0 ? formatLargeNumber(stakedBalance) : "0.00"} $DUEL
             </div>
           </div>
         </div>
+        <hr className="border-t-2 border-white my-4" />
+        <div className="flex justify-between items-center text-sm md:text-lg font-semibold">
+          <div className="text-left hidden md:block">
+            <span>2% per TX added to rewards</span>
+          </div>
+          <div className="text-center">
+            <div>Claimable Rewards:</div>
+            <div>{pendingRewards.toFixed(2)} USDC</div>
+          </div>
+          <div className="text-right">
+            <button
+              className="border-2 border-white rounded-full px-3 py-1 text-sm md:text-lg"
+              onClick={claimRewards}
+            >
+              Claim
+            </button>
+          </div>
+        </div>
+      </div>
+
 
         <div className="bg-darkblue text-white rounded-xl shadow-md w-full">
           <div className="flex border-b border-gray-600">
