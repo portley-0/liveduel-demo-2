@@ -138,18 +138,20 @@ const Staking: React.FC = () => {
     <div className="max-w-xl mx-auto p-6 lg:-mt-4 sm:mt-4 sx:mt-4">
       <div className="space-y-0">
       <div className="bg-cyan-500 text-white rounded-xl p-4 relative">
-        <div className="flex justify-between items-start text-sm md:text-lg font-semibold">
-          <div className="flex flex-col">
+        <div className="flex flex-col text-sm md:text-lg font-semibold">
+          <div className="flex justify-between items-center whitespace-nowrap">
             <div>
               {formatLargeNumber(duelReserve)} $DUEL | {formatLargeNumber(usdcReserve)} USDC
             </div>
-            <div className="mt-[2px]">
-              1 $DUEL = ${duelPrice.toFixed(2)} USDC
+            <div className="text-right">
+              Staked Balance
             </div>
           </div>
-          <div className="text-right">
-            <div>Staked Balance</div>
-            <div className="mt-[2px]">
+          <div className="flex justify-between items-center whitespace-nowrap mt-[2px]">
+            <div>
+              1 $DUEL = ${duelPrice.toFixed(2)} USDC
+            </div>
+            <div className="text-right">
               {stakedBalance > 0 ? formatLargeNumber(stakedBalance) : "0.00"} $DUEL
             </div>
           </div>
