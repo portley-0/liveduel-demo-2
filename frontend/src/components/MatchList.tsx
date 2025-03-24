@@ -40,6 +40,10 @@ const MatchList: React.FC<MatchListProps> = ({
     );
   }
 
+  filteredMatches = filteredMatches.filter(
+    (match) => match.statusShort && !["FT", "AET", "PEN"].includes(match.statusShort)
+  );
+
   if (sortBy === "volume") {
     filteredMatches.sort((a, b) => (b.bettingVolume ?? 0) - (a.bettingVolume ?? 0));
   } else if (sortBy === "date-asc") {
@@ -96,11 +100,13 @@ const MatchList: React.FC<MatchListProps> = ({
                       {match.homeScore ?? 0}:{match.awayScore ?? 0}
                     </span>
                     <span className="text-xs text-redmagenta font-semibold">
-                      {match.statusShort && ["FT", "AET", "PEN"].includes(match.statusShort)
-                        ? "Full Time"
-                        : match.statusShort && LIVE_STATUSES.includes(match.statusShort)
-                        ? `In Progress (${match.elapsed}’)`
-                        : formatKickoffTime(match.matchTimestamp)}
+                    {match.statusShort === "PEN"
+                      ? "Penalties"
+                      : match.statusShort && ["FT", "AET"].includes(match.statusShort)
+                      ? "Full Time"
+                      : match.statusShort && LIVE_STATUSES.includes(match.statusShort)
+                      ? `In Progress (${match.elapsed}’)`
+                      : formatKickoffTime(match.matchTimestamp)}
                     </span>
                   </div>
                   <div className="flex flex-col items-end">

@@ -11,22 +11,19 @@ const LIQUIDITY_POOL_ABI = LiquidityPoolABI.abi;
 const USDC_ADDRESS = "0xB1cC53DfF11c564Fbe22145a0b07588e7648db74";
 const USDC_ABI = MockUSDCABI.abi;
 
-// Use Avalanche Fuji RPC; ensure VITE_RPC_URL is set or default to the Fuji endpoint.
-const AVALANCHE_FUJI_RPC = import.meta.env.VITE_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
+const AVALANCHE_FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
 
 const BuyDuel: React.FC = () => {
   const [usdcAmount, setUsdcAmount] = useState<string>('');
   const [estimatedDuel, setEstimatedDuel] = useState<string>('');
   const { data: walletClient } = useWalletClient();
 
-  // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState({ shares: "", cost: 0 });
   const tradeType = "buy";
 
   const closeModal = () => setIsModalOpen(false);
 
-  // Disable body scrolling when this component mounts
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -34,10 +31,8 @@ const BuyDuel: React.FC = () => {
     };
   }, []);
 
-  // Create a public provider for read-only calls using Avalanche Fuji's RPC
   const publicProvider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
 
-  // Calculate estimated DUEL tokens whenever usdcAmount changes
   useEffect(() => {
     const fetchEstimatedDuel = async () => {
       if (!usdcAmount || Number(usdcAmount) <= 0) {
@@ -46,12 +41,9 @@ const BuyDuel: React.FC = () => {
       }
       try {
         const liquidityPoolContract = new ethers.Contract(LIQUIDITY_POOL_ADDRESS, LIQUIDITY_POOL_ABI, publicProvider);
-        // Get current reserves from the liquidity pool
         const [usdcReserve, duelReserve] = await liquidityPoolContract.getReserves();
         const amountIn = ethers.parseUnits(usdcAmount, 6);
-        // Use the pool's pure function to calculate the swap amount
         const estimated = await liquidityPoolContract.getSwapAmount(amountIn, usdcReserve, duelReserve);
-        // Assuming DUEL tokens have 18 decimals; adjust if needed.
         const estimatedFormatted = ethers.formatUnits(estimated, 18);
         setEstimatedDuel(estimatedFormatted);
       } catch (error) {
@@ -74,17 +66,14 @@ const BuyDuel: React.FC = () => {
 
       const amountIn = ethers.parseUnits(usdcAmount, 6);
       
-      // Approve the liquidity pool contract to spend USDC
       const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
       const approveTx = await usdcContract.approve(LIQUIDITY_POOL_ADDRESS, amountIn);
       await approveTx.wait();
       
-      // Call the buyDuel function on the liquidity pool contract
       const liquidityPoolContract = new ethers.Contract(LIQUIDITY_POOL_ADDRESS, LIQUIDITY_POOL_ABI, signer);
       const tx = await liquidityPoolContract.buyDuel(amountIn);
       await tx.wait();
       
-      // Set modal data and show the modal
       setModalData({ shares: estimatedDuel, cost: Number(usdcAmount) });
       setIsModalOpen(true);
     } catch (error) {
@@ -95,7 +84,6 @@ const BuyDuel: React.FC = () => {
 
   return (
     <>
-      {/* Wrapper to prevent page scrolling and add mobile padding */}
       <div className="min-h-screen overflow-hidden px-4 sm:px-0">
         <div className="mt-8 bg-greyblue rounded-xl p-4 w-full max-w-md mx-auto">
           <h2 className="text-xl font-bold mb-4">Add Liquidity</h2>
@@ -131,7 +119,6 @@ const BuyDuel: React.FC = () => {
         </div>
       </div>
 
-      {/* Success Modal with extra mobile padding */}
       <Dialog open={isModalOpen} onClose={closeModal} className="fixed inset-0 flex items-center justify-center z-50">
         <div className="fixed inset-0 bg-black opacity-50"></div>
         <div className="bg-greyblue p-6 rounded-lg shadow-lg w-auto max-w-md sm:max-w-xs mx-4 sm:mx-auto text-center relative z-50">

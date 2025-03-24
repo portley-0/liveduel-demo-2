@@ -39,7 +39,6 @@ export const MatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return;
       }
 
-      // Assume the server sends matches with precomputed `latestOdds` and `chartData`
       const matchMap = initialMatches.reduce<Record<number, MatchData>>((acc, match) => {
         acc[match.matchId] = match;
         return acc;
