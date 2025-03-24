@@ -40,7 +40,10 @@ const Predictions: React.FC = () => {
 
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [redeemModalData, setRedeemModalData] = useState({ shares: "", cost: 0 });
-  const closeRedeemModal = () => setIsRedeemModalOpen(false);
+  const closeRedeemModal = () => {
+    setIsRedeemModalOpen(false);
+    fetchPredictions();
+  };
 
   const [redeemingMarketAddress, setRedeemingMarketAddress] = useState<string | null>(null);
 
@@ -48,34 +51,34 @@ const Predictions: React.FC = () => {
     if (!p.isResolved) {
       return { label: "Pending", colorClasses: "bg-gray-700", disabled: true };
     }
-    if (p.hasRedeemed) {
-      return { label: "Redeemed", colorClasses: "bg-green-500", disabled: true };
-    }
     if (p.resolvedOutcome === p.outcome) {
-      return { label: "Redeem", colorClasses: "bg-blue-600 hover:bg-blue-700", disabled: false };
+      return p.hasRedeemed
+        ? { label: "Redeemed", colorClasses: "bg-green-500", disabled: true }
+        : { label: "Redeem", colorClasses: "bg-blue-600 hover:bg-blue-700", disabled: false };
     }
     return { label: "Lost", colorClasses: "bg-red-500", disabled: true };
   };
 
-  useEffect(() => {
-    const fetchPredictions = async () => {
-      setLoading(true);
-      try {
-        if (!isConnected || !address) {
-          setLoading(false);
-          return;
-        }
-        const res = await fetch(`${import.meta.env.VITE_SERVER_URL}/predictions/${address}`);
-        const json = await res.json();
-        if (json.success) {
-          setPredictions(json.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch predictions", error);
-      } finally {
+  const fetchPredictions = async () => {
+    setLoading(true);
+    try {
+      if (!isConnected || !address) {
         setLoading(false);
+        return;
       }
-    };
+      const res = await fetch(`${import.meta.env.VITE_SERVER_URL}/predictions/${address}`);
+      const json = await res.json();
+      if (json.success) {
+        setPredictions(json.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch predictions", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPredictions();
   }, [isConnected, address]);
 
@@ -98,9 +101,10 @@ const Predictions: React.FC = () => {
       const tx = await market.redeemPayouts();
       await tx.wait();
 
+      const redeemedAmount = (prediction.netShares / 1e6).toFixed(2);
       setRedeemModalData({
-        shares: (prediction.netShares / 1e6).toFixed(2),
-        cost: prediction.netCost / 1e6,
+        shares: redeemedAmount,
+        cost: prediction.netCost / 1e6, 
       });
       setIsRedeemModalOpen(true);
     } catch (error) {
@@ -136,7 +140,8 @@ const Predictions: React.FC = () => {
           <div className="grid gap-4 md:grid-cols-2">
             {predictions.map((p) => {
               const redeemProps = getRedeemButtonProps(p);
-              const isRedeeming = redeemingMarketAddress === p.marketAddress;
+              const isRedeemable = redeemProps.label === "Redeem";
+              const isRedeeming = isRedeemable && redeemingMarketAddress === p.marketAddress;
               const finalButtonProps = isRedeeming
                 ? { label: "Redeeming...", colorClasses: redeemProps.colorClasses, disabled: true }
                 : redeemProps;
@@ -230,7 +235,7 @@ const Predictions: React.FC = () => {
         <div className="bg-greyblue p-6 rounded-lg shadow-lg w-auto max-w-md sm:max-w-xs mx-4 sm:mx-auto text-center relative z-50">
           <h2 className="text-white text-2xl sm:text-xl font-semibold mb-3">Success</h2>
           <p className="text-gray-300 text-lg sm:text-base">
-            You redeemed <span className="text-white font-bold">{redeemModalData.shares}</span> outcome shares
+            You redeemed <span className="text-white font-bold">{redeemModalData.shares}</span> outcome tokens
           </p>
           <p className="text-gray-300 text-lg sm:text-base">
             for a payout of <span className="text-white font-bold">${redeemModalData.cost.toFixed(2)}</span> USDC
