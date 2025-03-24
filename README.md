@@ -32,7 +32,7 @@ A **Mock USDC** faucet is provided. This faucet dispenses mUSDC (test tokens) fo
 ## 📂 Directory Structure
 ```
 ├── contracts   # Solidity smart contracts 
-├── frontend    # Next.js web interface
+├── frontend    # React web interface
 ├── backend     # Express.js server aggregating data from The Graph & API Football 
 └── subgraph    # The Graph Protocol subgraph for event indexing
 ```

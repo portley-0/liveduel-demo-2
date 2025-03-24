@@ -214,7 +214,7 @@ const Staking: React.FC = () => {
             </div>
             <button
               onClick={activeTab === "Stake" ? stakeTokens : unstakeTokens}
-              className="bg-darkblue border-2 border-bg-grey-300 btn rounded-full w-full font-semibold text-lg"
+              className="bg-darkblue border-2 border-gray-300 btn rounded-full w-full font-semibold text-lg"
               disabled={loading}
             >
               {activeTab === "Stake" ? "Stake" : "Unstake"}
