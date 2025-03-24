@@ -168,7 +168,7 @@ const Staking: React.FC = () => {
           </div>
           <div className="text-right">
             <button
-              className="border-2 border-white rounded-full px-3 py-1 text-sm md:text-lg"
+              className="btn border-2 border-white text-white rounded-full px-3 py-1 text-sm md:text-lg"
               onClick={claimRewards}
             >
               Claim
@@ -201,7 +201,7 @@ const Staking: React.FC = () => {
               Unstake
             </button>
           </div>
-          <div className="bg-greyblue p-4 mt-4 rounded-lg text-lg font-semibold">
+          <div className="bg-greyblue p-4 mt-4 rounded-xl text-lg font-semibold">
             <div className="mb-3">
               <label className="block mb-2">$DUEL Amount</label>
               <input

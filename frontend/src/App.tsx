@@ -39,7 +39,7 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard/markets" />} />
             <Route path="/dashboard/markets" element={<Markets />} />
-            <Route path="/dashboard/markets/:matchId" element={<Market />} /> {/* Added dynamic route */}
+            <Route path="/dashboard/markets/:matchId" element={<Market />} /> 
             <Route path="/dashboard/predictions" element={<Predictions />} />
             <Route path="/dashboard/buy" element={<BuyDuel />} />
             <Route path="/dashboard/stake" element={<Staking />} />

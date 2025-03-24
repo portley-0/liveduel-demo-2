@@ -116,7 +116,7 @@ const Predictions: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 flex justify-center items-center">
+      <div className="fixed inset-0 z-50 min-h-screen flex justify-center items-center">
         <span className="loading loading-spinner text-blue-700 h-10 w-10"></span>
       </div>
     );
@@ -124,12 +124,12 @@ const Predictions: React.FC = () => {
 
   if (!isConnected || !address) {
     return (
-      <div className="text-white flex justify-center items-center">
-        <p className="text-lg font-semibold">Log in to view predictions</p>
+      <div className="min-h-screen flex justify-center items-center text-white">
+        <p className="text-lg font-semibold transform -translate-y-16">Log in to view predictions</p>
       </div>
     );
   }
-
+  
   return (
     <>
       <div className="text-white px-4 pt-4 pb-20">
@@ -143,7 +143,7 @@ const Predictions: React.FC = () => {
               const isRedeemable = redeemProps.label === "Redeem";
               const isRedeeming = isRedeemable && redeemingMarketAddress === p.marketAddress;
               const finalButtonProps = isRedeeming
-                ? { label: "Redeeming...", colorClasses: redeemProps.colorClasses, disabled: true }
+                ? { label: "Redeeming", colorClasses: redeemProps.colorClasses, disabled: true }
                 : redeemProps;
               return (
                 <div
