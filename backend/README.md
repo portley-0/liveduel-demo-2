@@ -43,7 +43,7 @@ backend/
 
 ## Setup Instructions
 
-### 1Install Dependencies
+### Install Dependencies
 ```bash
 pnpm install
 ```
@@ -66,6 +66,6 @@ pnpm run start
 This will start the backend server, which fetches match data, updates the cache, and communicates with the frontend in real-time.
 
 ---
-## 📄 License
+## License
 This project is licensed under the [MIT License](LICENSE).
 
