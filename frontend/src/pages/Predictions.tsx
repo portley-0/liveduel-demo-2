@@ -238,7 +238,7 @@ const Predictions: React.FC = () => {
             You redeemed <span className="text-white font-bold">{redeemModalData.shares}</span> outcome tokens
           </p>
           <p className="text-gray-300 text-lg sm:text-base">
-            for a payout of <span className="text-white font-bold">${redeemModalData.cost.toFixed(2)}</span> USDC
+            for a payout of <span className="text-white font-bold">${redeemModalData.shares}</span> USDC
           </p>
           <button
             className="mt-4 bg-greyblue border-2 border-white hover:border-blue-500 text-white font-semibold px-6 py-2 sm:px-4 sm:py-1.5 rounded-full transition"
