@@ -24,7 +24,10 @@ const connectors = connectorsForWallets(
         metaMaskWallet({ chains: [avalancheFuji] }),
         injectedWallet({ chains: [avalancheFuji] }),
         rainbowWallet({ chains: [avalancheFuji] }),
-        walletConnectWallet({ chains: [avalancheFuji] }),
+        walletConnectWallet({ 
+          chains: [avalancheFuji],
+          projectId: "bdeb8c2bc7bf8ef345e3f6c2a02bf549" 
+        }),
       ],
     },
   ],
