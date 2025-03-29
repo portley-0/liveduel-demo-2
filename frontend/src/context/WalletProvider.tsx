@@ -5,13 +5,12 @@ import {
   connectorsForWallets,
 } from "@rainbow-me/rainbowkit";
 import {
+  metaMaskWallet,
+  injectedWallet,
   rainbowWallet,
   walletConnectWallet,
-  injectedWallet,
-  metaMaskWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, http, WagmiProvider } from "wagmi";
-import { createClient as createViemClient } from "viem";
 import { avalancheFuji } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { ReactNode } from "react";
@@ -21,13 +20,10 @@ const connectors = connectorsForWallets(
     {
       groupName: "Recommended",
       wallets: [
-        metaMaskWallet({ chains: [avalancheFuji] }),
-        injectedWallet({ chains: [avalancheFuji] }),
-        rainbowWallet({ chains: [avalancheFuji] }),
-        walletConnectWallet({ 
-          chains: [avalancheFuji],
-          projectId: "bdeb8c2bc7bf8ef345e3f6c2a02bf549" 
-        }),
+        metaMaskWallet,
+        injectedWallet,
+        rainbowWallet,
+        walletConnectWallet,
       ],
     },
   ],
@@ -40,11 +36,8 @@ const connectors = connectorsForWallets(
 const config = createConfig({
   chains: [avalancheFuji],
   connectors,
-  client({ chain }) {
-    return createViemClient({
-      chain,
-      transport: http(),
-    });
+  transports: {
+    [avalancheFuji.id]: http(),
   },
 });
 
