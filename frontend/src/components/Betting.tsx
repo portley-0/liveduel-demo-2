@@ -27,7 +27,7 @@ const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [selectedBet, setSelectedBet] = useState<"home" | "draw" | "away" | null>(null);
   const [betAmount, setBetAmount] = useState<string>("");
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
   const { data: marketAddress, isLoading, refetch } = useMarketFactory(match.matchId);
   const [deployedMarket, setDeployedMarket] = useState<string | null>(null);
