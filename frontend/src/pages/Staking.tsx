@@ -160,7 +160,7 @@ const Staking: React.FC = () => {
       console.log("Staking amount (parsed):", amount.toString());
       // Ensure approval is in place before staking
       await ensureApproval(amount);
-
+  
       const contract = new ethers.Contract(
         LIQUIDITY_POOL_ADDRESS,
         LiquidityPoolABI.abi,
@@ -170,7 +170,12 @@ const Staking: React.FC = () => {
       await tx.wait();
       setInputAmount("");
       fetchData();
-      setModalMessage("Stake successful! <br /> Rewards Claimed");
+  
+      const message =
+        pendingRewards > 0
+          ? "Stake successful!\nRewards Claimed"
+          : "Stake successful!";
+      setModalMessage(message);
       setIsModalOpen(true);
     } catch (error) {
       console.error("Error staking tokens", error);
@@ -178,6 +183,7 @@ const Staking: React.FC = () => {
       setIsProcessing(false);
     }
   };
+  
 
   const unstakeTokens = async () => {
     const signer = await getSigner();
@@ -291,7 +297,7 @@ const Staking: React.FC = () => {
         <div className="fixed inset-0 bg-black opacity-50"></div>
         <div className="bg-greyblue p-6 rounded-lg shadow-lg w-auto max-w-md sm:max-w-xs mx-4 sm:mx-auto text-center relative z-50">
           <h2 className="text-white text-2xl sm:text-xl font-semibold mb-3">Success</h2>
-          <p className="text-gray-300 text-lg sm:text-base">{modalMessage}</p>
+          <p className="text-gray-300 text-lg sm:text-base" style={{ whiteSpace: "pre-line" }}>{modalMessage}</p>
           <button
             className="mt-4 bg-greyblue border-2 border-white hover:border-blue-500 text-white font-semibold px-6 py-2 sm:px-4 sm:py-1.5 rounded-full transition"
             onClick={() => setIsModalOpen(false)}
