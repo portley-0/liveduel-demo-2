@@ -118,7 +118,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
         </div>
 
         <div data-theme="dark" className="bg-darkblue flex flex-col space-y-2">
-          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 -mt-2">
             <span className="text-sm font-bold text-white text-right">
               Deployed Only
             </span>
