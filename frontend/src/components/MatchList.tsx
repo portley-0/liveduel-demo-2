@@ -7,12 +7,14 @@ interface MatchListProps {
   selectedLeague: number | null;
   sortBy: string;
   liveOnly: boolean;
+  deployedOnly: boolean;
 }
 
 const MatchList: React.FC<MatchListProps> = ({
   selectedLeague,
   sortBy,
   liveOnly,
+  deployedOnly,
 }) => {
   const { matches } = useMatches();
 
@@ -30,6 +32,10 @@ const MatchList: React.FC<MatchListProps> = ({
     filteredMatches = filteredMatches.filter(
       (match) => match.leagueId === selectedLeague
     );
+  }
+
+  if (deployedOnly) {
+    filteredMatches = filteredMatches.filter(match => !!match.contract);
   }
 
   const LIVE_STATUSES = ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"];
@@ -65,16 +71,14 @@ const MatchList: React.FC<MatchListProps> = ({
   return (
     <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-6 3xl:grid-cols-7 gap-4 p-4 pb-[80px]">
       {filteredMatches.map((match) => {
+        const homeOddsArray = match.oddsHistory?.homeOdds || [];
+        const homeOdds = homeOddsArray.length > 0 ? homeOddsArray[homeOddsArray.length - 1] : 3.0;
 
-      const homeOddsArray = match.oddsHistory?.homeOdds || [];
-      const homeOdds = homeOddsArray.length > 0 ? homeOddsArray[homeOddsArray.length - 1] : 3.0;
+        const drawOddsArray = match.oddsHistory?.drawOdds || [];
+        const drawOdds = drawOddsArray.length > 0 ? drawOddsArray[drawOddsArray.length - 1] : 3.0;
 
-      const drawOddsArray = match.oddsHistory?.drawOdds || [];
-      const drawOdds = drawOddsArray.length > 0 ? drawOddsArray[drawOddsArray.length - 1] : 3.0;
-
-      const awayOddsArray = match.oddsHistory?.awayOdds || [];
-      const awayOdds = awayOddsArray.length > 0 ? awayOddsArray[awayOddsArray.length - 1] : 3.0;
-
+        const awayOddsArray = match.oddsHistory?.awayOdds || [];
+        const awayOdds = awayOddsArray.length > 0 ? awayOddsArray[awayOddsArray.length - 1] : 3.0;
 
         return (
           <Link
@@ -100,13 +104,13 @@ const MatchList: React.FC<MatchListProps> = ({
                       {match.homeScore ?? 0}:{match.awayScore ?? 0}
                     </span>
                     <span className="text-xs text-redmagenta font-semibold">
-                    {match.statusShort === "PEN"
-                      ? "Penalties"
-                      : match.statusShort && ["FT", "AET"].includes(match.statusShort)
-                      ? "Full Time"
-                      : match.statusShort && LIVE_STATUSES.includes(match.statusShort)
-                      ? `In Progress (${match.elapsed}’)`
-                      : formatKickoffTime(match.matchTimestamp)}
+                      {match.statusShort === "PEN"
+                        ? "Penalties"
+                        : match.statusShort && ["FT", "AET"].includes(match.statusShort)
+                        ? "Full Time"
+                        : match.statusShort && LIVE_STATUSES.includes(match.statusShort)
+                        ? `In Progress (${match.elapsed}’)`
+                        : formatKickoffTime(match.matchTimestamp)}
                     </span>
                   </div>
                   <div className="flex flex-col items-end">

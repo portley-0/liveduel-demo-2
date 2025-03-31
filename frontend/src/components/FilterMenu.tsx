@@ -18,8 +18,6 @@ const LEAGUES = [
   { id: 848, name: "UEFA Conference League" }
 ];
 
-
-// Sorting Options
 const SORT_OPTIONS = [
   { id: "volume", name: "Volume" },
   { id: "date-asc", name: "Date (ASC)" },
@@ -33,6 +31,8 @@ interface FilterMenuProps {
   setSortBy: (sort: string) => void;
   liveOnly: boolean;
   setLiveOnly: React.Dispatch<React.SetStateAction<boolean>>;
+  deployedOnly: boolean;
+  setDeployedOnly: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const FilterMenu: React.FC<FilterMenuProps> = ({
@@ -42,6 +42,8 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
   setSortBy,
   liveOnly,
   setLiveOnly,
+  deployedOnly,
+  setDeployedOnly,
 }) => {
   const categoryRef = useRef<HTMLSpanElement>(null);
   const sortRef = useRef<HTMLSpanElement>(null);
@@ -115,20 +117,35 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
           </div>
         </div>
 
-        <div data-theme="dark" className="bg-darkblue">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-bold text-white">Live Only</span>
+        <div data-theme="dark" className="bg-darkblue flex flex-col space-y-2">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2">
+            <span className="text-sm font-bold text-white text-right">
+              Deployed Only
+            </span>
+            <input
+              type="checkbox"
+              className="toggle toggle-sm"
+              checked={deployedOnly}
+              onChange={() => setDeployedOnly((prev) => !prev)}
+            />
+          </div>
+          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2">
+            <span className="text-sm font-bold text-white text-right">
+              Live Only
+            </span>
             <input
               type="checkbox"
               className="toggle toggle-sm"
               checked={liveOnly}
-              onChange={() => setLiveOnly((prev: boolean) => !prev)}
+              onChange={() => setLiveOnly((prev) => !prev)}
             />
           </div>
         </div>
+
+
+
       </div>
     </div>
-
   );
 };
 
