@@ -1,6 +1,7 @@
 import React from "react";
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { MatchData } from "@/types/MatchData.ts";
+import CustomTooltip from "./CustomTooltip.tsx";
 
 interface MatchCardProps {
   match: MatchData;
@@ -90,6 +91,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
             <Line type="linear" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false} />
             <Line type="linear" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false} />
             <Line type="linear" dataKey="away" stroke="rgb(225, 29, 72)" strokeWidth={2} dot={false} />
+            <Tooltip content={<CustomTooltip matchData={match} />} />
           </LineChart>
         </ResponsiveContainer>
       </div>
