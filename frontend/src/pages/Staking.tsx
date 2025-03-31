@@ -144,6 +144,8 @@ const Staking: React.FC = () => {
       const tx = await contract.claimRewards();
       await tx.wait();
       fetchData();
+      setModalMessage("Claim successful!");
+      setIsModalOpen(true);
     } catch (error) {
       console.error("Error claiming rewards", error);
     }
@@ -168,7 +170,7 @@ const Staking: React.FC = () => {
       await tx.wait();
       setInputAmount("");
       fetchData();
-      setModalMessage("Stake transaction successful!");
+      setModalMessage("Stake successful!");
       setIsModalOpen(true);
     } catch (error) {
       console.error("Error staking tokens", error);
@@ -192,7 +194,7 @@ const Staking: React.FC = () => {
       await tx.wait();
       setInputAmount("");
       fetchData();
-      setModalMessage("Unstake transaction successful!");
+      setModalMessage("Unstake successful!");
       setIsModalOpen(true);
     } catch (error) {
       console.error("Error unstaking tokens", error);
