@@ -155,7 +155,7 @@ const BuyDuel: React.FC = () => {
           <button
             onClick={handleBuyDuel}
             disabled={isProcessing}
-            className={`w-full bg-darkblue rounded-full border-2 border-b-gray-300 btn ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-full bg-darkblue rounded-full border-2 border-gray-300 btn ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isProcessing ? "Processing..." : "Confirm"}
           </button>
