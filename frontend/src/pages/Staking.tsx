@@ -8,10 +8,10 @@ declare global {
 
 import { ethers } from "ethers";
 import { useWalletClient, useAccount } from "wagmi";
+import { Dialog } from "@headlessui/react";
 import LiquidityPoolABI from "@/abis/LiquidityPool.json" with { type: "json" };
 
-const DUEL_TOKEN_ADDRESS = "0x6ac54f1D7Fa5B8627A3905A30E6C2528Bf27E6Ee"; 
-
+const DUEL_TOKEN_ADDRESS = "0x6ac54f1D7Fa5B8627A3905A30E6C2528Bf27E6Ee";
 const LIQUIDITY_POOL_ADDRESS = "0x625D7fae1a2099B9429845dA2dd4a39b30194a91";
 const AVALANCHE_FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
 
@@ -41,7 +41,11 @@ const Staking: React.FC = () => {
   const [duelPrice, setDuelPrice] = useState<number>(0);
   const [inputAmount, setInputAmount] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"Stake" | "Unstake">("Stake");
-  const [loading, setLoading] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+  // Modal state for stake/unstake success
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [modalMessage, setModalMessage] = useState<string>("");
 
   const publicProvider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
 
@@ -149,7 +153,7 @@ const Staking: React.FC = () => {
     const signer = await getSigner();
     if (!signer) return;
     try {
-      setLoading(true);
+      setIsProcessing(true);
       const amount = ethers.parseUnits(inputAmount, 18);
       console.log("Staking amount (parsed):", amount.toString());
       // Ensure approval is in place before staking
@@ -164,10 +168,12 @@ const Staking: React.FC = () => {
       await tx.wait();
       setInputAmount("");
       fetchData();
+      setModalMessage("Stake transaction successful!");
+      setIsModalOpen(true);
     } catch (error) {
       console.error("Error staking tokens", error);
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -175,7 +181,7 @@ const Staking: React.FC = () => {
     const signer = await getSigner();
     if (!signer) return;
     try {
-      setLoading(true);
+      setIsProcessing(true);
       const amount = ethers.parseUnits(inputAmount, 18);
       const contract = new ethers.Contract(
         LIQUIDITY_POOL_ADDRESS,
@@ -186,10 +192,12 @@ const Staking: React.FC = () => {
       await tx.wait();
       setInputAmount("");
       fetchData();
+      setModalMessage("Unstake transaction successful!");
+      setIsModalOpen(true);
     } catch (error) {
       console.error("Error unstaking tokens", error);
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -268,14 +276,28 @@ const Staking: React.FC = () => {
             </div>
             <button
               onClick={activeTab === "Stake" ? stakeTokens : unstakeTokens}
-              className="bg-darkblue border-2 border-gray-300 btn rounded-full w-full font-semibold text-lg"
-              disabled={loading}
+              disabled={isProcessing}
+              className={`bg-darkblue border-2 border-gray-300 btn rounded-full w-full font-semibold text-lg ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              {activeTab === "Stake" ? "Stake" : "Unstake"}
+              {isProcessing ? "Processing..." : (activeTab === "Stake" ? "Stake" : "Unstake")}
             </button>
           </div>
         </div>
       </div>
+
+      <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} className="fixed inset-0 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black opacity-50"></div>
+        <div className="bg-greyblue p-6 rounded-lg shadow-lg w-auto max-w-md sm:max-w-xs mx-4 sm:mx-auto text-center relative z-50">
+          <h2 className="text-white text-2xl sm:text-xl font-semibold mb-3">Success</h2>
+          <p className="text-gray-300 text-lg sm:text-base">{modalMessage}</p>
+          <button
+            className="mt-4 bg-greyblue border-2 border-white hover:border-blue-500 text-white font-semibold px-6 py-2 sm:px-4 sm:py-1.5 rounded-full transition"
+            onClick={() => setIsModalOpen(false)}
+          >
+            Continue
+          </button>
+        </div>
+      </Dialog>
     </div>
   );
 };
