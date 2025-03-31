@@ -44,12 +44,20 @@ const TitleBar = () => {
     { path: "/dashboard/stake", label: "Staking", icon: FaCoins },
   ];
 
-  const { data: balance, isError, isLoading } = useReadContract({
+  const { data: balance, isError, isLoading, refetch } = useReadContract({
     address: mUSDCAddress,
     abi: mUSDCABI,
     functionName: "balanceOf",
     args: [address],
   });
+
+  useEffect(() => {
+    if (!address) return;
+    const intervalId = setInterval(() => {
+      refetch();
+    }, 15000); 
+    return () => clearInterval(intervalId);
+  }, [address, refetch]);
 
   const formattedBalance =
     !isLoading && !isError && balance
