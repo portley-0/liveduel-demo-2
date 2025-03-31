@@ -170,7 +170,7 @@ const Staking: React.FC = () => {
       await tx.wait();
       setInputAmount("");
       fetchData();
-      setModalMessage("Stake successful! \n Rewards Claimed");
+      setModalMessage("Stake successful! <br /> Rewards Claimed");
       setIsModalOpen(true);
     } catch (error) {
       console.error("Error staking tokens", error);
