@@ -249,7 +249,7 @@ const TitleBar = () => {
                     onClick={connected ? openAccountModal : openConnectModal}
                   >
                     <p className="font-[Lato-Bold] text-lg text-white">
-                      mUSDC Balance: ${displayBalance}
+                      Balance: ${displayBalance} mUSDC 
                     </p>
                   </li>
                 );
