@@ -1,10 +1,24 @@
 import React, { useState, useEffect } from "react";
+
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 import { ethers } from "ethers";
-import { useWalletClient } from "wagmi";
+import { useWalletClient, useAccount } from "wagmi";
 import LiquidityPoolABI from "@/abis/LiquidityPool.json" with { type: "json" };
+
+const DUEL_TOKEN_ADDRESS = "0x6ac54f1D7Fa5B8627A3905A30E6C2528Bf27E6Ee"; 
 
 const LIQUIDITY_POOL_ADDRESS = "0x625D7fae1a2099B9429845dA2dd4a39b30194a91";
 const AVALANCHE_FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
+
+const ERC20_ABI = [
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function approve(address spender, uint256 amount) returns (bool)"
+];
 
 const formatLargeNumber = (num: number): string => {
   if (num >= 1e6) {
@@ -17,6 +31,7 @@ const formatLargeNumber = (num: number): string => {
 
 const Staking: React.FC = () => {
   const { data: walletClient } = useWalletClient();
+  const { address, isConnected } = useAccount();
 
   const [userAddress, setUserAddress] = useState<string>("");
   const [stakedBalance, setStakedBalance] = useState<number>(0);
@@ -30,28 +45,65 @@ const Staking: React.FC = () => {
 
   const publicProvider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
 
+  // Helper function to get signer with logging
+  const getSigner = async () => {
+    if (!walletClient) {
+      console.log("No walletClient available");
+      return null;
+    }
+    let provider;
+    const anyClient = walletClient as any;
+    if (anyClient.provider) {
+      console.log("Using walletClient.provider for BrowserProvider");
+      provider = new ethers.BrowserProvider(anyClient.provider);
+    } else if (typeof window !== "undefined" && window.ethereum) {
+      console.log("Using window.ethereum for BrowserProvider");
+      provider = new ethers.BrowserProvider(window.ethereum);
+    } else {
+      console.log("Falling back to walletClient directly for BrowserProvider");
+      provider = new ethers.BrowserProvider(walletClient as any);
+    }
+    const signer = await provider.getSigner();
+    console.log("Signer obtained:", signer);
+    return signer;
+  };
+
+  // Ensure the user has approved the LiquidityPool to spend their DUEL tokens.
+  const ensureApproval = async (amount: ethers.BigNumberish) => {
+    const signer = await getSigner();
+    if (!signer || !address) return;
+    const duelTokenContract = new ethers.Contract(DUEL_TOKEN_ADDRESS, ERC20_ABI, signer);
+    const currentAllowance = await duelTokenContract.allowance(address, LIQUIDITY_POOL_ADDRESS);
+    console.log("Current allowance:", currentAllowance.toString());
+    if (ethers.getBigInt(currentAllowance) < ethers.getBigInt(amount)) {
+      console.log("Insufficient allowance, approving now...");
+      const tx = await duelTokenContract.approve(LIQUIDITY_POOL_ADDRESS, amount);
+      await tx.wait();
+      console.log("Approval successful.");
+    } else {
+      console.log("Sufficient allowance already exists.");
+    }
+  };
+
   const fetchData = async () => {
     try {
-      let address = "";
-      if (walletClient) {
-        const provider = new ethers.BrowserProvider(walletClient as any);
-        const signer = await provider.getSigner();
-        address = await signer.getAddress();
-        setUserAddress(address);
+      if (!address) {
+        console.log("No address found, skipping fetch.");
+        return;
       }
+      setUserAddress(address);
       const contract = new ethers.Contract(
         LIQUIDITY_POOL_ADDRESS,
         LiquidityPoolABI.abi,
         publicProvider
       );
 
-      if (address) {
-        const staked = await contract.stakedBalances(address);
-        setStakedBalance(parseFloat(ethers.formatUnits(staked, 18)));
+      const staked = await contract.stakedBalances(address);
+      setStakedBalance(parseFloat(ethers.formatUnits(staked, 18)));
 
-        const rewards = await contract.pendingRewards(address);
-        setPendingRewards(parseFloat(ethers.formatUnits(rewards, 6)));
-      }
+      const rewards = await contract.pendingRewards(address);
+      setPendingRewards(parseFloat(ethers.formatUnits(rewards, 6)));
+
       const reserves = await contract.getReserves();
       const usdcVal = parseFloat(ethers.formatUnits(reserves[0], 6));
       const duelVal = parseFloat(ethers.formatUnits(reserves[1], 18));
@@ -66,15 +118,20 @@ const Staking: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, [walletClient]);
+    if (isConnected && address) {
+      fetchData();
+    }
+  }, [isConnected, address]);
 
+  useEffect(() => {
+    console.log("walletClient:", walletClient);
+    console.log("Connected address:", address);
+  }, [walletClient, address]);
 
   const claimRewards = async () => {
-    if (!walletClient) return;
+    const signer = await getSigner();
+    if (!signer) return;
     try {
-      const provider = new ethers.BrowserProvider(walletClient as any);
-      const signer = await provider.getSigner();
       const contract = new ethers.Contract(
         LIQUIDITY_POOL_ADDRESS,
         LiquidityPoolABI.abi,
@@ -89,12 +146,15 @@ const Staking: React.FC = () => {
   };
 
   const stakeTokens = async () => {
-    if (!walletClient) return;
+    const signer = await getSigner();
+    if (!signer) return;
     try {
       setLoading(true);
       const amount = ethers.parseUnits(inputAmount, 18);
-      const provider = new ethers.BrowserProvider(walletClient as any);
-      const signer = await provider.getSigner();
+      console.log("Staking amount (parsed):", amount.toString());
+      // Ensure approval is in place before staking
+      await ensureApproval(amount);
+
       const contract = new ethers.Contract(
         LIQUIDITY_POOL_ADDRESS,
         LiquidityPoolABI.abi,
@@ -112,12 +172,11 @@ const Staking: React.FC = () => {
   };
 
   const unstakeTokens = async () => {
-    if (!walletClient) return;
+    const signer = await getSigner();
+    if (!signer) return;
     try {
       setLoading(true);
       const amount = ethers.parseUnits(inputAmount, 18);
-      const provider = new ethers.BrowserProvider(walletClient as any);
-      const signer = await provider.getSigner();
       const contract = new ethers.Contract(
         LIQUIDITY_POOL_ADDRESS,
         LiquidityPoolABI.abi,
@@ -137,46 +196,41 @@ const Staking: React.FC = () => {
   return (
     <div className="max-w-xl mx-auto p-6 lg:-mt-4 sm:mt-4 sx:mt-4">
       <div className="space-y-0">
-      <div className="bg-cyan-500 text-white rounded-xl p-4 relative">
-        <div className="flex flex-col text-sm md:text-lg font-semibold">
-          <div className="flex justify-between items-center whitespace-nowrap">
-            <div>
-              {formatLargeNumber(duelReserve)} $DUEL | {formatLargeNumber(usdcReserve)} USDC
+        <div className="bg-cyan-500 text-white rounded-xl p-4 relative">
+          <div className="flex flex-col text-sm md:text-lg font-semibold">
+            <div className="flex justify-between items-center whitespace-nowrap">
+              <div>
+                {formatLargeNumber(duelReserve)} $DUEL | {formatLargeNumber(usdcReserve)} USDC
+              </div>
+              <div className="text-right">Stake Balance</div>
             </div>
-            <div className="text-right">
-              Stake Balance
+            <div className="flex justify-between items-center whitespace-nowrap mt-[2px]">
+              <div>1 $DUEL = ${duelPrice.toFixed(2)} USDC</div>
+              <div className="text-right">
+                {stakedBalance > 0 ? formatLargeNumber(stakedBalance) : "0.00"} $DUEL
+              </div>
             </div>
           </div>
-          <div className="flex justify-between items-center whitespace-nowrap mt-[2px]">
-            <div>
-              1 $DUEL = ${duelPrice.toFixed(2)} USDC
+
+          <hr className="border-t-2 border-white my-4" />
+          <div className="flex justify-between items-center text-sm md:text-lg font-semibold">
+            <div className="text-left hidden md:block">
+              <span>2% per TX added to rewards</span>
+            </div>
+            <div className="text-center">
+              <div>Claimable Rewards:</div>
+              <div>{pendingRewards.toFixed(2)} USDC</div>
             </div>
             <div className="text-right">
-              {stakedBalance > 0 ? formatLargeNumber(stakedBalance) : "0.00"} $DUEL
+              <button
+                className="btn border-2 border-white text-white rounded-full px-3 py-1 text-sm md:text-lg"
+                onClick={claimRewards}
+              >
+                Claim
+              </button>
             </div>
           </div>
         </div>
-
-        <hr className="border-t-2 border-white my-4" />
-        <div className="flex justify-between items-center text-sm md:text-lg font-semibold">
-          <div className="text-left hidden md:block">
-            <span>2% per TX added to rewards</span>
-          </div>
-          <div className="text-center">
-            <div>Claimable Rewards:</div>
-            <div>{pendingRewards.toFixed(2)} USDC</div>
-          </div>
-          <div className="text-right">
-            <button
-              className="btn border-2 border-white text-white rounded-full px-3 py-1 text-sm md:text-lg"
-              onClick={claimRewards}
-            >
-              Claim
-            </button>
-          </div>
-        </div>
-      </div>
-
 
         <div className="bg-darkblue text-white rounded-xl shadow-md w-full">
           <div className="flex border-b border-gray-600">

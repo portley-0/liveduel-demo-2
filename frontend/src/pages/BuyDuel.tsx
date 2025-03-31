@@ -27,6 +27,47 @@ const BuyDuel: React.FC = () => {
 
   const publicProvider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
 
+  // Helper function to get signer with logging.
+  const getSigner = async () => {
+    if (!walletClient) {
+      console.log("No walletClient available");
+      return null;
+    }
+    let provider;
+    const anyClient = walletClient as any;
+    if (anyClient.provider) {
+      console.log("Using walletClient.provider for BrowserProvider");
+      provider = new ethers.BrowserProvider(anyClient.provider);
+    } else if (typeof window !== "undefined" && window.ethereum) {
+      console.log("Using window.ethereum for BrowserProvider");
+      provider = new ethers.BrowserProvider(window.ethereum);
+    } else {
+      console.log("Falling back to walletClient directly for BrowserProvider");
+      provider = new ethers.BrowserProvider(walletClient as any);
+    }
+    const signer = await provider.getSigner();
+    console.log("Signer obtained:", signer);
+    return signer;
+  };
+
+  // Helper to ensure USDC approval is set.
+  const ensureUSDCApproval = async (amount: ethers.BigNumberish) => {
+    const signer = await getSigner();
+    if (!signer) return;
+    const userAddress = await signer.getAddress();
+    const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
+    const currentAllowance: bigint = await usdcContract.allowance(userAddress, LIQUIDITY_POOL_ADDRESS);
+    console.log("Current USDC allowance:", currentAllowance.toString());
+    if (currentAllowance < ethers.toBigInt(amount)) {
+      console.log("Insufficient USDC allowance, approving now...");
+      const tx = await usdcContract.approve(LIQUIDITY_POOL_ADDRESS, amount);
+      await tx.wait();
+      console.log("USDC approval successful.");
+    } else {
+      console.log("Sufficient USDC allowance already exists.");
+    }
+  };
+
   useEffect(() => {
     const fetchEstimatedDuel = async () => {
       if (!usdcAmount || Number(usdcAmount) <= 0) {
@@ -35,8 +76,8 @@ const BuyDuel: React.FC = () => {
       }
       try {
         const liquidityPoolContract = new ethers.Contract(
-          LIQUIDITY_POOL_ADDRESS, 
-          LIQUIDITY_POOL_ABI, 
+          LIQUIDITY_POOL_ADDRESS,
+          LIQUIDITY_POOL_ABI,
           publicProvider
         );
         const [usdcReserve, duelReserve] = await liquidityPoolContract.getReserves();
@@ -60,19 +101,19 @@ const BuyDuel: React.FC = () => {
     }
     try {
       setIsProcessing(true);
-      const provider = new ethers.BrowserProvider(walletClient as any);
-      const signer = await provider.getSigner();
-
+      const signer = await getSigner();
+      if (!signer) return;
+      
       const amountIn = ethers.parseUnits(usdcAmount, 6);
-      
-      const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
-      const approveTx = await usdcContract.approve(LIQUIDITY_POOL_ADDRESS, amountIn);
-      await approveTx.wait();
-      
+      console.log("USDC amount (parsed):", amountIn.toString());
+
+      // Ensure USDC allowance is approved before buying.
+      await ensureUSDCApproval(amountIn);
+
       const liquidityPoolContract = new ethers.Contract(LIQUIDITY_POOL_ADDRESS, LIQUIDITY_POOL_ABI, signer);
       const tx = await liquidityPoolContract.buyDuel(amountIn);
       await tx.wait();
-      
+
       setModalData({ shares: estimatedDuel, cost: Number(usdcAmount) });
       setIsModalOpen(true);
     } catch (error) {
