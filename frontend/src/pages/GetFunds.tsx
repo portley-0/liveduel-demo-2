@@ -129,7 +129,7 @@ const GetFunds: React.FC = () => {
             </div>
             <div className="h-48 flex items-center justify-center">
               <img
-                src="/public/images/AVAX-Tokens.png"
+                src="/images/AVAX-Tokens.png"
                 alt="Avalanche Token"
                 className="h-full w-auto"
               />
@@ -210,7 +210,7 @@ const GetFunds: React.FC = () => {
 
       <div className="hidden lg:block ml-8">
         <img
-          src="/public/images/AVAX-Tokens.png"
+          src="/images/AVAX-Tokens.png"
           alt="Avalanche Token"
           className="w-auto h-auto object-contain"
         />
