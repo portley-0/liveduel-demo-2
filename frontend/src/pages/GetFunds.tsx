@@ -175,7 +175,7 @@ const GetFunds: React.FC = () => {
               <button
                 onClick={handleMint}
                 disabled={processing}
-                className={`${getButtonClasses()} w-full md:w-auto`}
+                className={`${getButtonClasses()} w-full md:w-60`}
               >
                 {getButtonLabel()}
               </button>
