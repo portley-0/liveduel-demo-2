@@ -211,7 +211,7 @@ const TitleBar = () => {
                       />
                       <span
                         className={`w-full text-center text-xs lg:text-sm capitalize whitespace-nowrap ${
-                          label === "My Predictions" ? "-ml-3" : ""
+                          label === "My Predictions" ? "-ml-4" : ""
                         }`}
                       >
                         {label}
