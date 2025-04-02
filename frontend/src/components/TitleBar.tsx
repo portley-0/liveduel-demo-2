@@ -3,7 +3,6 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { FaChartLine, FaFutbol, FaCreditCard, FaCoins } from "react-icons/fa";
-import { FaRegMoneyBillAlt } from "react-icons/fa";
 import { MdAccountBalanceWallet } from "react-icons/md";
 import { RiMenuLine } from "react-icons/ri";
 import { useAccount, useReadContract } from "wagmi";
@@ -41,7 +40,6 @@ const TitleBar = () => {
   const navItems = [
     { path: "/dashboard/markets", label: "Markets", icon: FaChartLine },
     { path: "/dashboard/predictions", label: "My Predictions", icon: FaFutbol },
-    { path: "/dashboard/get-funds", label: "Get Funds", icon: FaRegMoneyBillAlt },
     { path: "/dashboard/buy", label: "Buy $Duel", icon: FaCreditCard },
     { path: "/dashboard/stake", label: "Staking", icon: FaCoins },
   ];
@@ -94,7 +92,7 @@ const TitleBar = () => {
             </div>
 
             <div className="flex items-center space-x-4 lg:space-x-6">
-            {!isMobile && (
+              {!isMobile && (
                 <div className="flex items-center gap-4 select-none">
                   {navItems.map(({ path, label, icon: Icon }) => (
                     <NavLink
@@ -130,7 +128,6 @@ const TitleBar = () => {
                   ))}
                 </div>
               )}
-
 
               <ConnectButton.Custom>
                 {({
@@ -187,15 +184,15 @@ const TitleBar = () => {
               </ConnectButton.Custom>
             </div>
           </header>
-          
+
           {isMobile && (
-            <div className="fixed bottom-0 w-full bg-darkblue flex py-2 shadow-xl z-50">
+            <div className="fixed bottom-0 w-full bg-darkblue flex justify-around py-2 shadow-xl z-50">
               {navItems.map(({ path, label, icon: Icon }) => (
                 <NavLink
                   key={path}
                   to={path}
                   className={({ isActive }) =>
-                    `group btn flex flex-col items-center justify-center w-1/5 p-0 m-0 bg-darkblue border-none hover:bg-transparent ${
+                    `group btn flex flex-col items-center bg-darkblue border-none hover:bg-transparent ${
                       isActive ? "!text-redmagenta" : "text-white"
                     }`
                   }
@@ -210,7 +207,11 @@ const TitleBar = () => {
                         }`}
                       />
                       <span
-                        className="w-full text-center text-xs lg:text-sm capitalize whitespace-nowrap"
+                        className={`text-xs lg:text-sm capitalize ${
+                          isActive
+                            ? "text-redmagenta group-hover:opacity-80"
+                            : "text-white group-hover:text-gray-300"
+                        }`}
                       >
                         {label}
                       </span>
@@ -220,9 +221,6 @@ const TitleBar = () => {
               ))}
             </div>
           )}
-
-
-
         </div>
 
         <div className="drawer-side z-50">
