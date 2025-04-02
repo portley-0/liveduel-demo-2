@@ -6,6 +6,7 @@ import { lazy, Suspense } from "react";
 const Markets = lazy(() => import("@/pages/Markets.tsx"));
 const Market = lazy(() => import("@/pages/Match.tsx"));
 const Predictions = lazy(() => import("@/pages/Predictions.tsx"));
+const GetFunds = lazy(() => import("@/pages/GetFunds.tsx"));
 const BuyDuel = lazy(() => import("@/pages/BuyDuel.tsx"));
 const Staking = lazy(() => import("@/pages/Staking.tsx"));
 
@@ -15,6 +16,7 @@ const App: React.FC = () => {
       () => import("@/pages/Markets.tsx"),
       () => import("@/pages/Match.tsx"), 
       () => import("@/pages/Predictions.tsx"),
+      () => import("@/pages/GetFunds.tsx"),
       () => import("@/pages/BuyDuel.tsx"),
       () => import("@/pages/Staking.tsx"),
     ];
@@ -41,6 +43,7 @@ const App: React.FC = () => {
             <Route path="/dashboard/markets" element={<Markets />} />
             <Route path="/dashboard/markets/:matchId" element={<Market />} /> 
             <Route path="/dashboard/predictions" element={<Predictions />} />
+            <Route path="/dashboard/get-funds" element={<GetFunds />} />
             <Route path="/dashboard/buy" element={<BuyDuel />} />
             <Route path="/dashboard/stake" element={<Staking />} />
             <Route path="*" element={<Navigate to="/dashboard/markets" />} />
