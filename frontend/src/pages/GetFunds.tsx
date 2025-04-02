@@ -61,9 +61,8 @@ const GetFunds: React.FC = () => {
 
   const getSigner = async () => {
     let provider;
-    const anyClient = walletClient as any;
-    if (walletClient && anyClient.provider) {
-      provider = new ethers.BrowserProvider(anyClient.provider);
+    if (walletClient) {
+      provider = new ethers.BrowserProvider(walletClient as any);
     } else if (typeof window !== "undefined" && window.ethereum) {
       const raw = window.ethereum;
       const accounts = await raw.request({ method: "eth_accounts" });
@@ -78,7 +77,7 @@ const GetFunds: React.FC = () => {
     const signer = await provider.getSigner();
     return signer;
   };
-
+  
   const handleMint = async () => {
     if (!wallet) {
       alert("Please enter a wallet address.");
