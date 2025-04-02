@@ -53,7 +53,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
   const closeModal = () => setIsModalOpen(false);
 
-  const fetchConditionId = async () => {
+  const fetchConditionId = async (): Promise<void> => {
     if (!walletClient || !match.matchId || !marketAddress) return;
     try {
       const provider = new ethers.BrowserProvider(walletClient as any);
