@@ -446,7 +446,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
         <>
           <div className="p-1 w-full">
             <label className="block text-md font-semibold">
-              {tradeType === "buy" ? "Enter Outcome Shares To Buy" : "Enter Outcome Shares To Sell"}
+              {tradeType === "buy" ? "Target Winning Amount" : "Target Selling Amount"}
             </label>
             {tradeType === "sell" && (
               <p>
@@ -458,7 +458,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
               type="number"
               min="0"
               className="w-full p-2 mt-2 focus:outline-none focus:ring-0 rounded bg-darkblue text-white text-lg"
-              placeholder={marketStatus !== "ready" ? "Market not deployed" : "Enter share amount"}
+              placeholder={marketStatus !== "ready" ? "Market not deployed" : "USD Amount"}
               value={betAmount}
               onChange={(e) => {
                 if (marketStatus !== "ready") return;
@@ -469,35 +469,18 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
             />
             <div className="mt-3 text-sm text-white">
               <p>
-                <strong>{tradeType === "buy" ? "LMSR Net Cost:" : "You Receive:"}</strong>
+                <strong>{tradeType === "buy" ? "Total Cost:" : "You Receive:"}</strong>
                 {selectedBet === null || betAmount === ""
                   ? " $0.00 USDC"
-                  : isFetchingNetCost
-                  ? " Loading..."
+                  : tradeType === "buy"
+                  ? totalCost
+                    ? ` $${(Number(totalCost) / 1e6).toFixed(2)} USDC`
+                    : " Calculating..."
                   : netCost !== null
                   ? ` $${(Number(netCost) / 1e6).toFixed(2)} USDC`
-                  : " Error"}
+                  : " Loading..."}
               </p>
-              {tradeType === "buy" && (
-                <>
-                  <p>
-                    <strong>Transaction Fee (4%):</strong>
-                    {selectedBet === null || betAmount === ""
-                      ? " $0.00 USDC"
-                      : fee
-                      ? ` $${(Number(fee) / 1e6).toFixed(2)} USDC`
-                      : " Calculating..."}
-                  </p>
-                  <p>
-                    <strong>Total Cost:</strong>
-                    {selectedBet === null || betAmount === ""
-                      ? " $0.00 USDC"
-                      : totalCost
-                      ? ` $${(Number(totalCost) / 1e6).toFixed(2)} USDC`
-                      : " Calculating..."}
-                  </p>
-                </>
-              )}
+
               {marketStatus === "loading" && (
                 <p className="text-white font-semibold mt-2">🔄 Checking market status...</p>
               )}
@@ -524,6 +507,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
             >
               {isTxPending ? "Processing..." : tradeType === "buy" ? "BUY" : "SELL"}
             </button>
+
           </div>
           <button
             className="w-full mt-2 flex items-center justify-center text-white text-md font-semibold space-x-2"

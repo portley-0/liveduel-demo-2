@@ -44,10 +44,18 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
         </div>
 
         <div className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center">
-          <span className="lg:text-4xl sm:text-2xl xs:text-2xl font-bold text-redmagenta">
+          <span className={`lg:text-4xl sm:text-2xl xs:text-2xl font-bold ${
+            match.statusShort && ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
+              ? "text-redmagenta"
+              : "text-white"
+          }`}>
             {match.homeScore ?? 0}:{match.awayScore ?? 0}
           </span>
-          <span className="lg:text-lg sm:text-md text-redmagenta font-semibold">
+          <span className={`lg:text-lg sm:text-md font-semibold ${
+            match.statusShort && ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
+              ? "text-redmagenta"
+              : "text-white"
+          }`}>
             {match.statusShort && ["FT", "AET", "PEN"].includes(match.statusShort)
               ? "Full Time"
               : match.statusShort &&
@@ -55,6 +63,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
               ? `In Progress ${match.elapsed ? `(${match.elapsed}’)` : ""}`
               : formatKickoffTime(match.matchTimestamp)}
           </span>
+
         </div>
 
         <div className="flex flex-col items-end">

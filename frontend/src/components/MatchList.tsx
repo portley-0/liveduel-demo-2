@@ -71,6 +71,9 @@ const MatchList: React.FC<MatchListProps> = ({
   return (
     <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-6 3xl:grid-cols-7 gap-4 p-4 pb-[80px]">
       {filteredMatches.map((match) => {
+
+        const isLive = match.statusShort && LIVE_STATUSES.includes(match.statusShort);
+
         const homeOddsArray = match.oddsHistory?.homeOdds || [];
         const homeOdds = homeOddsArray.length > 0 ? homeOddsArray[homeOddsArray.length - 1] : 3.0;
 
@@ -100,10 +103,14 @@ const MatchList: React.FC<MatchListProps> = ({
                     </span>
                   </div>
                   <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-2 flex flex-col items-center">
-                    <span className="text-3xl xs:text-2xl font-bold text-redmagenta">
+                    <span className={`text-3xl xs:text-2xl font-bold ${isLive ? "text-redmagenta" : "text-white"}`}>
                       {match.homeScore ?? 0}:{match.awayScore ?? 0}
                     </span>
-                    <span className="text-xs text-redmagenta font-semibold">
+                    <span className={`text-xs font-semibold ${
+                      match.statusShort && LIVE_STATUSES.includes(match.statusShort)
+                        ? "text-redmagenta"
+                        : "text-white"
+                    }`}>
                       {match.statusShort === "PEN"
                         ? "Penalties"
                         : match.statusShort && ["FT", "AET"].includes(match.statusShort)
