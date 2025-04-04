@@ -7,9 +7,12 @@ import {
 import {
   metaMaskWallet,
   injectedWallet,
-  rainbowWallet,
+  coreWallet,
+  rabbyWallet,
+  trustWallet,
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
+import { toPrivyWallet } from '@privy-io/cross-app-connect/rainbow-kit';
 import { createConfig, http, WagmiProvider } from "wagmi";
 import { avalancheFuji } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
@@ -21,9 +24,16 @@ const connectors = connectorsForWallets(
       groupName: "Recommended",
       wallets: [
         metaMaskWallet,
-        injectedWallet,
-        rainbowWallet,
+        toPrivyWallet({
+          id: 'cm935vklg01mhla0mlm1x4lf4',
+          name: 'Privy (Google)',
+          iconUrl: '/images/privy-logo.jpg'
+        }),
+        coreWallet,
+        rabbyWallet,
+        trustWallet,
         walletConnectWallet,
+        injectedWallet,
       ],
     },
   ],

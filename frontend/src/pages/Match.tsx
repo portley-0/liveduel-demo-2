@@ -50,7 +50,7 @@ const Match: React.FC = () => {
           </div>
         </div>
 
-        <div ref={rightColumnRef} className="w-full lg:w-1/2 lg:px-10 sm:px-6 xs:px-6 flex flex-col overflow-y-auto pb-20">
+        <div ref={rightColumnRef} className="w-full lg:w-1/2 lg:px-10 sm:px-6 xs:px-6 xxs:px-6 flex flex-col overflow-y-auto pb-20">
           <Betting match={match} />
           <MatchInfo match={match} />
         </div>

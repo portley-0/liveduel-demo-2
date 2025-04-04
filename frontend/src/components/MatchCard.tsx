@@ -30,21 +30,21 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
   };
 
   return (
-    <div className="relative p-10 mt-[-20px] sm:px-7 xs:px-7 sm:pb-5 xs:pb-5 lg:pr-4 flex flex-col w-full lg:max-h-[calc(100vh-80px)]">
+    <div className="relative p-10 mt-[-20px] sm:px-7 xs:px-7 xxs:px-7 sm:pb-5 xs:pb-5 xxs:pb-5 lg:pr-4 flex flex-col w-full lg:max-h-[calc(100vh-80px)]">
       <div className="flex justify-between items-center mb-3">
         <div className="flex flex-col items-start">
           <img
             src={match.homeTeamLogo}
             alt={match.homeTeamName}
-            className="object-contain 2xl:w-[140px] 2xl:h-[140px] lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px]"
+            className="object-contain 2xl:w-[140px] 2xl:h-[140px] lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] xxs:w-[75px] xxs:h-[75px]"
           />
-          <span className="lg:text-xl text-white font-[Lato-Bold] mt-3 mb-3 xs:mb-1 sm:mb-2 truncate max-w-[180px]">
+          <span className="lg:text-xl text-white font-[Lato-Bold] mt-3 mb-3 xs:mb-1 xxs:mb-1 sm:mb-2 truncate max-w-[180px]">
             {match.homeTeamName}
           </span>
         </div>
 
         <div className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center">
-          <span className={`lg:text-4xl sm:text-2xl xs:text-2xl font-bold ${
+          <span className={`lg:text-4xl sm:text-2xl xs:text-2xl xxs:text-2xl font-bold ${
             match.statusShort && ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
               ? "text-redmagenta"
               : "text-white"
@@ -70,15 +70,15 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
           <img
             src={match.awayTeamLogo}
             alt={match.awayTeamName}
-            className="object-contain 2xl:w-[140px] 2xl:h-[140px] lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px]"
+            className="object-contain 2xl:w-[140px] 2xl:h-[140px] lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] xxs:w-[75px] xxs:h-[75px]"
           />
-          <span className="lg:text-xl text-white font-[Lato-Bold] mt-3 mb-3 sm:mb-1 xs:mb-1 truncate max-w-[180px]">
+          <span className="lg:text-xl text-white font-[Lato-Bold] mt-3 mb-3 sm:mb-1 xs:mb-1 xxs:mb-1 truncate max-w-[180px]">
             {match.awayTeamName}
           </span>
         </div>
       </div>
       
-      <div className="bg-lightgreyblue lg:h-[160px] sm:h-[100px] xs:h-[100px] min-w-[200px]">
+      <div className="bg-lightgreyblue lg:h-[160px] sm:h-[100px] xs:h-[100px] xxs:h-[100px] min-w-[200px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ left: 0, right: 7, top: 5, bottom: 5 }}>
             <XAxis dataKey="timestamp" hide />
@@ -106,13 +106,13 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
       </div>
 
       <div className="flex justify-between items-end mt-2 text-white">
-        <div className="lg:text-xl sm:text-sm xs:text-sm font-[Quicksand Bold]">
+        <div className="lg:text-xl sm:text-sm xs:text-sm xxs:text-sm font-[Quicksand Bold]">
           <span className="block font-semibold">Volume</span>
           <div className="text-white font-semibold">
             ${match.bettingVolume ? (match.bettingVolume / 1_000_000).toFixed(2) : "0.00"}
           </div>
         </div>
-        <div className="flex space-x-4 lg:text-xl sm:text-sm xs:text-sm font-[Quicksand Bold]">
+        <div className="flex space-x-4 lg:text-xl sm:text-sm xs:text-sm xxs:text-sm font-[Quicksand Bold]">
           <div className="flex flex-col items-center">
             <span className="text-blue-400 font-semibold">$HOME</span>
             <span className="text-blue-400 font-semibold">

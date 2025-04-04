@@ -381,7 +381,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
         </div>
       </div>
 
-      <div className="flex space-x-4 sm:space-x-2 xs:space-x-2 justify-center mb-1">
+      <div className="flex space-x-4 sm:space-x-2 xs:space-x-1 xxs:space-x-1 justify-center mb-1">
         {(["home", "draw", "away"] as const).map((outcome) => {
           const price = outcome === "home" ? homePrice : outcome === "draw" ? drawPrice : awayPrice;
           const isSelected = selectedBet === outcome;
@@ -401,9 +401,10 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                 w-[128px] h-[45px] 
                 md:w-[125px] md:h-[43px] 
                 sm:w-[117px] sm:h-[42px] 
-                xs:w-[107px] xs:h-[40px] 
-                min-w-[105px] flex-shrink-0
-                flex items-center justify-center space-x-2 transition-all 
+                xs:w-[105px] xs:h-[38px]
+                xxs:w-[100px] xxs:h-[38px]
+                flex-shrink-0
+                flex items-center justify-center sm:space-x-2 xs:space-x-1.5 xxs:space-x-1.5 transition-all 
                 rounded-full focus:outline-none focus:ring-0 ${
                   isResolved
                     ? "opacity-50 cursor-not-allowed"
@@ -414,15 +415,15 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
               onClick={() => !isResolved && handleSelectBet(outcome)}
             >
               {outcome === "draw" ? (
-                <TbCircleLetterDFilled className="text-gray-400 text-[35px] md:text-[31px] sm:text-[29px] xs:text-[27px]" />
+                <TbCircleLetterDFilled className="text-gray-400 text-[35px] md:text-[31px] sm:text-[29px] xs:text-[27px] xxs:text-[25px]" />
               ) : (
                 <img
                   src={outcome === "home" ? match.homeTeamLogo : match.awayTeamLogo}
                   alt={outcome}
-                  className="w-[34px] h-[34px] md:w-[30px] md:h-[30px] sm:w-[28px] sm:h-[28px] xs:w-[26px] xs:h-[26px] object-contain"
+                  className="w-[34px] h-[34px] md:w-[30px] md:h-[30px] sm:w-[28px] sm:h-[28px] xs:w-[24px] xs:h-[24px] xxs:w-[22px] xxs:h-[22px] object-contain"
                 />
               )}
-              <span className="text-xl md:text-lg sm:text-base xs:text-sm">${price.toFixed(2)}</span>
+              <span className="text-xl md:text-lg sm:text-base xs:text-sm xxs:text-[14px]">${price.toFixed(2)}</span>
               {getOddsMovementIcon(prevVal, price)}
             </button>
           );
