@@ -31,7 +31,6 @@ declare global {
 
 const GetFunds: React.FC = () => {
   const { address: connectedAddress } = useAccount();
-  const { data: walletClient } = useWalletClient();
 
   const [wallet, setWallet] = useState("");
   const [processing, setProcessing] = useState(false);

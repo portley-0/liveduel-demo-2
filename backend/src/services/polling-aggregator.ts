@@ -165,7 +165,7 @@ async function addUpcomingMatchesToCache() {
   const fromDate = today.toISOString().split('T')[0];
 
   const futureDate = new Date();
-  futureDate.setDate(today.getDate() + 10);
+  futureDate.setDate(today.getDate() + 6);
   const toDate = futureDate.toISOString().split('T')[0];
 
   const statuses = ['NS', '1H', 'HT', '2H', 'ET', 'P', 'LIVE'];
