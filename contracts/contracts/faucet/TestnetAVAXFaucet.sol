@@ -9,10 +9,11 @@ contract TestnetAVAXFaucet {
     receive() external payable {}
     fallback() external payable {}
 
-    function mint() external {
+    function mint(address recipient) external {
         require(address(this).balance >= MINT_AMOUNT, "Insufficient funds in faucet");
-        payable(msg.sender).transfer(MINT_AMOUNT);
-        emit Minted(msg.sender, MINT_AMOUNT);
+        require(recipient != address(0), "Invalid recipient address");
+        payable(recipient).transfer(MINT_AMOUNT);
+        emit Minted(recipient, MINT_AMOUNT);
     }
 
     function faucetBalance() external view returns (uint256) {

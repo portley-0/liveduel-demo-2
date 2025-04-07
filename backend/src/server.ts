@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import http from 'http';
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from "cors";
 import { Server as SocketIOServer } from 'socket.io';
 import { deployMarket } from './services/deploy-market';
@@ -8,6 +8,21 @@ import { getUserPredictions } from './services/get-predictions'
 import { startDataPolling, startFastSubgraphPolling, startMatchCachePolling, startStandingsPolling } from './services/polling-aggregator';
 import { initCache, getMatchData } from './cache';
 import { initSocket } from './socket';
+import { ethers } from "ethers";
+
+const FAUCET_ABI = [
+  {
+    inputs: [{ name: "recipient", type: "address" }],
+    name: "mint",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  }
+];
+
+const FAUCET_ADDRESS = process.env.FAUCET_ADDRESS!;
+const PRIVATE_KEY = process.env.PRIVATE_KEY!;
+const AVALANCHE_FUJI_RPC = process.env.AVALANCHE_FUJI_RPC!;
 
 async function main() {
   const app = express();
@@ -77,6 +92,29 @@ async function main() {
     res.json({ success: true, data: match });
   });
 
+  app.post('/mint/:walletAddress', async (req: Request<{ walletAddress: string }>, res: Response): Promise<void> => {
+    const { walletAddress } = req.params;
+  
+    if (!ethers.isAddress(walletAddress)) {
+      res.status(400).json({ error: 'Invalid wallet address.' });
+    }
+  
+    try {
+      const provider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
+      const signer = new ethers.Wallet(PRIVATE_KEY, provider);
+  
+      const faucet = new ethers.Contract(FAUCET_ADDRESS, FAUCET_ABI, signer);
+  
+      const tx = await faucet.mint(walletAddress);
+      await tx.wait();
+  
+      res.json({ success: true, txHash: tx.hash });
+    } catch (error: any) {
+      console.error('Mint error:', error);
+      res.status(500).json({ error: error.reason || error.message || 'Minting failed' });
+    }
+  });
+  
   const PORT = process.env.PORT || 3000;
   server.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);

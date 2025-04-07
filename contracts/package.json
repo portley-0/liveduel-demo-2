@@ -4,6 +4,7 @@
     "deploy:system": "pnpm hardhat run scripts/DeployPredictionSystem.ts --network avalancheFuji",
     "deploy:gnosis": "pnpm hardhat run scripts/DeployGnosisCTF.ts --network avalancheFuji",
     "deploy:resultsconsumer": "pnpm hardhat run scripts/DeployResultsConsumer.ts --network avalancheFuji",
+    "deploy:faucet": "pnpm hardhat run scripts/DeployFaucet.ts --network avalancheFuji",
     "test:chainlink": "pnpm hardhat run scripts/TestChainlinkRequest.ts --network avalancheFuji",
     "test:sanity": "npx hardhat test --network avalancheFuji tests/sanitycheck.test.ts",
     "test:staking": "npx hardhat test --network avalancheFuji tests/staking.test.ts",

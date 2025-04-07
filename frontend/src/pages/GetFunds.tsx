@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useAccount, useWalletClient } from "wagmi";
 import { ethers } from "ethers";
 
-const FAUCET_ADDRESS = "0x88F535380AB4Eb4F7EDa26f2c0551C6D321d0AeA";
+const FAUCET_ADDRESS = "0xDDF15885B4F9d92655ED21d6FD75790A64Eb65c7";
 const AVALANCHE_FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
+const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
 const FAUCET_ABI = [
   {
@@ -59,48 +60,37 @@ const GetFunds: React.FC = () => {
     fetchFaucetBalance();
   }, []);
 
-  const getSigner = async () => {
-    let provider;
-    if (walletClient) {
-      provider = new ethers.BrowserProvider(walletClient as any);
-    } else if (typeof window !== "undefined" && window.ethereum) {
-      const raw = window.ethereum;
-      const accounts = await raw.request({ method: "eth_accounts" });
-      if (!accounts || accounts.length === 0) {
-        await raw.request({ method: "eth_requestAccounts" });
-      }
-      provider = new ethers.BrowserProvider(raw);
-    } else {
-      console.error("No wallet provider found");
-      return null;
-    }
-    const signer = await provider.getSigner();
-    return signer;
-  };
-  
   const handleMint = async () => {
     if (!wallet) {
       alert("Please enter a wallet address.");
       return;
     }
+
     setProcessing(true);
     setSuccess(false);
+
     try {
-      const signer = await getSigner();
-      if (!signer) throw new Error("No signer available");
-      const faucet = new ethers.Contract(FAUCET_ADDRESS, FAUCET_ABI, signer);
-      const tx = await faucet.mint();
-      await tx.wait();
+      const response = await fetch(`${SERVER_URL}/mint/${wallet}`, {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Minting failed");
+      }
+
       setSuccess(true);
       setTimeout(() => setSuccess(false), 4000);
       await fetchFaucetBalance();
     } catch (err: any) {
       console.error("Mint error:", err);
-      alert("Minting failed: " + (err.reason || err.message || "Unknown error"));
+      alert("Minting failed: " + (err.message || "Unknown error"));
     } finally {
       setProcessing(false);
     }
   };
+
 
   const getButtonLabel = () => {
     if (processing) return "Processing...";

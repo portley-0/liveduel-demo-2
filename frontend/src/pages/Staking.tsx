@@ -91,23 +91,34 @@ const Staking: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      if (!address) {
-        console.log("No address found, skipping fetch.");
-        return;
-      }
+      if (!address) return;
+  
       setUserAddress(address);
       const contract = new ethers.Contract(
         LIQUIDITY_POOL_ADDRESS,
         LiquidityPoolABI.abi,
         publicProvider
       );
-
+  
       const staked = await contract.stakedBalances(address);
       setStakedBalance(parseFloat(ethers.formatUnits(staked, 18)));
-
+  
       const rewards = await contract.pendingRewards(address);
       setPendingRewards(parseFloat(ethers.formatUnits(rewards, 6)));
-
+  
+    } catch (error) {
+      console.error("Error fetching staking data", error);
+    }
+  };
+  
+  const fetchReserves = async () => {
+    try {
+      const contract = new ethers.Contract(
+        LIQUIDITY_POOL_ADDRESS,
+        LiquidityPoolABI.abi,
+        publicProvider
+      );
+  
       const reserves = await contract.getReserves();
       const usdcVal = parseFloat(ethers.formatUnits(reserves[0], 6));
       const duelVal = parseFloat(ethers.formatUnits(reserves[1], 18));
@@ -117,16 +128,20 @@ const Staking: React.FC = () => {
         setDuelPrice(usdcVal / duelVal);
       }
     } catch (error) {
-      console.error("Error fetching staking data", error);
+      console.error("Error fetching reserves", error);
     }
   };
-
+  
+  useEffect(() => {
+    fetchReserves(); 
+  }, []);
+  
   useEffect(() => {
     if (isConnected && address) {
       fetchData();
     }
   }, [isConnected, address]);
-
+  
   useEffect(() => {
     console.log("walletClient:", walletClient);
     console.log("Connected address:", address);
