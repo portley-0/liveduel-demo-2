@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import TitleBar from "@/components/TitleBar.tsx";
+import ForceFuji from '@/components/ForceFuji.tsx';
 import { lazy, Suspense } from "react";
 
 const Markets = lazy(() => import("@/pages/Markets.tsx"));
@@ -34,6 +35,7 @@ const App: React.FC = () => {
       </div>
 
       <div className="flex-grow min-h-screen overflow-y-auto mt-[84px] bg-darkblue">
+        <ForceFuji />
         <Suspense fallback={
           <div className="fixed inset-0 z-50 flex justify-center items-center">
             <span className="loading loading-spinner text-blue-700 h-10 w-10"></span>
