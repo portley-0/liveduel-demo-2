@@ -6,7 +6,7 @@ const MARKET_FACTORY_ABI = MarketFactoryArtifact.abi;
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY || '';
 const MARKET_FACTORY_ADDRESS = process.env.MARKET_FACTORY_ADDRESS || '';
-const AVALANCHE_FUJI_RPC_URL = process.env.AVALANCHE_FUJI_RPC_URL || '';
+const AVALANCHE_FUJI_RPC = process.env.AVALANCHE_FUJI_RPC || '';
 const API_KEY = process.env.API_KEY || '';
 
 const baseUrl = 'https://v3.football.api-sports.io';
@@ -57,7 +57,7 @@ export async function deployMarket(matchId: number, matchTimestamp: number) {
     );
   }
 
-  const provider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC_URL);
+  const provider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
   const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
   const factory = new ethers.Contract(
     MARKET_FACTORY_ADDRESS,

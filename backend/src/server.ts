@@ -9,7 +9,6 @@ import { startDataPolling, startFastSubgraphPolling, startMatchCachePolling, sta
 import { initCache, getMatchData } from './cache';
 import { initSocket } from './socket';
 import { ethers } from "ethers";
-import fetch from 'node-fetch';
 
 
 const FAUCET_ABI = [
