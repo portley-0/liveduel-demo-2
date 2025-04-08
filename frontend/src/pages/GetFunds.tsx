@@ -3,7 +3,7 @@ import { useAccount, useWalletClient } from "wagmi";
 import { ethers } from "ethers";
 
 const FAUCET_ADDRESS = "0xDDF15885B4F9d92655ED21d6FD75790A64Eb65c7";
-const AVALANCHE_FUJI_RPC = "https://avalanche-fuji.public.blastapi.io";
+const AVALANCHE_FUJI_RPC = "https://api.liveduel-demo-2.app/rpc";
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
 const FAUCET_ABI = [

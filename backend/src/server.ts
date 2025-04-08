@@ -31,7 +31,8 @@ async function main() {
       "http://localhost:5173",
       "https://liveduel-demo-2.app",
       "https://www.liveduel-demo-2.app",
-      "https://api.liveduel-demo-2.app"
+      "https://api.liveduel-demo-2.app",
+      "https://privy.abs.xyz",
     ],
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"]
@@ -112,6 +113,24 @@ async function main() {
     } catch (error: any) {
       console.error('Mint error:', error);
       res.status(500).json({ error: error.reason || error.message || 'Minting failed' });
+    }
+  });
+
+  app.post('/rpc', async (req, res) => {
+    try {
+      const response = await fetch(AVALANCHE_FUJI_RPC, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(req.body),
+      });
+  
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error) {
+      console.error('RPC proxy error:', error);
+      res.status(500).json({ error: 'RPC proxy failed' });
     }
   });
   

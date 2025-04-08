@@ -13,7 +13,7 @@ import LiquidityPoolABI from "@/abis/LiquidityPool.json" with { type: "json" };
 
 const DUEL_TOKEN_ADDRESS = "0x6ac54f1D7Fa5B8627A3905A30E6C2528Bf27E6Ee";
 const LIQUIDITY_POOL_ADDRESS = "0x625D7fae1a2099B9429845dA2dd4a39b30194a91";
-const AVALANCHE_FUJI_RPC = "https://avalanche-fuji.public.blastapi.io";
+const AVALANCHE_FUJI_RPC = "https://api.liveduel-demo-2.app/rpc";
 
 const ERC20_ABI = [
   "function allowance(address owner, address spender) view returns (uint256)",

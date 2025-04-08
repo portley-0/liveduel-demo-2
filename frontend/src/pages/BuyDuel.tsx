@@ -11,7 +11,7 @@ const LIQUIDITY_POOL_ABI = LiquidityPoolABI.abi;
 const USDC_ADDRESS = "0xB1cC53DfF11c564Fbe22145a0b07588e7648db74";
 const USDC_ABI = MockUSDCABI.abi;
 
-const AVALANCHE_FUJI_RPC = "https://avalanche-fuji.public.blastapi.io";
+const AVALANCHE_FUJI_RPC = "https://api.liveduel-demo-2.app/rpc";
 
 const BuyDuel: React.FC = () => {
   const [usdcAmount, setUsdcAmount] = useState<string>('');
