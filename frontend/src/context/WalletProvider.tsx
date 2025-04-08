@@ -47,7 +47,7 @@ const config = createConfig({
   chains: [avalancheFuji],
   connectors,
   transports: {
-    [avalancheFuji.id]: http(),
+    [avalancheFuji.id]: http('https://avalanche-fuji.public.blastapi.io'),
   },
 });
 
