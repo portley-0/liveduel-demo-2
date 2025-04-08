@@ -9,6 +9,8 @@ import { startDataPolling, startFastSubgraphPolling, startMatchCachePolling, sta
 import { initCache, getMatchData } from './cache';
 import { initSocket } from './socket';
 import { ethers } from "ethers";
+import fetch from 'node-fetch';
+
 
 const FAUCET_ABI = [
   {
@@ -33,6 +35,7 @@ async function main() {
       "https://www.liveduel-demo-2.app",
       "https://api.liveduel-demo-2.app",
       "https://privy.abs.xyz",
+      "https://mock-usdc.xyz"
     ],
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"]
@@ -118,6 +121,8 @@ async function main() {
 
   app.post('/rpc', async (req, res) => {
     try {
+      console.log('→ Incoming RPC request:', req.body?.method);
+  
       const response = await fetch(AVALANCHE_FUJI_RPC, {
         method: 'POST',
         headers: {
@@ -126,13 +131,19 @@ async function main() {
         body: JSON.stringify(req.body),
       });
   
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } catch (error) {
-      console.error('RPC proxy error:', error);
-      res.status(500).json({ error: 'RPC proxy failed' });
+      const text = await response.text(); 
+      console.log('← RPC response:', response.status, text);
+  
+      res.status(response.status).type('application/json').send(text);
+    } catch (error: any) {
+      console.error('✖ RPC proxy error:', error);
+      res.status(500).json({
+        error: 'RPC proxy failed',
+        details: error.message || error.toString(),
+      });
     }
   });
+  
   
   const PORT = process.env.PORT || 3000;
   server.listen(Number(PORT), '0.0.0.0', () => {
