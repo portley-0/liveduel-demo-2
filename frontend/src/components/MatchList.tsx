@@ -174,41 +174,46 @@ const MatchList: React.FC = () => {
           }`}
         >
           <div
-            onMouseDown={(e) => e.stopPropagation()}
-            onMouseEnter={() => setIsPlusHovered(true)}
-            onMouseLeave={() => setIsPlusHovered(false)}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (!displayCheckIcon) {
-                addDefaultSelection({
-                  id: match.matchId,
-                  type: "match",
-                  name: `${match.homeTeamName} vs ${match.awayTeamName}`,
-                });
-              }
-            }}
-            className="absolute top-2 right-2 z-20 p-3 cursor-pointer rounded-full hover:bg-black/20 transition-colors"
-            title="Add to selections"
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              e.stopPropagation();
-              if (!displayCheckIcon && (e.key === "Enter" || e.key === " ")) {
-                e.preventDefault();
-                addDefaultSelection({
-                  id: match.matchId,
-                  type: "match",
-                  name: `${match.homeTeamName} vs ${match.awayTeamName}`,
-                });
-              }
-            }}
+            className="absolute top-1 right-1 z-20"
+            style={{ width: "2rem", height: "2rem" }} 
           >
-            {displayCheckIcon ? (
-              <LuCircleCheck className="text-blue-500 w-6 h-6" />
-            ) : (
-              <LuCirclePlus className="text-white w-6 h-6" />
-            )}
+            <button
+              onMouseDown={(e) => e.stopPropagation()} 
+              onMouseEnter={() => setIsPlusHovered(true)}
+              onMouseLeave={() => setIsPlusHovered(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!displayCheckIcon) {
+                  addDefaultSelection({
+                    id: match.matchId,
+                    type: "match",
+                    name: `${match.homeTeamName} vs ${match.awayTeamName}`,
+                  });
+                }
+                e.currentTarget.blur();
+              }}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (!displayCheckIcon && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault();
+                  addDefaultSelection({
+                    id: match.matchId,
+                    type: "match",
+                    name: `${match.homeTeamName} vs ${match.awayTeamName}`,
+                  });
+                }
+              }}
+              className="w-full h-full flex items-center justify-center cursor-pointer rounded-full bg-transparent" 
+              title="Add to selections"
+              tabIndex={0}
+            >
+              {displayCheckIcon ? (
+                <LuCircleCheck className="text-blue-500 w-6 h-6" />
+              ) : (
+                <LuCirclePlus className="text-white w-6 h-6 hover:text-gray-300" />
+              )}
+            </button>
           </div>
 
 

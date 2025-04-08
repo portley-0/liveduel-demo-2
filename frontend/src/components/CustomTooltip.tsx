@@ -23,20 +23,20 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, m
 
     return (
       <div className="bg-gray-900 p-2.5 border border-gray-300 rounded">
-        <div className="text-xs text-white mb-1">{formattedLabel}</div>
+        <div className="text-xs font-semibold text-white mb-1">{formattedLabel}</div>
         <div className="flex items-center mb-1">
           <img
             src={matchData.homeTeamLogo}
             alt={matchData.homeTeamName}
             className="w-5 h-5 mr-1.5"
           />
-          <span className="text-xs text-blue-500">
+          <span className="text-xs font-semibold text-blue-500">
             Home: {formatOdds(homeOddsDecimal)}
           </span>
         </div>
         <div className="flex items-center mb-1">
           <TbCircleLetterDFilled className="text-xl text-gray-500 mr-1.5" />
-          <span className="text-xs text-gray-500">
+          <span className="text-xs font-semibold text-gray-500">
             Draw: {formatOdds(drawOddsDecimal)}
           </span>
         </div>
@@ -46,7 +46,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, m
             alt={matchData.awayTeamName}
             className="w-5 h-5 mr-1.5"
           />
-          <span className="text-xs text-red-500">
+          <span className="text-xs font-semibold text-red-500">
             Away: {formatOdds(awayOddsDecimal)}
           </span>
         </div>

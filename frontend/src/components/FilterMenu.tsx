@@ -97,29 +97,32 @@ const FilterMenu: React.FC = () => {
                 ))}
               </select>
               {selectedLeague !== null && (
-                <button
-                  onClick={() => {
-                    if (!isLeagueSelected) {
-                      const league = LEAGUES.find((l) => l.id === selectedLeague);
-                      if (league && league.id !== null) {
-                        addDefaultSelection({
-                          id: league.id,
-                          type: "league",
-                          name: league.name,
-                        });
+                <div className="ml-2 relative" style={{ width: "2rem", height: "2rem" }}>
+                  <button
+                    onClick={() => {
+                      if (!isLeagueSelected) {
+                        const league = LEAGUES.find((l) => l.id === selectedLeague);
+                        if (league && league.id !== null) {
+                          addDefaultSelection({
+                            id: league.id,
+                            type: "league",
+                            name: league.name,
+                          });
+                        }
                       }
-                    }
-                  }}
-                  className="ml-2 hover:bg-black/20 rounded-full p-3"
-                  title="Add league to Selected"
-                >
-                  {isLeagueSelected ? (
-                    <LuCircleCheck className="text-blue-500 w-6 h-6" />
-                  ) : (
-                    <LuCirclePlus className="text-white w-6 h-6" />
-                  )}
-                </button>
+                    }}
+                    className="absolute inset-0 bg-transparent rounded-full flex items-center justify-center"
+                    title="Add league to Selected"
+                  >
+                    {isLeagueSelected ? (
+                      <LuCircleCheck className="text-blue-500 w-6 h-6" />
+                    ) : (
+                      <LuCirclePlus className="text-white w-6 h-6 hover:text-gray-300" />
+                    )}
+                  </button>
+                </div>
               )}
+
             </div>
           </div>
 
