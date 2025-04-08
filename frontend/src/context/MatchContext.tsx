@@ -47,13 +47,34 @@ export const MatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setMatches(matchMap);
     };
 
-    const onMatchUpdate = (updatedMatch: MatchData) => {
-      console.log("[WebSocket] Match update received:", updatedMatch);
-      setMatches((prev) => ({
-        ...prev,
-        [updatedMatch.matchId]: updatedMatch,
-      }));
+    const areArraysEqual = (a?: number[], b?: number[]) => {
+      if (a === b) return true;
+      if (!a || !b || a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return false;
+      }
+      return true;
     };
+
+    const onMatchUpdate = (updatedMatch: MatchData) => {
+      setMatches((prev) => {
+        const existingMatch = prev[updatedMatch.matchId];
+        // Here you could check if odds are the same using areArraysEqual, for instance:
+        if (
+          existingMatch &&
+          areArraysEqual(existingMatch.oddsHistory?.homeOdds, updatedMatch.oddsHistory?.homeOdds) &&
+          areArraysEqual(existingMatch.oddsHistory?.drawOdds, updatedMatch.oddsHistory?.drawOdds) &&
+          areArraysEqual(existingMatch.oddsHistory?.awayOdds, updatedMatch.oddsHistory?.awayOdds)
+        ) {
+          return prev; 
+        }
+        return {
+          ...prev,
+          [updatedMatch.matchId]: updatedMatch,
+        };
+      });
+    };
+    
 
     const onDisconnect = (reason: string) => {
       console.warn(`[WebSocket] Disconnected: ${reason}`);

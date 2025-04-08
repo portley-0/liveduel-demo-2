@@ -13,6 +13,15 @@ interface OddsHistory {
   awayOdds?: number[];
 }
 
+const areArraysEqual = (a?: number[], b?: number[]) => {
+  if (a === b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+};
+
 const MatchChart: React.FC<{ oddsHistory: OddsHistory }> = React.memo(
   ({ oddsHistory }) => {
     const data = React.useMemo(() => {
@@ -43,15 +52,22 @@ const MatchChart: React.FC<{ oddsHistory: OddsHistory }> = React.memo(
             tickLine={false}
             orientation="right"
           />
-          <Line type="linear" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false} />
-          <Line type="linear" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false} />
-          <Line type="linear" dataKey="away" stroke="rgb(225, 29, 72)" strokeWidth={2} dot={false} />
+          <Line type="linear" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false}  />
+          <Line type="linear" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false}  />
+          <Line type="linear" dataKey="away" stroke="rgb(225, 29, 72)" strokeWidth={2} dot={false}  />
         </LineChart>
       </ResponsiveContainer>
     );
   },
   (prevProps, nextProps) => {
-    return prevProps.oddsHistory === nextProps.oddsHistory;
+    const prev = prevProps.oddsHistory;
+    const next = nextProps.oddsHistory;
+    return (
+      areArraysEqual(prev?.timestamps, next?.timestamps) &&
+      areArraysEqual(prev?.homeOdds, next?.homeOdds) &&
+      areArraysEqual(prev?.drawOdds, next?.drawOdds) &&
+      areArraysEqual(prev?.awayOdds, next?.awayOdds)
+    );
   }
 );
 
