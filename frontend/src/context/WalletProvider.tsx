@@ -47,7 +47,7 @@ const config = createConfig({
   chains: [avalancheFuji],
   connectors,
   transports: {
-    [avalancheFuji.id]: http('https://api.liveduel-demo-2.app/rpc'),
+    [avalancheFuji.id]: http('https://api.liveduel-demo-2.app/rpc'),  
   },
 });
 
