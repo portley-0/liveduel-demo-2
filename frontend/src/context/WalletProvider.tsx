@@ -47,7 +47,7 @@ const config = createConfig({
   chains: [avalancheFuji],
   connectors,
   transports: {
-    [avalancheFujiPrivySafe.id]: http('https://api.avax-test.network/ext/bc/C/rpc'),
+    [avalancheFuji.id]: http('https://api.avax-test.network/ext/bc/C/rpc'),
   },
 });
 
