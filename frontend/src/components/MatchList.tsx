@@ -174,7 +174,7 @@ const MatchList: React.FC = () => {
           }`}
         >
           <div
-            onMouseDown={(e) => e.stopPropagation()} 
+            onMouseDown={(e) => e.stopPropagation()}
             onMouseEnter={() => setIsPlusHovered(true)}
             onMouseLeave={() => setIsPlusHovered(false)}
             onClick={(e) => {
@@ -188,7 +188,7 @@ const MatchList: React.FC = () => {
                 });
               }
             }}
-            className="absolute top-2 right-2 z-20 cursor-pointer"
+            className="absolute top-2 right-2 z-20 p-3 cursor-pointer rounded-full hover:bg-black/20 transition-colors"
             title="Add to selections"
             role="button"
             tabIndex={0}
@@ -210,6 +210,7 @@ const MatchList: React.FC = () => {
               <LuCirclePlus className="text-white w-6 h-6" />
             )}
           </div>
+
 
           <div className="p-5 xs:p-6 flex flex-col h-full w-full">
             <div className="relative w-full flex items-center justify-between mb-3">
