@@ -35,7 +35,7 @@ async function main() {
       "https://www.liveduel-demo-2.app",
       "https://api.liveduel-demo-2.app",
       "https://privy.abs.xyz",
-      "https://mock-usdc.xyz"
+      "https://www.mock-usdc.xyz"
     ],
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"]
