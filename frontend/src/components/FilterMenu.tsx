@@ -110,7 +110,7 @@ const FilterMenu: React.FC = () => {
                       }
                     }
                   }}
-                  className="ml-2"
+                  className="ml-2 hover:bg-black/20 rounded-full p-3"
                   title="Add league to Selected"
                 >
                   {isLeagueSelected ? (
