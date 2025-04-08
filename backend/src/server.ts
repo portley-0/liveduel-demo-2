@@ -33,9 +33,7 @@ async function main() {
       "http://localhost:5173",
       "https://liveduel-demo-2.app",
       "https://www.liveduel-demo-2.app",
-      "https://api.liveduel-demo-2.app",
-      "https://privy.abs.xyz",
-      "https://www.mock-usdc.xyz"
+      "https://api.liveduel-demo-2.app"
     ],
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"]
@@ -118,32 +116,6 @@ async function main() {
       res.status(500).json({ error: error.reason || error.message || 'Minting failed' });
     }
   });
-
-  app.post('/rpc', async (req, res) => {
-    try {
-      console.log('→ Incoming RPC request:', req.body?.method);
-  
-      const response = await fetch(AVALANCHE_FUJI_RPC, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(req.body),
-      });
-  
-      const text = await response.text(); 
-      console.log('← RPC response:', response.status, text);
-  
-      res.status(response.status).type('application/json').send(text);
-    } catch (error: any) {
-      console.error('✖ RPC proxy error:', error);
-      res.status(500).json({
-        error: 'RPC proxy failed',
-        details: error.message || error.toString(),
-      });
-    }
-  });
-  
   
   const PORT = process.env.PORT || 3000;
   server.listen(Number(PORT), '0.0.0.0', () => {
