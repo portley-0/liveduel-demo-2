@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useFilter } from "@/context/FilterContext.tsx";
+import { LuCirclePlus, LuCircleCheck } from "react-icons/lu";
 
 const LEAGUES = [
   { id: null, name: "All Leagues" },
@@ -9,7 +11,7 @@ const LEAGUES = [
   { id: 78, name: "Bundesliga" },
   { id: 61, name: "Ligue 1" },
   { id: 135, name: "Serie A" },
-  { id: 848, name: "UEFA Conference League" }
+  { id: 848, name: "UEFA Conference League" },
 ];
 
 const SORT_OPTIONS = [
@@ -18,36 +20,31 @@ const SORT_OPTIONS = [
   { id: "date-desc", name: "Date (DESC)" },
 ];
 
-interface FilterMenuProps {
-  selectedLeague: number | null;
-  setSelectedLeague: (league: number | null) => void;
-  sortBy: string;
-  setSortBy: (sort: string) => void;
-  liveOnly: boolean;
-  setLiveOnly: React.Dispatch<React.SetStateAction<boolean>>;
-  deployedOnly: boolean;
-  setDeployedOnly: React.Dispatch<React.SetStateAction<boolean>>;
-}
+const FilterMenu: React.FC = () => {
+  const {
+    selectedLeague,
+    setSelectedLeague,
+    sortBy,
+    setSortBy,
+    liveOnly,
+    setLiveOnly,
+    deployedOnly,
+    setDeployedOnly,
+    selectedOnly,
+    setSelectedOnly,
+    addDefaultSelection,
+    defaultSelections,
+  } = useFilter();
 
-const FilterMenu: React.FC<FilterMenuProps> = ({
-  selectedLeague,
-  setSelectedLeague,
-  sortBy,
-  setSortBy,
-  liveOnly,
-  setLiveOnly,
-  deployedOnly,
-  setDeployedOnly,
-}) => {
   const categoryRef = useRef<HTMLSpanElement>(null);
   const sortRef = useRef<HTMLSpanElement>(null);
-  const [categoryWidth, setCategoryWidth] = useState(190); 
+  const [categoryWidth, setCategoryWidth] = useState(190);
   const [sortWidth, setSortWidth] = useState(140);
 
   useEffect(() => {
     if (categoryRef.current) {
       const textWidth = categoryRef.current.offsetWidth + 45;
-      setCategoryWidth(Math.max(100, Math.min(textWidth, 300))); 
+      setCategoryWidth(Math.max(100, Math.min(textWidth, 300)));
     }
   }, [selectedLeague]);
 
@@ -57,6 +54,13 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
       setSortWidth(Math.max(110, Math.min(textWidth, 170)));
     }
   }, [sortBy]);
+
+  // Determine if the currently selected league is already added to default selections.
+  const isLeagueSelected =
+    selectedLeague !== null &&
+    defaultSelections.some(
+      (selection) => selection.type === "league" && selection.id === selectedLeague
+    );
 
   return (
     <div className="sticky top-0 z-20 bg-darkblue py-1 px-4 flex flex-col space-y-2 shadow-xl">
@@ -69,20 +73,56 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
             ref={categoryRef}
             className="absolute opacity-0 pointer-events-none whitespace-nowrap text-sm font-bold"
           >
-            {LEAGUES.find((league) => league.id === selectedLeague)?.name ?? "All Leagues"}
+            {LEAGUES.find((league) => league.id === selectedLeague)?.name ??
+              "All Leagues"}
           </span>
-          <select
-            className="select select-sm select-ghost text-white bg-darkblue font-bold text-sm transition-all duration-200 ease-in-out"
-            style={{ width: `${categoryWidth}px` }}
-            value={selectedLeague ?? ""}
-            onChange={(e) => setSelectedLeague(e.target.value === "" ? null : Number(e.target.value))}
-          >
-            {LEAGUES.map((league) => (
-              <option key={league.id} value={league.id ?? ""} className="font-bold text-sm">
-                {league.name}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <div className="flex items-center">
+              <select
+                className="select select-sm select-ghost text-white bg-darkblue font-bold text-sm transition-all duration-200 ease-in-out"
+                style={{ width: `${categoryWidth}px` }}
+                value={selectedLeague ?? ""}
+                onChange={(e) =>
+                  setSelectedLeague(e.target.value === "" ? null : Number(e.target.value))
+                }
+              >
+                {LEAGUES.map((league) => (
+                  <option
+                    key={league.id}
+                    value={league.id ?? ""}
+                    className="font-bold text-sm"
+                  >
+                    {league.name}
+                  </option>
+                ))}
+              </select>
+              {selectedLeague !== null && (
+                <button
+                  onClick={() => {
+                    if (!isLeagueSelected) {
+                      const league = LEAGUES.find((l) => l.id === selectedLeague);
+                      if (league && league.id !== null) {
+                        addDefaultSelection({
+                          id: league.id,
+                          type: "league",
+                          name: league.name,
+                        });
+                      }
+                    }
+                  }}
+                  className="ml-2"
+                  title="Add league to Selected"
+                >
+                  {isLeagueSelected ? (
+                    <LuCircleCheck className="text-blue-500 w-6 h-6" />
+                  ) : (
+                    <LuCirclePlus className="text-white w-6 h-6" />
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -113,31 +153,33 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
 
         <div data-theme="dark" className="bg-darkblue flex flex-col space-y-2">
           <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 -mt-3">
-            <span className="text-sm font-bold text-white text-right">
-              Deployed Only
-            </span>
+            <span className="text-sm font-bold text-white text-right">Deployed Only</span>
             <input
               type="checkbox"
               className="toggle toggle-sm"
               checked={deployedOnly}
-              onChange={() => setDeployedOnly((prev) => !prev)}
+              onChange={() => setDeployedOnly(!deployedOnly)}
             />
           </div>
           <div className="grid grid-cols-[1fr_auto] items-center gap-x-2">
-            <span className="text-sm font-bold text-white text-right">
-              Live Only
-            </span>
+            <span className="text-sm font-bold text-white text-right">Live Only</span>
             <input
               type="checkbox"
               className="toggle toggle-sm"
               checked={liveOnly}
-              onChange={() => setLiveOnly((prev) => !prev)}
+              onChange={() => setLiveOnly(!liveOnly)}
+            />
+          </div>
+          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2">
+            <span className="text-sm font-bold text-white text-right">Selected Only</span>
+            <input
+              type="checkbox"
+              className="toggle toggle-sm"
+              checked={selectedOnly}
+              onChange={() => setSelectedOnly(!selectedOnly)}
             />
           </div>
         </div>
-
-
-
       </div>
     </div>
   );

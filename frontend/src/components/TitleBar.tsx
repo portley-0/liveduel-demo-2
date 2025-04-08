@@ -40,7 +40,7 @@ const TitleBar = () => {
 
   const navItems = [
     { path: "/dashboard/markets", label: "Markets", icon: FaChartLine },
-    { path: "/dashboard/predictions", label: "My Predictions", icon: FaFutbol },
+    { path: "/dashboard/predictions", label: "Predictions", icon: FaFutbol },
     { path: "/dashboard/get-funds", label: "Get Funds", icon: FaRegMoneyBillAlt },
     { path: "/dashboard/buy", label: "Buy $Duel", icon: FaCreditCard },
     { path: "/dashboard/stake", label: "Staking", icon: FaCoins },
@@ -210,9 +210,7 @@ const TitleBar = () => {
                         }`}
                       />
                       <span
-                        className={`w-full text-center text-xs lg:text-sm capitalize whitespace-nowrap ${
-                          label === "My Predictions" ? "-ml-5" : ""
-                        }`}
+                        className={`w-full text-center text-xs lg:text-sm capitalize whitespace-nowrap`}
                       >
                         {label}
                       </span>
