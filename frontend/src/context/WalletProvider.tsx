@@ -27,7 +27,7 @@ const connectors = connectorsForWallets(
         toPrivyWallet({
           id: 'cm935vklg01mhla0mlm1x4lf4',
           name: 'Privy (Google/Email)',
-          iconUrl: '/images/privy.png'
+          iconUrl: '/images/privy.jpg'
         }),
         coreWallet,
         rabbyWallet,
