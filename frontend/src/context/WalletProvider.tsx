@@ -24,11 +24,11 @@ const connectors = connectorsForWallets(
       groupName: "Recommended",
       wallets: [
         metaMaskWallet,
-        /*toPrivyWallet({
-          id: 'cm04asygd041fmry9zmcyn5o5',
-          name: 'Abstract (Google)',
-          iconUrl: '/images/abstract.png'
-        }),*/
+        toPrivyWallet({
+          id: 'cm935vklg01mhla0mlm1x4lf4',
+          name: 'Privy (Google/Email)',
+          iconUrl: '/images/privy.png'
+        }),
         coreWallet,
         rabbyWallet,
         trustWallet,
