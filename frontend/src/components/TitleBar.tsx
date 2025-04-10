@@ -75,7 +75,7 @@ const TitleBar = () => {
             <div className="flex items-center space-x-2 select-none">
               <label
                 htmlFor="my-drawer"
-                className="drawer-button bg-transparent border-0 text-white rounded-full hover:bg-gray-200 hover:text-darkblue select-none z-50 flex items-center justify-center w-12 h-12"
+                className="drawer-button bg-transparent border-0 text-white rounded-full hover:bg-gray-200 hover:text-darkblue select-none z-50 flex items-center justify-center w-12 h-12 xxs:w-11 xxs:h-11"
               >
                 <RiMenuLine className="!text-3xl !sm:text-2xl" />
               </label>
@@ -88,7 +88,7 @@ const TitleBar = () => {
                   alt="Liveduel Logo"
                   width={200}
                   height={62}
-                  className="object-contain select-none sm:h-[50px] sx:h-[50px]"
+                  className="object-contain select-none sm:h-[50px] sx:h-[50px] xxs:h-[48px] "
                 />
               </NavLink>
             </div>
@@ -152,7 +152,7 @@ const TitleBar = () => {
                   return (
                     <button
                       onClick={connected ? openAccountModal : openConnectModal}
-                      className={`btn text-white w-auto min-w-[100px] px-3 h-[28px] sm:px-2 sm:h-[26px] md:px-4 md:h-[30px] lg:px-5 lg:h-[34px] text-md sm:text-sm md:text-sm rounded-full select-none flex items-center justify-center gap-2 whitespace-nowrap transition-all ${
+                      className={`btn text-white w-auto  px-3 h-[28px] sm:px-3 sm:h-[28px] md:px-4 md:h-[30px] lg:px-5 lg:h-[34px] text-md sm:text-sm md:text-sm rounded-full select-none flex items-center justify-center gap-2 whitespace-nowrap transition-all ${
                         connected
                           ? "bg-darkblue border-2 border-white hover:text-gray-300 hover:border-gray-300"
                           : "bg-darkblue border-2 border-white hover:text-gray-300 hover:border-gray-300"

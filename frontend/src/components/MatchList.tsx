@@ -169,8 +169,13 @@ const MatchList: React.FC = () => {
     const isLeagueSelectedForMatch = defaultSelections.some(
       (selection) => selection.type === "league" && selection.id === match.leagueId
     );
-    const displayCheckIcon =
-      isMatchIndividuallySelected || isLeagueSelectedForMatch;
+
+    const isUefaSelected =
+    defaultSelections.some(
+      (selection) => selection.type === "league" && selection.id === "uefa"
+    ) && match.leagueId !== undefined && UEFA_LEAGUE_IDS.includes(match.leagueId);
+    
+    const displayCheckIcon = isMatchIndividuallySelected || isLeagueSelectedForMatch || isUefaSelected;
 
     const homeOddsArray = match.oddsHistory?.homeOdds || [];
     const homeOdds =

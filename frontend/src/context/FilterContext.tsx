@@ -4,6 +4,7 @@ export interface DefaultSelection {
   id: string | number;
   type: "league" | "match";
   name: string;
+  autoAdded?: boolean;
 }
 
 export interface FilterState {
@@ -25,10 +26,16 @@ export interface FilterContextType extends FilterState {
   removeDefaultSelection: (id: string | number) => void;
 }
 
+const UEFA_LEAGUES = [
+  { id: 2, name: "UEFA Champions League" },
+  { id: 3, name: "UEFA Europa League" },
+  { id: 848, name: "UEFA Conference League" },
+];
+const UEFA_LEAGUES_IDS = UEFA_LEAGUES.map((league) => league.id);
+
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Individual state properties
   const [selectedLeague, setSelectedLeagueState] = useState<number | "uefa" | null>(null);
   const [sortBy, setSortByState] = useState<string>("volume");
   const [liveOnly, setLiveOnlyState] = useState<boolean>(false);
@@ -36,15 +43,29 @@ export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [selectedOnly, setSelectedOnlyState] = useState<boolean>(false);
   const [defaultSelections, setDefaultSelections] = useState<DefaultSelection[]>([]);
 
-  // When a user selects a new category, we automatically turn off the "Selected Only" mode.
   const setSelectedLeague = (league: number | "uefa" | null) => {
     setSelectedLeagueState(league);
     if (selectedOnly) {
       setSelectedOnlyState(false);
     }
+
+    if (league === "uefa") {
+      UEFA_LEAGUES.forEach((leagueItem) => {
+        addDefaultSelection({
+          id: leagueItem.id,
+          type: "league",
+          name: leagueItem.name,
+          autoAdded: true,
+        });
+      });
+      addDefaultSelection({
+        id: "uefa",
+        type: "league",
+        name: "UEFA Leagues",
+      });
+    }
   };
 
-  // Simple setters for other filters
   const setSortBy = (sort: string) => setSortByState(sort);
   const setLiveOnly = (live: boolean) => setLiveOnlyState(live);
   const setDeployedOnly = (deployed: boolean) => setDeployedOnlyState(deployed);
@@ -64,8 +85,32 @@ export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
   };
 
-  // Remove a selection by id.
   const removeDefaultSelection = (id: string | number) => {
+    const isUefaGloballySelected = defaultSelections.some(
+      (item) => item.type === "league" && item.id === "uefa"
+    );
+
+    if (id === "uefa") {
+      setDefaultSelections((prev) =>
+        prev.filter((item) => {
+          if (item.id === "uefa") return false;
+          if (item.type === "league" && typeof item.id === "number" && UEFA_LEAGUES_IDS.includes(item.id) && item.autoAdded) {
+            return false;
+          }
+          return true;
+        })
+      );
+      return;
+    }
+
+    if (typeof id === "number" && UEFA_LEAGUES_IDS.includes(id)) {
+      const item = defaultSelections.find(
+        (sel) => sel.type === "league" && sel.id === id
+      );
+      if (isUefaGloballySelected && item && item.autoAdded) {
+        return; 
+      }
+    }
     setDefaultSelections((prev) => prev.filter((item) => item.id !== id));
   };
 

@@ -402,7 +402,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                 md:w-[125px] md:h-[43px] 
                 sm:w-[117px] sm:h-[42px] 
                 xs:w-[105px] xs:h-[38px]
-                xxs:w-[100px] xxs:h-[38px]
+                xxs:w-[96px] xxs:h-[35px]
                 flex-shrink-0
                 flex items-center justify-center sm:space-x-2 xs:space-x-1.5 xxs:space-x-1.5 transition-all 
                 rounded-full focus:outline-none focus:ring-0 ${
