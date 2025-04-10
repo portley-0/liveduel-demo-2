@@ -4,6 +4,7 @@ import { LuCirclePlus, LuCircleCheck } from "react-icons/lu";
 
 const LEAGUES = [
   { id: null, name: "All Leagues" },
+  { id: "uefa", name: "UEFA Leagues" },
   { id: 2, name: "UEFA Champions League" },
   { id: 3, name: "UEFA Europa League" },
   { id: 39, name: "Premier League" },
@@ -82,9 +83,16 @@ const FilterMenu: React.FC = () => {
                 className="select select-sm select-ghost text-white bg-darkblue font-bold text-sm transition-all duration-200 ease-in-out"
                 style={{ width: `${categoryWidth}px` }}
                 value={selectedLeague ?? ""}
-                onChange={(e) =>
-                  setSelectedLeague(e.target.value === "" ? null : Number(e.target.value))
-                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "") {
+                    setSelectedLeague(null);
+                  } else if (value === "uefa") {
+                    setSelectedLeague("uefa");
+                  } else {
+                    setSelectedLeague(Number(value));
+                  }
+                }}
               >
                 {LEAGUES.map((league) => (
                   <option

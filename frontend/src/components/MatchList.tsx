@@ -91,13 +91,21 @@ const MatchList: React.FC = () => {
     );
   }
 
+  const UEFA_LEAGUE_IDS = [2, 3, 848];
+
   let filteredMatches = Object.values(matches);
 
-  // League filtering
+  // League filter
   if (selectedLeague !== null) {
-    filteredMatches = filteredMatches.filter(
-      (match) => match.leagueId === selectedLeague
-    );
+    if (selectedLeague === "uefa") {
+      filteredMatches = filteredMatches.filter((match) =>
+        match.leagueId !== undefined && UEFA_LEAGUE_IDS.includes(match.leagueId)
+      );
+    } else {
+      filteredMatches = filteredMatches.filter(
+        (match) => match.leagueId === selectedLeague
+      );
+    }
   }
   // Deployed filter
   if (deployedOnly) {

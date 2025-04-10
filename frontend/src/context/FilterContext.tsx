@@ -7,7 +7,7 @@ export interface DefaultSelection {
 }
 
 export interface FilterState {
-  selectedLeague: number | null;
+  selectedLeague: number | "uefa" | null;
   sortBy: string;
   liveOnly: boolean;
   deployedOnly: boolean;
@@ -16,7 +16,7 @@ export interface FilterState {
 }
 
 export interface FilterContextType extends FilterState {
-  setSelectedLeague: (league: number | null) => void;
+  setSelectedLeague: (league: number | "uefa" | null) => void;
   setSortBy: (sort: string) => void;
   setLiveOnly: (live: boolean) => void;
   setDeployedOnly: (deployed: boolean) => void;
@@ -29,7 +29,7 @@ const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Individual state properties
-  const [selectedLeague, setSelectedLeagueState] = useState<number | null>(null);
+  const [selectedLeague, setSelectedLeagueState] = useState<number | "uefa" | null>(null);
   const [sortBy, setSortByState] = useState<string>("volume");
   const [liveOnly, setLiveOnlyState] = useState<boolean>(false);
   const [deployedOnly, setDeployedOnlyState] = useState<boolean>(false);
@@ -37,7 +37,7 @@ export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [defaultSelections, setDefaultSelections] = useState<DefaultSelection[]>([]);
 
   // When a user selects a new category, we automatically turn off the "Selected Only" mode.
-  const setSelectedLeague = (league: number | null) => {
+  const setSelectedLeague = (league: number | "uefa" | null) => {
     setSelectedLeagueState(league);
     if (selectedOnly) {
       setSelectedOnlyState(false);
@@ -55,7 +55,6 @@ export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setSelectedOnlyState(selected);
   };
 
-  // Add a selection ensuring duplicates aren’t added.
   const addDefaultSelection = (selection: DefaultSelection) => {
     setDefaultSelections((prev) => {
       if (!prev.find((item) => item.id === selection.id && item.type === selection.type)) {
