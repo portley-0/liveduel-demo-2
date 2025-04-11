@@ -56,12 +56,14 @@ const FilterMenu: React.FC = () => {
     }
   }, [sortBy]);
 
-  // Determine if the currently selected league is already added to default selections.
   const isLeagueSelected =
-    selectedLeague !== null &&
-    defaultSelections.some(
-      (selection) => selection.type === "league" && selection.id === selectedLeague
-    );
+  selectedLeague !== null &&
+  defaultSelections.some(
+    (selection) =>
+      selection.type === "league" &&
+      selection.id === selectedLeague &&
+      selection.autoAdded !== true
+  );
 
   return (
     <div className="sticky top-0 z-20 bg-darkblue py-1 px-4 flex flex-col space-y-2 shadow-xl">

@@ -48,22 +48,6 @@ export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (selectedOnly) {
       setSelectedOnlyState(false);
     }
-
-    if (league === "uefa") {
-      UEFA_LEAGUES.forEach((leagueItem) => {
-        addDefaultSelection({
-          id: leagueItem.id,
-          type: "league",
-          name: leagueItem.name,
-          autoAdded: true,
-        });
-      });
-      addDefaultSelection({
-        id: "uefa",
-        type: "league",
-        name: "UEFA Leagues",
-      });
-    }
   };
 
   const setSortBy = (sort: string) => setSortByState(sort);
@@ -78,13 +62,43 @@ export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const addDefaultSelection = (selection: DefaultSelection) => {
     setDefaultSelections((prev) => {
-      if (!prev.find((item) => item.id === selection.id && item.type === selection.type)) {
-        return [...prev, selection];
+      let newSelections = [...prev];
+      const existing = newSelections.find(
+        (item) => item.id === selection.id && item.type === selection.type
+      );
+  
+      if (!existing) {
+        newSelections.push(selection);
+      } else {
+        if (existing.autoAdded && !selection.autoAdded) {
+          newSelections = newSelections.map((item) =>
+            item.id === selection.id && item.type === selection.type
+              ? { ...item, autoAdded: false }
+              : item
+          );
+        }
       }
-      return prev;
+  
+      if (selection.id === "uefa") {
+        UEFA_LEAGUES.forEach((leagueItem) => {
+          if (
+            !newSelections.find(
+              (item) => item.id === leagueItem.id && item.type === "league"
+            )
+          ) {
+            newSelections.push({
+              id: leagueItem.id,
+              type: "league",
+              name: leagueItem.name,
+              autoAdded: true,
+            });
+          }
+        });
+      }
+      return newSelections;
     });
   };
-
+  
   const removeDefaultSelection = (id: string | number) => {
     const isUefaGloballySelected = defaultSelections.some(
       (item) => item.type === "league" && item.id === "uefa"
