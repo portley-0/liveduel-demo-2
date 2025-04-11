@@ -1,7 +1,6 @@
 import React from "react";
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { MatchData } from "@/types/MatchData.ts";
-import CustomTooltip from "./CustomTooltip.tsx";
+import TradingViewChart from './TradingViewChart.tsx'; 
 
 interface MatchCardProps {
   match: MatchData;
@@ -11,13 +10,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
   const homePrice = match.latestOdds?.home ?? 0.3333;
   const drawPrice = match.latestOdds?.draw ?? 0.3333;
   const awayPrice = match.latestOdds?.away ?? 0.3333;
-
-  const chartData = (match.oddsHistory?.timestamps || []).map((timestamp, index) => ({
-    timestamp,
-    home: match.oddsHistory?.homeOdds[index],
-    draw: match.oddsHistory?.drawOdds[index],
-    away: match.oddsHistory?.awayOdds[index],
-  }));
 
   const formatKickoffTime = (timestamp?: number) => {
     if (!timestamp) return "TBD";
@@ -44,18 +36,22 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
         </div>
 
         <div className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center">
-          <span className={`2xl:text-5xl lg:text-4xl sm:text-2xl xs:text-2xl xxs:text-2xl font-bold ${
-            match.statusShort && ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
-              ? "text-redmagenta"
-              : "text-white"
-          }`}>
+          <span
+            className={`2xl:text-5xl lg:text-4xl sm:text-2xl xs:text-2xl xxs:text-2xl font-bold ${
+              match.statusShort && ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
+                ? "text-redmagenta"
+                : "text-white"
+            }`}
+          >
             {match.homeScore ?? 0}:{match.awayScore ?? 0}
           </span>
-          <span className={`2xl:text-xl lg:text-lg sm:text-md font-semibold ${
-            match.statusShort && ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
-              ? "text-redmagenta"
-              : "text-white"
-          }`}>
+          <span
+            className={`2xl:text-xl lg:text-lg sm:text-md font-semibold ${
+              match.statusShort && ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
+                ? "text-redmagenta"
+                : "text-white"
+            }`}
+          >
             {match.statusShort && ["FT", "AET", "PEN"].includes(match.statusShort)
               ? "Full Time"
               : match.statusShort &&
@@ -63,7 +59,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
               ? `In Progress ${match.elapsed ? `(${match.elapsed}’)` : ""}`
               : formatKickoffTime(match.matchTimestamp)}
           </span>
-
         </div>
 
         <div className="flex flex-col items-end">
@@ -79,30 +74,10 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
       </div>
       
       <div className="bg-lightgreyblue 2xl:h-[200] lg:h-[160px] sm:h-[100px] xs:h-[100px] xxs:h-[100px] min-w-[200px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ left: 0, right: 7, top: 5, bottom: 5 }}>
-            <XAxis dataKey="timestamp" hide />
-            <YAxis
-              domain={[0, 10]}
-              allowDecimals
-              ticks={[0, 1, 2.5, 5, 7.5, 10]}
-              tickFormatter={(tick) => (tick % 1 === 0 ? tick : tick.toFixed(1))}
-              tick={{ fill: "white", fontSize: 10, textAnchor: "end", dx: 5 }}
-              tickSize={2}
-              tickCount={5}
-              minTickGap={2}
-              interval={0}
-              width={3}
-              axisLine={false}
-              tickLine={false}
-              orientation="right"
-            />
-            <Line type="linear" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false} />
-            <Line type="linear" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false} />
-            <Line type="linear" dataKey="away" stroke="rgb(225, 29, 72)" strokeWidth={2} dot={false} />
-            <Tooltip content={<CustomTooltip matchData={match} />} />
-          </LineChart>
-        </ResponsiveContainer>
+        <TradingViewChart 
+          oddsHistory={match.oddsHistory || { timestamps: [], homeOdds: [], drawOdds: [], awayOdds: [] }}
+          matchData={match}
+        />
       </div>
 
       <div className="flex justify-between items-end mt-2 text-white">
@@ -116,19 +91,19 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
           <div className="flex flex-col items-center">
             <span className="text-blue-400 font-semibold">$HOME</span>
             <span className="text-blue-400 font-semibold">
-              {match.oddsHistory?.homeOdds.slice(-1)[0]?.toFixed(1) ?? homePrice.toFixed(1)}
+              {match.oddsHistory?.homeOdds.slice(-1)[0]?.toFixed(2) ?? homePrice.toFixed(2)}
             </span>
           </div>
           <div className="flex flex-col items-center">
             <span className="text-gray-400 font-semibold">$DRAW</span>
             <span className="text-gray-400 font-semibold">
-              {match.oddsHistory?.drawOdds.slice(-1)[0]?.toFixed(1) ?? drawPrice.toFixed(1)}
+              {match.oddsHistory?.drawOdds.slice(-1)[0]?.toFixed(2) ?? drawPrice.toFixed(2)}
             </span>
           </div>
           <div className="flex flex-col items-center">
             <span className="text-redmagenta font-semibold">$AWAY</span>
             <span className="text-redmagenta font-semibold">
-              {match.oddsHistory?.awayOdds.slice(-1)[0]?.toFixed(1) ?? awayPrice.toFixed(1)}
+              {match.oddsHistory?.awayOdds.slice(-1)[0]?.toFixed(2) ?? awayPrice.toFixed(2)}
             </span>
           </div>
         </div>

@@ -99,7 +99,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         require(predictionMarkets[matchId] == address(0), "Market already exists");
         require(block.timestamp <= matchTimestamp + 7200, "Invalid timestamp");
 
-        uint256 initialFunding = 30000 * 1e6;
+        uint256 initialFunding = 15000 * 1e6;
         liquidityPool.withdrawLiquidity(initialFunding);
         usdc.approve(address(lmsrFactory), initialFunding);
 

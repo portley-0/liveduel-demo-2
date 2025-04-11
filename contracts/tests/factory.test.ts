@@ -117,7 +117,7 @@ describe("MarketFactory - deployPredictionMarket() ", function () {
     const newUsdcReserve = await liquidityPool.usdcReserve();
     console.log("New LiquidityPool USDC reserve:", ethers.utils.formatUnits(newUsdcReserve, 6));
     
-    const expectedWithdraw = ethers.utils.parseUnits("30000", 6); 
+    const expectedWithdraw = ethers.utils.parseUnits("15000", 6); 
     const actualWithdraw = oldUsdcReserve.sub(newUsdcReserve);
 
     expect(actualWithdraw).to.equal(

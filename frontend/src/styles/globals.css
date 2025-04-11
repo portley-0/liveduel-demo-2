@@ -31,3 +31,12 @@ html, body {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;
 }
+
+#chart-view-container .time-axis,
+#chart-view-container .tv-time-axis {
+  display: none !important;
+}
+
+a#tv-attr-logo {
+  display: none !important;
+}

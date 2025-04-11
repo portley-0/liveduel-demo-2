@@ -59,7 +59,6 @@ export const MatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const onMatchUpdate = (updatedMatch: MatchData) => {
       setMatches((prev) => {
         const existingMatch = prev[updatedMatch.matchId];
-        // Here you could check if odds are the same using areArraysEqual, for instance:
         if (
           existingMatch &&
           areArraysEqual(existingMatch.oddsHistory?.homeOdds, updatedMatch.oddsHistory?.homeOdds) &&
