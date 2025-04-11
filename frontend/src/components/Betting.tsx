@@ -48,6 +48,8 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [isBalanceLoading, setIsBalanceLoading] = useState(false);
   const [conditionId, setConditionId] = useState<string | null>(null);
   const [outcomeTokenIds, setOutcomeTokenIds] = useState<{ [key: number]: string }>({});
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastAddress, setToastAddress] = useState<string | null>(null);
 
   const isResolved = !!match.resolvedAt;
 
@@ -298,6 +300,14 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       console.log("Market Deployed:", data.newMarketAddress);
       setDeployedMarket(data.newMarketAddress);
       refetch();
+
+      setToastMessage("Market Deployment Success");
+      setToastAddress(data.newMarketAddress);
+      // Hide the toast automatically after 5 seconds.
+      setTimeout(() => {
+        setToastMessage(null);
+        setToastAddress(null);
+      }, 5000);
     } catch (error) {
       console.error("Deployment Error:", error);
     } finally {
@@ -518,6 +528,21 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
             <span>Hide</span>
           </button>
         </>
+      )}
+
+      {toastMessage && (
+        <div className="toast toast-end fixed bottom-4 right-4 z-50">
+          <div className="alert bg-greyblue border-2 border-blue-500 ">
+            <div>
+              <span className='text-blue-500 font-semibold'>{toastMessage}</span>
+              {toastAddress && (
+                <span className="block text-xs mt-1 font-medium">
+                  Contract: {toastAddress}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       <Dialog open={isModalOpen} onClose={closeModal} className="fixed inset-0 flex items-center justify-center z-50">
