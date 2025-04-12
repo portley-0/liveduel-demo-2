@@ -182,8 +182,8 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const getNetCostForShares = async (shares: bigint): Promise<bigint> => {
     if (!marketAddress || selectedBet === null)
       throw new Error("Missing prerequisites for net cost calculation");
-    const signer = await getSigner();
-    const predictionMarket = new ethers.Contract(marketAddress, PredictionMarketABI.abi, signer);
+    const provider = publicProvider;
+    const predictionMarket = new ethers.Contract(marketAddress, PredictionMarketABI.abi, provider);
     const outcomeIndex = betMapping[selectedBet];
     const netCost: bigint = await predictionMarket.getNetCost(outcomeIndex, shares);
     return netCost;
