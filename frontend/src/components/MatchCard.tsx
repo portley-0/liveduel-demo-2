@@ -91,19 +91,19 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
           <div className="flex flex-col items-center">
             <span className="text-blue-400 font-semibold">$HOME</span>
             <span className="text-blue-400 font-semibold">
-              {match.oddsHistory?.homeOdds.slice(-1)[0]?.toFixed(2) ?? homePrice.toFixed(2)}
+              {match.oddsHistory?.homeOdds.slice(-1)[0]?.toFixed(2) ?? homePrice.toFixed(2)}x
             </span>
           </div>
           <div className="flex flex-col items-center">
             <span className="text-gray-400 font-semibold">$DRAW</span>
             <span className="text-gray-400 font-semibold">
-              {match.oddsHistory?.drawOdds.slice(-1)[0]?.toFixed(2) ?? drawPrice.toFixed(2)}
+              {match.oddsHistory?.drawOdds.slice(-1)[0]?.toFixed(2) ?? drawPrice.toFixed(2)}x
             </span>
           </div>
           <div className="flex flex-col items-center">
             <span className="text-redmagenta font-semibold">$AWAY</span>
             <span className="text-redmagenta font-semibold">
-              {match.oddsHistory?.awayOdds.slice(-1)[0]?.toFixed(2) ?? awayPrice.toFixed(2)}
+              {match.oddsHistory?.awayOdds.slice(-1)[0]?.toFixed(2) ?? awayPrice.toFixed(2)}x
             </span>
           </div>
         </div>

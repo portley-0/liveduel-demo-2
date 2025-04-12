@@ -296,7 +296,7 @@ const MatchList: React.FC = () => {
               </div>
             </div>
             <div className="bg-lightgreyblue flex-1 min-h-0">
-              <MatchChart 
+              <MatchChart
               oddsHistory={match.oddsHistory || { timestamps: [], homeOdds: [], drawOdds: [], awayOdds: [] }} />
             </div>
             <div className="flex justify-between items-end mt-2">
@@ -313,19 +313,19 @@ const MatchList: React.FC = () => {
                 <div className="flex flex-col items-center">
                   <span className="text-blue-400 font-semibold">$HOME</span>
                   <span className="text-blue-400 font-semibold">
-                    {homeOdds.toFixed(2)}
+                    {homeOdds.toFixed(2)}x
                   </span>
                 </div>
                 <div className="flex flex-col items-center">
                   <span className="text-gray-400 font-semibold">$DRAW</span>
                   <span className="text-gray-400 font-semibold">
-                    {drawOdds.toFixed(2)}
+                    {drawOdds.toFixed(2)}x
                   </span>
                 </div>
                 <div className="flex flex-col items-center">
                   <span className="text-redmagenta font-semibold">$AWAY</span>
                   <span className="text-redmagenta font-semibold">
-                    {awayOdds.toFixed(2)}
+                    {awayOdds.toFixed(2)}x
                   </span>
                 </div>
               </div>

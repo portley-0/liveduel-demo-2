@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog } from "@headlessui/react";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { MatchData } from "@/types/MatchData.ts";
@@ -15,6 +15,16 @@ import MockUSDCABI from "@/abis/MockUSDC.json" with { type: "json" };
 import { ethers } from "ethers";
 import { useWalletClient } from "wagmi";
 
+// Simple debounce hook.
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 const DEFAULT_PROB = 0.3333333; 
 const USDC_ADDRESS = "0xB1cC53DfF11c564Fbe22145a0b07588e7648db74";
 const CONDITIONAL_TOKENS_ADDRESS = "0x988A02b302AE410CA71f6A10ad218Da5c70b9f5a";
@@ -24,9 +34,12 @@ const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 const MARKET_FACTORY_ABI = MarketFactoryABI.abi;
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
+// Both USDC and outcome tokens have 6 decimals so we use a scale of 1e6.
+const SHARE_SCALE = 1000000n; 
+
 const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [selectedBet, setSelectedBet] = useState<"home" | "draw" | "away" | null>(null);
-  const [betAmount, setBetAmount] = useState<string>("");
+  const [betAmount, setBetAmount] = useState<string>(""); // User enters USDC amount.
   const [expanded, setExpanded] = useState(true);
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
   const { data: marketAddress, isLoading, refetch } = useMarketFactory(match.matchId);
@@ -50,11 +63,18 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [outcomeTokenIds, setOutcomeTokenIds] = useState<{ [key: number]: string }>({});
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastAddress, setToastAddress] = useState<string | null>(null);
+  
+  // State for computed shares (scaled by SHARE_SCALE) and a flag if calculation is running.
+  const [calculatedSharesScaled, setCalculatedSharesScaled] = useState<bigint | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  // Ref to track the current calculation version.
+  const calcTokenRef = useRef(0);
 
   const isResolved = !!match.resolvedAt;
-
   const closeModal = () => setIsModalOpen(false);
 
+  // Fetch conditionId and outcome token IDs.
   const fetchConditionId = async (): Promise<void> => {
     if (!walletClient || !match.matchId || !marketAddress) return;
     try {
@@ -120,9 +140,12 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     away: 2,
   };
 
+  // For "sell" mode, betAmount is interpreted as share count.
   const isValidBet = selectedBet !== null && betAmount !== "";
   const numericBetAmount = parseFloat(betAmount || "0");
   const betAmountBigInt = isValidBet ? BigInt(Math.round(numericBetAmount * 1_000_000)) : null;
+
+  // useNetCost hook for SELL mode.
   const { data: netCost, isLoading: isFetchingNetCost } = useNetCost(
     marketAddress,
     isValidBet ? betMapping[selectedBet!] : null,
@@ -133,6 +156,90 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const fee = netCost ? (netCost * 4n) / 100n : 0n;
   const totalCost = netCost ? netCost + fee : 0n;
 
+  // Binary search helper: inverts getNetCost to determine the share amount (scaled by SHARE_SCALE)
+  const getNetCostForShares = async (shares: bigint): Promise<bigint> => {
+    if (!walletClient || !marketAddress || selectedBet === null)
+      throw new Error("Missing prerequisites for net cost calculation");
+    const provider = new ethers.BrowserProvider(walletClient as any);
+    const signer = await provider.getSigner();
+    const predictionMarket = new ethers.Contract(marketAddress, PredictionMarketABI.abi, signer);
+    const outcomeIndex = betMapping[selectedBet];
+    const netCost: bigint = await predictionMarket.getNetCost(outcomeIndex, shares);
+    return netCost;
+  };
+
+  async function findSharesForCost(
+    targetCost: bigint,
+    tolerance: bigint = 1n,
+    maxIterations: number = 50
+  ): Promise<bigint> {
+    let initialGuess = BigInt(Math.round(numericBetAmount * 3)) * SHARE_SCALE;
+    let lower = 0n;
+    let upper = initialGuess;
+    while ((await getNetCostForShares(upper)) < targetCost) {
+      lower = upper;
+      upper *= 2n;
+    }
+    let bestGuess = lower;
+    for (let i = 0; i < maxIterations; i++) {
+      const mid = (lower + upper) / 2n;
+      const cost = await getNetCostForShares(mid);
+      if (cost >= targetCost - tolerance && cost <= targetCost + tolerance) {
+        return mid;
+      }
+      if (cost > targetCost) {
+        upper = mid;
+      } else {
+        lower = mid;
+      }
+      bestGuess = mid;
+    }
+    return bestGuess;
+  }
+
+  // Debounce the betAmount.
+  const debouncedBetAmount = useDebounce(betAmount, 300);
+
+  // When in "buy" mode, calculate outcome shares only if an amount is entered and an outcome is selected.
+  // Also, use a cancellation token (calcTokenRef) so that stale calculations do not update state.
+  useEffect(() => {
+    // Clear previous result immediately.
+    setCalculatedSharesScaled(null);
+
+    // Increment the calculation token.
+    calcTokenRef.current++;
+
+    // If no amount is entered or outcome is not selected, do nothing.
+    if (tradeType !== "buy" || !debouncedBetAmount || debouncedBetAmount === "" || !marketAddress || selectedBet === null) {
+      return;
+    }
+    const currentToken = calcTokenRef.current;
+
+    const calculateOutcomeShares = async () => {
+      try {
+        setIsCalculating(true);
+        const userTotalCost = BigInt(Math.round(parseFloat(debouncedBetAmount) * 1_000_000));
+        // For a 4% fee, netCost = totalCost * 100 / 104.
+        const targetNetCost = (userTotalCost * 100n) / 104n;
+        const shares = await findSharesForCost(targetNetCost);
+        // Only update state if this is the latest calculation.
+        if (currentToken === calcTokenRef.current) {
+          setCalculatedSharesScaled(shares);
+        }
+      } catch (error) {
+        console.error("Error calculating shares for cost:", error);
+      } finally {
+        // Only clear calculation status if this is the latest call.
+        if (currentToken === calcTokenRef.current) {
+          setIsCalculating(false);
+        }
+      }
+    };
+
+    calculateOutcomeShares();
+  }, [debouncedBetAmount, selectedBet, marketAddress, tradeType, numericBetAmount]);
+
+  // Transaction and approval functions.
   const sendTransaction = async (
     contractAddress: string,
     functionName: string,
@@ -177,13 +284,18 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       const signer = await provider.getSigner();
       if (which === "buy") {
         const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
-        console.log(`Approving USDC for total cost: ${totalCost.toString()}`);
-        const approveTx = await usdcContract.approve(marketAddress, totalCost);
+        const approvalAmount = BigInt(Math.round(parseFloat(betAmount) * 1_000_000));
+        console.log(`Approving USDC for amount: ${approvalAmount.toString()}`);
+        const approveTx = await usdcContract.approve(marketAddress, approvalAmount);
         await approveTx.wait();
         console.log("USDC approved.");
       }
       if (which === "sell") {
-        const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
+        const conditionalTokensContract = new ethers.Contract(
+          CONDITIONAL_TOKENS_ADDRESS,
+          CONDITIONAL_TOKENS_ABI,
+          signer
+        );
         console.log("Approving Conditional Tokens...");
         const approveCTx = await conditionalTokensContract.setApprovalForAll(marketAddress, true);
         await approveCTx.wait();
@@ -193,7 +305,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       console.error("Approval transaction failed:", error);
     }
   };
-
+  
   const fetchOutcomeBalance = async () => {
     if (!walletClient || !marketAddress || selectedBet === null || !conditionId) return;
     setIsBalanceLoading(true);
@@ -220,16 +332,17 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       openConnectModal?.();
       return;
     }
-    if (!marketAddress || !isValidBet) return;
+    if (!marketAddress || !selectedBet || calculatedSharesScaled === null) return;
     await approveContracts("buy");
     try {
       const receipt = await sendTransaction(
         marketAddress,
         "buyShares",
-        [betMapping[selectedBet!], betAmountBigInt]
+        [betMapping[selectedBet], calculatedSharesScaled]
       );
       if (receipt && receipt.status === 1) {
-        setModalData({ shares: numericBetAmount, cost: Number(totalCost) / 1e6 });
+        const displayShares = Number(calculatedSharesScaled) / Number(SHARE_SCALE);
+        setModalData({ shares: displayShares, cost: parseFloat(betAmount) });
         setIsModalOpen(true);
       }
     } catch (error) {
@@ -300,10 +413,8 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       console.log("Market Deployed:", data.newMarketAddress);
       setDeployedMarket(data.newMarketAddress);
       refetch();
-
       setToastMessage("Market Deployment Success");
       setToastAddress(data.newMarketAddress);
-      // Hide the toast automatically after 5 seconds.
       setTimeout(() => {
         setToastMessage(null);
         setToastAddress(null);
@@ -370,9 +481,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
         <div className="flex space-x-1">
           <button
             className={`px-1.5 py-0.75 text-[13px] font-semibold border-2 rounded text-white ${
-              tradeType === "buy"
-                ? "bg-blue-500 border-blue-700"
-                : "bg-greyblue border-gray-500 hover:bg-hovergreyblue"
+              tradeType === "buy" ? "bg-blue-500 border-blue-700" : "bg-greyblue border-gray-500 hover:bg-hovergreyblue"
             }`}
             onClick={() => setTradeType("buy")}
           >
@@ -380,9 +489,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
           </button>
           <button
             className={`px-1.5 py-0.75 text-[13px] font-semibold border-2 rounded text-white ${
-              tradeType === "sell"
-                ? "bg-red-500 border-red-700"
-                : "bg-greyblue border-gray-500 hover:bg-hovergreyblue"
+              tradeType === "sell" ? "bg-red-500 border-red-700" : "bg-greyblue border-gray-500 hover:bg-hovergreyblue"
             }`}
             onClick={() => setTradeType("sell")}
           >
@@ -390,7 +497,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
           </button>
         </div>
       </div>
-
       <div className="flex space-x-4 sm:space-x-2 xs:space-x-1 xxs:space-x-1 justify-center mb-1">
         {(["home", "draw", "away"] as const).map((outcome) => {
           const price = outcome === "home" ? homePrice : outcome === "draw" ? drawPrice : awayPrice;
@@ -402,25 +508,14 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
               : isSelected && tradeType === "sell"
               ? "border-red-600"
               : "border-gray-400";
-
           return (
             <button
               key={`bet-button-${outcome}-${refreshKey}`}
               disabled={isResolved}
               className={`border-2 shadow-md ${borderColor} text-white font-semibold 
-                w-[128px] h-[45px] 
-                md:w-[125px] md:h-[43px] 
-                sm:w-[117px] sm:h-[42px] 
-                xs:w-[105px] xs:h-[38px]
-                xxs:w-[96px] xxs:h-[35px]
-                flex-shrink-0
-                flex items-center justify-center sm:space-x-2 xs:space-x-1.5 xxs:space-x-1.5 transition-all 
-                rounded-full focus:outline-none focus:ring-0 ${
-                  isResolved
-                    ? "opacity-50 cursor-not-allowed"
-                    : isSelected
-                    ? "bg-hovergreyblue"
-                    : "bg-greyblue hover:bg-hovergreyblue"
+                w-[128px] h-[45px] md:w-[125px] md:h-[43px] sm:w-[117px] sm:h-[42px] xs:w-[105px] xs:h-[38px] xxs:w-[96px] xxs:h-[35px]
+                flex-shrink-0 flex items-center justify-center sm:space-x-2 xs:space-x-1.5 xxs:space-x-1.5 transition-all rounded-full focus:outline-none focus:ring-0 ${
+                  isResolved ? "opacity-50 cursor-not-allowed" : isSelected ? "bg-hovergreyblue" : "bg-greyblue hover:bg-hovergreyblue"
                 }`}
               onClick={() => !isResolved && handleSelectBet(outcome)}
             >
@@ -439,7 +534,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
           );
         })}
       </div>
-
       {!expanded && (
         <button
           disabled={isResolved}
@@ -452,24 +546,68 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
           <span>More Betting Options</span>
         </button>
       )}
-
       {expanded && (
         <>
           <div className="p-1 w-full">
-            <label className="block text-md font-semibold">
-              {tradeType === "buy" ? "Target Winning Amount" : "Target Selling Amount"}
-            </label>
-            {tradeType === "sell" && (
-              <p>
-                <strong className="text-sm">Balance: </strong>
-                {isBalanceLoading ? "Checking..." : outcomeBalance !== null ? `${outcomeBalance} Shares` : "N/A"}
-              </p>
-            )}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between md:space-x-4">
+              <label className="block text-lg font-semibold">
+                {tradeType === "buy" ? "Enter Buy Amount" : "Enter Sell Amount"}
+              </label>
+              {tradeType === "buy" ? (
+                // Buy mode: preset buttons container
+                <div className="mt-2 md:mt-0 md:flex md:flex-1 md:justify-end">
+                  <div className="flex flex-nowrap space-x-2 justify-start md:justify-end">
+                    {[50, 100, 250, 500, 1000].map((preset) => (
+                      <button
+                        key={preset}
+                        className="px-3 py-[0.75] rounded-full bg-blue-500 hover:bg-blue-700 text-white font-semibold"
+                        onClick={() => setBetAmount(preset.toString())}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                // Sell mode: balance container
+                <div className="mt-2 md:mt-0 md:flex md:flex-1 md:justify-end">
+                  <p className="text-left md:text-right">
+                    <strong className="text-md">Balance: </strong>
+                    {isBalanceLoading ? (
+                      "Checking..."
+                    ) : outcomeBalance !== null ? (
+                      <>
+                        <span className="font-semibold">{outcomeBalance}</span>{" "}
+                        <span
+                          className={
+                            selectedBet === "home"
+                              ? "text-blue-500 font-semibold"
+                              : selectedBet === "draw"
+                              ? "text-gray-400 font-semibold"
+                              : "text-redmagenta font-semibold"
+                          }
+                        >
+                          ${selectedBet?.toUpperCase()}
+                        </span>
+                      </>
+                    ) : (
+                      "N/A"
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
             <input
               type="number"
               min="0"
-              className="w-full p-2 mt-2 focus:outline-none focus:ring-0 rounded bg-darkblue text-white text-lg"
-              placeholder={marketStatus !== "ready" ? "Market not deployed" : "USD Amount"}
+              className="w-full p-2 mt-2 focus:outline-none focus:ring-0 rounded bg-darkblue text-white font-medium text-lg"
+              placeholder={
+                marketStatus !== "ready"
+                  ? "Market not deployed"
+                  : tradeType === "buy"
+                  ? "USDC Amount"
+                  : "Token Amount"
+              }
               value={betAmount}
               onChange={(e) => {
                 if (marketStatus !== "ready") return;
@@ -478,20 +616,48 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
               }}
               disabled={marketStatus !== "ready"}
             />
-            <div className="mt-3 text-sm text-white">
-              <p>
-                <strong>{tradeType === "buy" ? "Total Cost:" : "You Receive:"}</strong>
-                {selectedBet === null || betAmount === ""
-                  ? " $0.00 USDC"
-                  : tradeType === "buy"
-                  ? totalCost
-                    ? ` $${(Number(totalCost) / 1e6).toFixed(2)} USDC`
-                    : " Calculating..."
-                  : netCost !== null
-                  ? ` $${(Number(netCost) / 1e6).toFixed(2)} USDC`
-                  : " Loading..."}
-              </p>
-
+            <div className="mt-3 text-md font-medium text-white">
+              {tradeType === "buy" ? (
+                selectedBet === null || betAmount === "" ? (
+                  <p>
+                    <strong>You will receive:</strong> 0.00 Outcome Tokens
+                  </p>
+                ) : (
+                  <p>
+                    <strong>You will receive:</strong>{" "}
+                    {isCalculating || calculatedSharesScaled === null ? (
+                      "Calculating..."
+                    ) : (
+                      <>
+                        {(Number(calculatedSharesScaled) / Number(SHARE_SCALE)).toFixed(2)}{" "}
+                        <span
+                          className={
+                            selectedBet === "home"
+                              ? "text-blue-400 font-semibold"
+                              : selectedBet === "draw"
+                              ? "text-gray-400 font-semibold"
+                              : "text-redmagenta font-semibold"
+                          }
+                        >
+                          ${selectedBet.toUpperCase()}
+                        </span>{" "}
+                        <span className="text-white">
+                          Outcome tokens
+                        </span>
+                      </>
+                    )}
+                  </p>
+                )
+              ) : (
+                <p>
+                  <strong>You will receive:</strong>{" "}
+                  {selectedBet === null || betAmount === ""
+                    ? " $0.00 USDC"
+                    : netCost !== null
+                    ? ` $${(Number(netCost) / 1e6).toFixed(2)} USDC`
+                    : " Loading..."}
+                </p>
+              )}
               {marketStatus === "loading" && (
                 <p className="text-white font-semibold mt-2">🔄 Checking market status...</p>
               )}
@@ -505,20 +671,18 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
               )}
             </div>
             <button
-              className={`btn w-full mt-4 py-2 h-[45px] text-lg font-semibold border-2 rounded-full text-white transition-all 
-                ${
-                  isTxPending
-                    ? "bg-gray-400 border-gray-300 text-white cursor-not-allowed"
-                    : tradeType === "buy"
-                    ? "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-700"
-                    : "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-700"
-                }`}
+              className={`btn w-full mt-4 py-2 h-[45px] text-lg font-semibold border-2 rounded-full text-white transition-all ${
+                isTxPending
+                  ? "bg-gray-400 border-gray-300 text-white cursor-not-allowed"
+                  : tradeType === "buy"
+                  ? "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-700"
+                  : "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-700"
+              }`}
               onClick={tradeType === "buy" ? buyShares : sellShares}
               disabled={isTxPending}
             >
               {isTxPending ? "Processing..." : tradeType === "buy" ? "BUY" : "SELL"}
             </button>
-
           </div>
           <button
             className="w-full mt-2 flex items-center justify-center text-white text-md font-semibold space-x-2"
@@ -529,29 +693,24 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
           </button>
         </>
       )}
-
       {toastMessage && (
         <div className="toast toast-end fixed bottom-4 right-4 z-50">
           <div className="alert bg-greyblue border-2 border-blue-500 ">
             <div>
-              <span className='text-blue-500 font-semibold'>{toastMessage}</span>
+              <span className="text-blue-500 font-semibold">{toastMessage}</span>
               {toastAddress && (
-                <span className="block text-xs mt-1 font-medium">
-                  Contract: {toastAddress}
-                </span>
+                <span className="block text-xs mt-1 font-medium">Contract: {toastAddress}</span>
               )}
             </div>
           </div>
         </div>
       )}
-
       <Dialog open={isModalOpen} onClose={closeModal} className="fixed inset-0 flex items-center justify-center z-50">
         <div className="fixed inset-0 bg-black opacity-50"></div>
         <div className="bg-greyblue p-6 rounded-lg shadow-lg w-auto max-w-md sm:max-w-xs mx-auto text-center relative z-50">
           <h2 className="text-white text-2xl sm:text-xl font-semibold mb-3">Success</h2>
           <p className="text-gray-300 text-lg sm:text-base">
-            {tradeType === "buy" ? "You purchased" : "You sold"}{" "}
-            <span className="text-white font-bold">{modalData.shares}</span> outcome shares
+            {tradeType === "buy" ? "You purchased" : "You sold"} <span className="text-white font-bold">{modalData.shares}</span> Outcome Tokens
           </p>
           <p className="text-gray-300 text-lg sm:text-base">
             for <span className="text-white font-bold">${modalData.cost.toFixed(2)}</span> USDC
