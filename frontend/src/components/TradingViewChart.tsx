@@ -7,7 +7,7 @@ import {
   LineSeries,
 } from "lightweight-charts";
 import { MatchData } from "@/types/MatchData.ts";
-import CustomTooltip from "./CustomTooltip.tsx"; 
+import CustomTooltip from "./CustomTooltip.tsx";
 
 export interface OddsHistory {
   timestamps?: number[];
@@ -67,19 +67,29 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       const { clientWidth, clientHeight } = chartContainerRef.current;
       const isMobile = clientWidth < 500;
       const newFontSize = isMobile ? 6 : 12;
-      
       const newScaleMargins = isMobile ? { top: 0, bottom: 0 } : { top: 0.1, bottom: 0.1 };
-      
       const newBarSpacing = isMobile ? 1 : 6;
-      
+
       chartRef.current.resize(clientWidth, clientHeight);
       chartRef.current.applyOptions({
         layout: { fontSize: newFontSize },
         rightPriceScale: { scaleMargins: newScaleMargins },
         timeScale: { barSpacing: newBarSpacing },
       });
+      chartRef.current.timeScale().fitContent();
     }
   };
+
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+    const observer = new ResizeObserver(() => {
+      updateChartSizeAndLayout();
+    });
+    observer.observe(chartContainerRef.current);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -174,11 +184,9 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       });
     });
 
-    window.addEventListener("resize", updateChartSizeAndLayout);
     updateChartSizeAndLayout();
 
     return () => {
-      window.removeEventListener("resize", updateChartSizeAndLayout);
       chartRef.current?.remove();
     };
   }, []);
