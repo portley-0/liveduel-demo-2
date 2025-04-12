@@ -32,6 +32,7 @@ const USDC_ABI = MockUSDCABI.abi;
 const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 const MARKET_FACTORY_ABI = MarketFactoryABI.abi;
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+const AVALANCHE_FUJI_RPC = 'https://api.avax-test.network/ext/bc/C/rpc';
 
 const SHARE_SCALE = 1000000n; 
 
@@ -146,6 +147,8 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     tradeType,
     marketStatus
   );
+
+  const publicProvider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
 
   const getSigner = async () => {
     if (!walletClient) {
