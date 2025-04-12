@@ -99,7 +99,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   }, [walletClient, match.matchId, marketAddress]);
 
   useEffect(() => {
-    if (tradeType !== "sell" || !walletClient || !marketAddress || selectedBet === null || !conditionId) return;
+    if (tradeType !== "sell" || !marketAddress || selectedBet === null || !conditionId) return;
     const timeout = setTimeout(() => {
       fetchOutcomeBalance();
     }, 250);
