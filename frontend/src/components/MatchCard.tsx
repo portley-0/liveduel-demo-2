@@ -23,7 +23,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
 
   return (
     <div className="relative p-10 mt-[-20px] sm:px-7 xs:px-7 xxs:px-7 sm:pb-5 xs:pb-5 xxs:pb-5 lg:pr-4 flex flex-col w-full lg:max-h-[calc(100vh-80px)]">
-      <div className="flex justify-between items-center mb-3">
+      <div className="flex justify-between items-center mb-2">
         <div className="flex flex-col items-start">
           <img
             src={match.homeTeamLogo}
@@ -67,7 +67,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
             alt={match.awayTeamName}
             className="object-contain 2xl:w-[140px] 2xl:h-[140px] lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] xxs:w-[75px] xxs:h-[75px]"
           />
-          <span className="2xl:text-2xl lg:text-xl text-white font-[Lato-Bold] mt-3 mb-3 sm:mb-1 xs:mb-1 xxs:mb-1 truncate max-w-[180px]">
+          <span className="2xl:text-2xl lg:text-xl text-white font-[Lato-Bold] mt-3 mb-2 sm:mb-1 xs:mb-1 xxs:mb-1 truncate max-w-[180px]">
             {match.awayTeamName}
           </span>
         </div>

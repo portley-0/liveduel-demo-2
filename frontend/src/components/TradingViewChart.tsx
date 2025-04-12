@@ -62,8 +62,32 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     return date.toLocaleDateString();
   };
 
+  const updateChartSizeAndLayout = () => {
+    if (chartContainerRef.current && chartRef.current) {
+      const { clientWidth, clientHeight } = chartContainerRef.current;
+      const isMobile = clientWidth < 500;
+      const newFontSize = isMobile ? 6 : 12;
+      
+      const newScaleMargins = isMobile ? { top: 0, bottom: 0 } : { top: 0.1, bottom: 0.1 };
+      
+      const newBarSpacing = isMobile ? 1 : 6;
+      
+      chartRef.current.resize(clientWidth, clientHeight);
+      chartRef.current.applyOptions({
+        layout: { fontSize: newFontSize },
+        rightPriceScale: { scaleMargins: newScaleMargins },
+        timeScale: { barSpacing: newBarSpacing },
+      });
+    }
+  };
+
   useEffect(() => {
     if (!chartContainerRef.current) return;
+    const containerWidth = chartContainerRef.current.clientWidth;
+    const isMobile = containerWidth < 500;
+    const initialFontSize = isMobile ? 6 : 12;
+    const initialScaleMargins = isMobile ? { top: 0, bottom: 0 } : { top: 0.1, bottom: 0.1 };
+    const initialBarSpacing = isMobile ? 1 : 6;
 
     chartRef.current = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
@@ -71,6 +95,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       layout: {
         background: { color: "rgb(30, 41, 60)" },
         textColor: "#FFFFFF",
+        fontSize: initialFontSize,
       },
       grid: {
         vertLines: { color: "#404040" },
@@ -86,6 +111,10 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
         fixRightEdge: true,
         rightOffset: 0,
         tickMarkFormatter: localTimeFormatter,
+        barSpacing: initialBarSpacing,
+      },
+      rightPriceScale: {
+        scaleMargins: initialScaleMargins,
       },
       crosshair: {
         mode: 0,
@@ -122,7 +151,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       const drawData = param.seriesData.get(drawSeriesRef.current!) as { time: Time; value: number };
       const awayData = param.seriesData.get(awaySeriesRef.current!) as { time: Time; value: number };
 
-
       const payload = [
         { dataKey: "home", value: homeData ? homeData.value : undefined },
         { dataKey: "draw", value: drawData ? drawData.value : undefined },
@@ -146,7 +174,11 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       });
     });
 
+    window.addEventListener("resize", updateChartSizeAndLayout);
+    updateChartSizeAndLayout();
+
     return () => {
+      window.removeEventListener("resize", updateChartSizeAndLayout);
       chartRef.current?.remove();
     };
   }, []);
@@ -176,7 +208,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={chartContainerRef} style={{ width: "100%", height: "100%" }} />
-
       {tooltip.active && tooltip.label && (
         <div
           style={{
@@ -184,7 +215,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
             left: tooltip.position.left,
             top: tooltip.position.top,
             pointerEvents: "none",
-            zIndex: 1000, 
+            zIndex: 1000,
           }}
         >
           <CustomTooltip
