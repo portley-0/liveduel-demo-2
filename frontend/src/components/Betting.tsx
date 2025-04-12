@@ -15,7 +15,6 @@ import MockUSDCABI from "@/abis/MockUSDC.json" with { type: "json" };
 import { ethers } from "ethers";
 import { useWalletClient } from "wagmi";
 
-// Simple debounce hook.
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   useEffect(() => {
@@ -34,7 +33,6 @@ const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 const MARKET_FACTORY_ABI = MarketFactoryABI.abi;
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
-// Both USDC and outcome tokens have 6 decimals so we use a scale of 1e6.
 const SHARE_SCALE = 1000000n; 
 
 const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
@@ -64,17 +62,14 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastAddress, setToastAddress] = useState<string | null>(null);
   
-  // State for computed shares (scaled by SHARE_SCALE) and a flag if calculation is running.
   const [calculatedSharesScaled, setCalculatedSharesScaled] = useState<bigint | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
-  // Ref to track the current calculation version.
   const calcTokenRef = useRef(0);
 
   const isResolved = !!match.resolvedAt;
   const closeModal = () => setIsModalOpen(false);
 
-  // Fetch conditionId and outcome token IDs.
   const fetchConditionId = async (): Promise<void> => {
     if (!walletClient || !match.matchId || !marketAddress) return;
     try {
@@ -140,12 +135,10 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     away: 2,
   };
 
-  // For "sell" mode, betAmount is interpreted as share count.
   const isValidBet = selectedBet !== null && betAmount !== "";
   const numericBetAmount = parseFloat(betAmount || "0");
   const betAmountBigInt = isValidBet ? BigInt(Math.round(numericBetAmount * 1_000_000)) : null;
 
-  // useNetCost hook for SELL mode.
   const { data: netCost, isLoading: isFetchingNetCost } = useNetCost(
     marketAddress,
     isValidBet ? betMapping[selectedBet!] : null,
@@ -154,7 +147,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     marketStatus
   );
   const fee = netCost ? (netCost * 4n) / 100n : 0n;
-  const totalCost = netCost ? netCost + fee : 0n;
 
   // Binary search helper: inverts getNetCost to determine the share amount (scaled by SHARE_SCALE)
   const getNetCostForShares = async (shares: bigint): Promise<bigint> => {
@@ -197,19 +189,13 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     return bestGuess;
   }
 
-  // Debounce the betAmount.
   const debouncedBetAmount = useDebounce(betAmount, 300);
 
-  // When in "buy" mode, calculate outcome shares only if an amount is entered and an outcome is selected.
-  // Also, use a cancellation token (calcTokenRef) so that stale calculations do not update state.
   useEffect(() => {
-    // Clear previous result immediately.
     setCalculatedSharesScaled(null);
 
-    // Increment the calculation token.
     calcTokenRef.current++;
 
-    // If no amount is entered or outcome is not selected, do nothing.
     if (tradeType !== "buy" || !debouncedBetAmount || debouncedBetAmount === "" || !marketAddress || selectedBet === null) {
       return;
     }
@@ -219,10 +205,8 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       try {
         setIsCalculating(true);
         const userTotalCost = BigInt(Math.round(parseFloat(debouncedBetAmount) * 1_000_000));
-        // For a 4% fee, netCost = totalCost * 100 / 104.
         const targetNetCost = (userTotalCost * 100n) / 104n;
         const shares = await findSharesForCost(targetNetCost);
-        // Only update state if this is the latest calculation.
         if (currentToken === calcTokenRef.current) {
           setCalculatedSharesScaled(shares);
         }
@@ -554,7 +538,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                 {tradeType === "buy" ? "Enter Buy Amount" : "Enter Sell Amount"}
               </label>
               {tradeType === "buy" ? (
-                // Buy mode: preset buttons container
                 <div className="mt-2 md:mt-0 md:flex md:flex-1 md:justify-end">
                   <div className="flex flex-nowrap space-x-2 justify-start md:justify-end">
                     {[50, 100, 250, 500, 1000].map((preset) => (
@@ -569,7 +552,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                   </div>
                 </div>
               ) : (
-                // Sell mode: balance container
                 <div className="mt-2 md:mt-0 md:flex md:flex-1 md:justify-end">
                   <p className="text-left md:text-right">
                     <strong className="text-md">Balance: </strong>
