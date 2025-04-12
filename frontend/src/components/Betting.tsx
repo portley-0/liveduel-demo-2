@@ -146,14 +146,34 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     tradeType,
     marketStatus
   );
-  const fee = netCost ? (netCost * 4n) / 100n : 0n;
+
+  const getSigner = async () => {
+    if (!walletClient) {
+      console.log("No walletClient available");
+      return null;
+    }
+    let provider;
+    const anyClient = walletClient as any;
+    if (anyClient.provider) {
+      console.log("Using walletClient.provider for BrowserProvider");
+      provider = new ethers.BrowserProvider(anyClient.provider);
+    } else if (typeof window !== "undefined" && window.ethereum) {
+      console.log("Using window.ethereum for BrowserProvider");
+      provider = new ethers.BrowserProvider(window.ethereum);
+    } else {
+      console.log("Falling back to walletClient directly for BrowserProvider");
+      provider = new ethers.BrowserProvider(walletClient as any);
+    }
+    const signer = await provider.getSigner();
+    console.log("Signer obtained:", signer);
+    return signer;
+  };
 
   // Binary search helper: inverts getNetCost to determine the share amount (scaled by SHARE_SCALE)
   const getNetCostForShares = async (shares: bigint): Promise<bigint> => {
-    if (!walletClient || !marketAddress || selectedBet === null)
+    if (!marketAddress || selectedBet === null)
       throw new Error("Missing prerequisites for net cost calculation");
-    const provider = new ethers.BrowserProvider(walletClient as any);
-    const signer = await provider.getSigner();
+    const signer = await getSigner();
     const predictionMarket = new ethers.Contract(marketAddress, PredictionMarketABI.abi, signer);
     const outcomeIndex = betMapping[selectedBet];
     const netCost: bigint = await predictionMarket.getNetCost(outcomeIndex, shares);
