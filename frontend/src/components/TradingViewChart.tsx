@@ -48,6 +48,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
   const TOOLTIP_WIDTH = 96;
   const TOOLTIP_HEIGHT = 80;
   const TOOLTIP_MARGIN = 15;
+  const EXTRA_OFFSET = 10; 
 
   const localTimeFormatter = (time: Time): string => {
     const date = new Date((time as number) * 1000);
@@ -73,7 +74,10 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       chartRef.current.resize(clientWidth, clientHeight);
       chartRef.current.applyOptions({
         layout: { fontSize: newFontSize },
-        rightPriceScale: { scaleMargins: newScaleMargins },
+        rightPriceScale: { 
+          scaleMargins: newScaleMargins,
+          borderVisible: false  
+        },
         timeScale: { barSpacing: newBarSpacing },
       });
       chartRef.current.timeScale().fitContent();
@@ -125,6 +129,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       },
       rightPriceScale: {
         scaleMargins: initialScaleMargins,
+        borderVisible: false, 
       },
       crosshair: {
         mode: 0,
@@ -167,13 +172,13 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
         { dataKey: "away", value: awayData ? awayData.value : undefined },
       ];
 
-      let left = param.point.x + TOOLTIP_MARGIN;
+      let left = param.point.x + TOOLTIP_MARGIN + EXTRA_OFFSET;
       if (left > chartContainerRef.current!.clientWidth - TOOLTIP_WIDTH) {
-        left = param.point.x - TOOLTIP_MARGIN - TOOLTIP_WIDTH;
+        left = param.point.x - TOOLTIP_MARGIN - TOOLTIP_WIDTH - EXTRA_OFFSET;
       }
-      let top = param.point.y + TOOLTIP_MARGIN;
+      let top = param.point.y + TOOLTIP_MARGIN + EXTRA_OFFSET;
       if (top > chartContainerRef.current!.clientHeight - TOOLTIP_HEIGHT) {
-        top = param.point.y - TOOLTIP_HEIGHT - TOOLTIP_MARGIN;
+        top = param.point.y - TOOLTIP_HEIGHT - TOOLTIP_MARGIN - EXTRA_OFFSET;
       }
 
       setTooltip({
