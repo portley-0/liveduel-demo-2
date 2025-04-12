@@ -640,20 +640,20 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                       "Calculating..."
                     ) : (
                       <>
-                        {(Number(calculatedSharesScaled) / Number(SHARE_SCALE)).toFixed(2)}{" "}
-                        <span
-                          className={
-                            selectedBet === "home"
-                              ? "text-blue-400 font-semibold"
-                              : selectedBet === "draw"
-                              ? "text-gray-400 font-semibold"
-                              : "text-redmagenta font-semibold"
-                          }
-                        >
-                          ${selectedBet.toUpperCase()}
-                        </span>{" "}
-                        <span className="text-white">
-                          Tokens
+                        <span className="inline-flex items-center">
+                          {(Number(calculatedSharesScaled) / Number(SHARE_SCALE)).toFixed(2)}{" "}
+                          <span
+                            className={
+                              selectedBet === "home"
+                                ? "text-blue-400 font-semibold"
+                                : selectedBet === "draw"
+                                ? "text-gray-400 font-semibold"
+                                : "text-redmagenta font-semibold"
+                            }
+                          >
+                            ${selectedBet.toUpperCase()}
+                          </span>{" "}
+                          <span className="text-white">Tokens</span>
                         </span>
                       </>
                     )}
