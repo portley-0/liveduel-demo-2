@@ -707,7 +707,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
         </>
       )}
       {toastMessage && (
-        <div className="toast fixed bottom-20 left-1/2 -translate-x-1/2 sm:bottom-auto sm:right-4 sm:left-auto sm:translate-x-0">
+        <div className="toast fixed bottom-20 left-1/2 -translate-x-1/2 sm:bottom-0 sm:right-4 sm:left-auto sm:translate-x-0">
           <div className="alert bg-greyblue border-2 border-blue-500">
             <div>
               <span className="text-blue-500 font-semibold">{toastMessage}</span>
@@ -720,6 +720,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
           </div>
         </div>
       )}
+
 
       <Dialog open={isModalOpen} onClose={closeModal} className="fixed inset-0 flex items-center justify-center z-50">
         <div className="fixed inset-0 bg-black opacity-50"></div>
