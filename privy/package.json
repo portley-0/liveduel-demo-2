@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm run build:css && vite",
-    "build": "tsc -b && pnpm run build:css && vite build",
+    "build": "pnpm run build:css && vite build",
     "build:css": "pnpm tailwindcss -i ./src/styles/index.css -o ./src/styles/tailwind.css --minify"
   },
   "dependencies": {
