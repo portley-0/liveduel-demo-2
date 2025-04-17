@@ -107,16 +107,15 @@ const GetFunds: React.FC = () => {
 
   return (
     <div className="p-4 lg:pt-0 lg:py-2">
-      <div className="flex flex-col space-y-8">
+      <div className="flex flex-col gap-8 -mt-5">
         {/* AVAX Section */}
-        <div className="flex flex-col md:flex-row items-center">
+        <div className="flex flex-col md:flex-row items-center max-h-[calc((100vh-80px)/2)] overflow-hidden">
           <div className="w-full max-w-3xl lg:ml-8">
             {/* Mobile layout */}
             <div className="md:hidden -mt-6">
               <div className="flex items-stretch">
                 <div className="flex flex-col justify-center h-48">
-                  {/* Removed duplicate "Get Funds" title */}
-                  <h2 className="text-3xl font-semibold mt-6">Mint AVAX</h2>
+                  <h2 className="text-3xl font-semibold mt-6">1. Mint AVAX</h2>
                 </div>
                 <div className="h-48 flex items-center justify-center">
                   <img
@@ -126,7 +125,7 @@ const GetFunds: React.FC = () => {
                   />
                 </div>
               </div>
-              <div className="-mt-6">
+              <div className="-mt-10">
                 <input
                   type="text"
                   placeholder="Enter your wallet address"
@@ -154,7 +153,7 @@ const GetFunds: React.FC = () => {
             {/* Desktop layout */}
             <div className="hidden md:block">
               <section className="mb-1">
-                <h2 className="text-xl font-semibold mb-2">Mint Testnet AVAX</h2>
+                <h2 className="text-2xl font-semibold mb-2">1. Mint Testnet AVAX</h2>
                 <div className="mt-1 flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-4">
                   <input
                     type="text"
@@ -185,22 +184,21 @@ const GetFunds: React.FC = () => {
             <img
               src="/images/AVAX-Tokens.png"
               alt="USDC Tokens"
-              className="w-[450px] h-auto object-contain"
+              className="w-[350px] h-auto object-contain"
             />
           </div>
-
         </div>
 
         {/* mUSDC Section */}
-        <div className="flex flex-col md:flex-row items-center">
+        <div className="flex flex-col md:flex-row items-center max-h-[calc((100vh-80px)/2)] overflow-hidden transform md:-translate-y-7">
           <div className="w-full max-w-3xl lg:ml-8">
             {/* Mobile layout */}
             <div className="md:hidden -mt-6">
               <div className="flex items-stretch">
                 <div className="flex flex-col justify-center h-48">
-                  <h2 className="text-3xl font-semibold">Mint mUSDC</h2>
+                  <h2 className="text-3xl font-semibold">2. Mint mUSDC</h2>
                 </div>
-                <div className="h-40 flex items-center justify-center">
+                <div className="h-48 flex items-center justify-center">
                   <img
                     src="/images/USDC-Tokens.png"
                     alt="USDC Tokens"
@@ -225,13 +223,18 @@ const GetFunds: React.FC = () => {
                 >
                   {getButtonLabel()}
                 </button>
+                <div className="mt-1 hidden lg:block">
+                  <div className="mb-4 text-sm font-semibold text-white">
+                    Faucet balance:
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Desktop layout */}
             <div className="hidden md:block">
-              <section className="mb-1">
-                <h2 className="text-xl font-semibold mb-2">Mint mUSDC</h2>
+              <section className="-mt-10">
+                <h2 className="text-2xl font-semibold mb-2">2. Mint mUSDC</h2>
                 <div className="mt-1 flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-4">
                   <input
                     type="text"
@@ -247,6 +250,11 @@ const GetFunds: React.FC = () => {
                   >
                     {getButtonLabel()}
                   </button>
+                  <div className="mt-1 hidden lg:block">
+                    <div className="mb-4 text-sm font-semibold text-white">
+                      Faucet balance:
+                    </div>
+                  </div>
                 </div>
               </section>
             </div>
@@ -256,7 +264,7 @@ const GetFunds: React.FC = () => {
             <img
               src="/images/USDC-Tokens.png"
               alt="USDC Tokens"
-              className="w-[450px] h-auto object-contain"
+              className="w-[350px] h-auto object-contain"
             />
           </div>
         </div>

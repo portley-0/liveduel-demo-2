@@ -165,7 +165,7 @@ const FilterMenu: React.FC = () => {
         </div>
 
         <div data-theme="dark" className="bg-darkblue flex flex-col space-y-2 whitespace-nowrap xxs:-ml-4">
-          <div className="grid grid-cols-[1fr_auto] flex-nowrap items-center gap-x-2 -mt-3 ">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 -mt-3 ">
             <span className="text-sm font-bold text-white text-right">Deployed Only</span>
             <input
               type="checkbox"
@@ -174,7 +174,7 @@ const FilterMenu: React.FC = () => {
               onChange={() => setDeployedOnly(!deployedOnly)}
             />
           </div>
-          <div className="grid grid-cols-[1fr_auto] flex-nowrap items-center gap-x-2">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2">
             <span className="text-sm font-bold text-white text-right">Live Only</span>
             <input
               type="checkbox"
@@ -183,7 +183,7 @@ const FilterMenu: React.FC = () => {
               onChange={() => setLiveOnly(!liveOnly)}
             />
           </div>
-          <div className="grid grid-cols-[1fr_auto] flex-nowrap items-center gap-x-2">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2">
             <span className="text-sm font-bold text-white text-right">Selected Only</span>
             <input
               type="checkbox"
