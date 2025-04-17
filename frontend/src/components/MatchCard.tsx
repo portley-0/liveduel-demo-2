@@ -22,7 +22,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
   };
 
   return (
-    <div className="relative p-10 mt-[-20px] sm:px-7 xs:px-7 xxs:px-7 sm:pb-5 xs:pb-5 xxs:pb-5 lg:pr-4 flex flex-col w-full lg:max-h-[calc(100vh-80px)]">
+    <div className="relative p-10 mt-[-20px] sm:px-7 xs:px-7 xxs:px-5 sm:pb-5 xs:pb-5 xxs:pb-5 lg:pr-4 flex flex-col w-full lg:max-h-[calc(100vh-80px)]">
       <div className="flex justify-between items-center mb-2">
         <div className="flex flex-col items-start">
           <img

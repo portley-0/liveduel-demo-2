@@ -20,9 +20,9 @@ const config: Config = {
       },
     },
     screens: {
-      xxs: "350px", 
+      xxs: "320px", 
       xs: "380px",  
-      sm: "430px", 
+      sm: "431px", 
       md: "768px",
       lg: "1024px",
       xl: "1280px",

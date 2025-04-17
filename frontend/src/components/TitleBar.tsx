@@ -38,12 +38,17 @@ const TitleBar = () => {
     return () => window.removeEventListener("resize", debouncedResize);
   }, []);
 
+  const closeDrawer = () => {
+    const drawerToggle = document.getElementById("my-drawer") as HTMLInputElement | null;
+    if (drawerToggle) drawerToggle.checked = false;
+  };
+
   const navItems = [
     { path: "/dashboard/markets", label: "Markets", icon: FaChartLine },
     { path: "/dashboard/predictions", label: "Predictions", icon: FaFutbol },
     { path: "/dashboard/get-funds", label: "Get Funds", icon: FaRegMoneyBillAlt },
-    { path: "/dashboard/buy", label: "Buy $Duel", icon: FaCreditCard },
-    { path: "/dashboard/stake", label: "Staking", icon: FaCoins },
+    //{ path: "/dashboard/buy", label: "Buy $Duel", icon: FaCreditCard },
+    //{ path: "/dashboard/stake", label: "Staking", icon: FaCoins },
   ];
 
   const { data: balance, isError, isLoading, refetch } = useReadContract({
@@ -75,7 +80,7 @@ const TitleBar = () => {
             <div className="flex items-center space-x-2 select-none">
               <label
                 htmlFor="my-drawer"
-                className="drawer-button bg-transparent border-0 text-white rounded-full hover:bg-gray-200 hover:text-darkblue select-none z-50 flex items-center justify-center w-12 h-12 xxs:w-11 xxs:h-11"
+                className="drawer-button bg-transparent border-0 text-white rounded-full hover:bg-gray-200 hover:text-darkblue select-none z-50 flex items-center justify-center w-11 h-11 flex-shrink-0 md:w-12 md:h-12"
               >
                 <RiMenuLine className="!text-3xl !sm:text-2xl" />
               </label>
@@ -88,7 +93,7 @@ const TitleBar = () => {
                   alt="Liveduel Logo"
                   width={200}
                   height={62}
-                  className="object-contain select-none sm:h-[50px] sx:h-[50px] xxs:h-[48px] "
+                  className="object-contain select-none sm:h-[50px] sx:h-[50px] xxs:h-[48px] xxs:-ml-4"
                 />
               </NavLink>
             </div>
@@ -131,9 +136,8 @@ const TitleBar = () => {
                 </div>
               )}
 
-
               <ConnectButton.Custom>
-                {({
+              {({
                   account,
                   openConnectModal,
                   openAccountModal,
@@ -145,36 +149,69 @@ const TitleBar = () => {
                   openAccountModal: () => void;
                   mounted: boolean;
                   connector: { icon: string; name: string } | null;
-                }) => {
+                })  => {
                   const ready = mounted;
                   const connected = ready && account;
 
                   return (
                     <button
                       onClick={connected ? openAccountModal : openConnectModal}
-                      className={`btn text-white w-auto  px-3 h-[28px] sm:px-3 sm:h-[28px] md:px-4 md:h-[30px] lg:px-5 lg:h-[34px] text-md sm:text-sm md:text-sm rounded-full select-none flex items-center justify-center gap-2 whitespace-nowrap transition-all ${
-                        connected
-                          ? "bg-darkblue border-2 border-white hover:text-gray-300 hover:border-gray-300"
-                          : "bg-darkblue border-2 border-white hover:text-gray-300 hover:border-gray-300"
-                      }`}
+                      className={`
+                        btn text-white w-auto
+                        px-3 h-[28px] sm:px-3 sm:h-[28px]
+                        md:px-4 md:h-[30px] lg:px-5 lg:h-[34px]
+                        text-md sm:text-sm rounded-full select-none
+                        flex items-center justify-center gap-2 whitespace-nowrap
+                        transition-all bg-darkblue border-2 border-white
+                        hover:text-gray-300 hover:border-gray-300 xxs:-mr-2
+                        ${connected
+                          ? "[@media(max-width:350px)]:px-1.5 [@media(max-width:350px)]:!h-[10px] [@media(max-width:350px)]:text-sm [@media(max-width:350px)]:gap-1"
+                          : ""
+                        }
+                      `}
                     >
                       {connected ? (
                         <>
-                          <MdAccountBalanceWallet className="text-lg sm:text-md" />
+                          <MdAccountBalanceWallet
+                            className={`
+                              text-lg sm:text-md
+                              max-[350px]:text-sm
+                            `}
+                          />
+
                           <span className="hidden sm:inline">
-                            {account.address.slice(0, 6)}...{account.address.slice(-4)}
+                            {account.address.slice(0, 6)}…{account.address.slice(-4)}
                           </span>
-                          <span className="sm:hidden">
-                            {account.address.slice(0, 4)}..
+
+                          <span
+                            className="
+                              sm:hidden hidden
+                              [@media(min-width:330px)_and_(max-width:350px)]:inline
+                              [@media(min-width:330px)_and_(max-width:350px)]:text-xs
+                            "
+                          >
+                            {account.address.slice(0, 3)}…
                           </span>
+
+                          <span
+                            className="
+                              sm:hidden inline
+                              [@media(min-width:330px)_and_(max-width:350px)]:hidden
+                              text-xs
+                            "
+                          >
+                            {account.address.slice(0, 4)}…
+                          </span>
+
                           {connector?.icon && (
                             <img
                               src={connector.icon}
                               alt={connector.name}
-                              className="w-4 h-4 sm:w-3 sm:h-3"
-                              onError={(e) =>
-                                (e.currentTarget.style.display = "none")
-                              }
+                              className={`
+                                w-4 h-4 sm:w-3 sm:h-3
+                                max-[350px]:w-2 max-[350px]:h-2
+                              `}
+                              onError={(e) => (e.currentTarget.style.display = "none")}
                             />
                           )}
                         </>
@@ -185,6 +222,10 @@ const TitleBar = () => {
                   );
                 }}
               </ConnectButton.Custom>
+
+             
+
+              
             </div>
           </header>
           
@@ -195,7 +236,7 @@ const TitleBar = () => {
                   key={path}
                   to={path}
                   className={({ isActive }) =>
-                    `group btn flex flex-col items-center justify-center w-1/5 p-0 m-0 bg-darkblue border-none hover:bg-transparent ${
+                    `group btn flex flex-col items-center justify-center w-1/3 p-0 m-0 bg-darkblue border-none hover:bg-transparent ${
                       isActive ? "!text-redmagenta" : "text-white"
                     }`
                   }
@@ -248,7 +289,10 @@ const TitleBar = () => {
                 return (
                   <li
                     className="mb-4 cursor-pointer"
-                    onClick={connected ? openAccountModal : openConnectModal}
+                    onClick={() => {
+                      connected ? openAccountModal() : openConnectModal();
+                      closeDrawer();
+                    }}
                   >
                     <p className="font-[Lato-Bold] text-lg text-white">
                       Balance: ${displayBalance} mUSDC 
@@ -259,20 +303,21 @@ const TitleBar = () => {
             </ConnectButton.Custom>
             <hr className="border-gray-700 my-2" />
             {navItems.map(({ path, label }) => (
-              <li key={path}>
-                <NavLink
-                  to={path}
-                  className={({ isActive }) =>
-                    `font-[Lato-Bold] text-lg text-white mb-4 ${
-                      isActive
-                        ? "!text-redmagenta"
-                        : "text-white hover:text-gray-300"
-                    }`
-                  }
-                >
-                  {label}
-                </NavLink>
-              </li>
+                <li key={path}>
+                    <NavLink
+                      to={path}
+                      onClick={closeDrawer}
+                      className={({ isActive }) =>
+                        `font-[Lato-Bold] text-lg text-white mb-4 ${
+                          isActive
+                            ? "!text-redmagenta"
+                            : "text-white hover:text-gray-300"
+                        }`
+                      }
+                    >
+                      {label}
+                    </NavLink>
+                </li>
             ))}
           </ul>
         </div>

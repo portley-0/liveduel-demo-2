@@ -69,7 +69,7 @@ const FilterMenu: React.FC = () => {
     <div className="sticky top-0 z-20 bg-darkblue py-1 px-4 flex flex-col space-y-2 shadow-xl">
       <h1 className="text-xs font-bold text-white">Markets</h1>
 
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 pb-1">
         <span className="text-sm font-bold text-white">Category:</span>
         <div className="relative">
           <span
@@ -107,7 +107,7 @@ const FilterMenu: React.FC = () => {
                 ))}
               </select>
               {selectedLeague !== null && (
-                <div className="ml-2 relative" style={{ width: "2rem", height: "2rem" }}>
+                <div className=" relative" style={{ width: "2rem", height: "2rem" }}>
                   <button
                     onClick={() => {
                       if (!isLeagueSelected) {
@@ -139,8 +139,8 @@ const FilterMenu: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex items-center justify-between w-full">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-nowrap items-center justify-between w-full">
+        <div className="flex items-center space-x-2 whitespace-nowrap -mt-4">
           <span className="text-sm font-bold text-white">Sort by:</span>
           <div className="relative">
             <span
@@ -164,30 +164,30 @@ const FilterMenu: React.FC = () => {
           </div>
         </div>
 
-        <div data-theme="dark" className="bg-darkblue flex flex-col space-y-2">
-          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 -mt-3">
+        <div data-theme="dark" className="bg-darkblue flex flex-col space-y-2 whitespace-nowrap xxs:-ml-4">
+          <div className="grid grid-cols-[1fr_auto] flex-nowrap items-center gap-x-2 -mt-3 ">
             <span className="text-sm font-bold text-white text-right">Deployed Only</span>
             <input
               type="checkbox"
-              className="toggle toggle-sm"
+              className="toggle toggle-sm "
               checked={deployedOnly}
               onChange={() => setDeployedOnly(!deployedOnly)}
             />
           </div>
-          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2">
+          <div className="grid grid-cols-[1fr_auto] flex-nowrap items-center gap-x-2">
             <span className="text-sm font-bold text-white text-right">Live Only</span>
             <input
               type="checkbox"
-              className="toggle toggle-sm"
+              className="toggle toggle-sm "
               checked={liveOnly}
               onChange={() => setLiveOnly(!liveOnly)}
             />
           </div>
-          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2">
+          <div className="grid grid-cols-[1fr_auto] flex-nowrap items-center gap-x-2">
             <span className="text-sm font-bold text-white text-right">Selected Only</span>
             <input
               type="checkbox"
-              className="toggle toggle-sm"
+              className="toggle toggle-sm "
               checked={selectedOnly}
               onChange={() => setSelectedOnly(!selectedOnly)}
             />

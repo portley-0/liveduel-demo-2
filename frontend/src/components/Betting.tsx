@@ -526,19 +526,19 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
               key={`bet-button-${outcome}-${refreshKey}`}
               disabled={isResolved}
               className={`border-2 shadow-md ${borderColor} text-white font-semibold 
-                w-[128px] h-[45px] md:w-[125px] md:h-[43px] sm:w-[117px] sm:h-[42px] xs:w-[105px] xs:h-[38px] xxs:w-[96px] xxs:h-[35px]
-                flex-shrink-0 flex items-center justify-center sm:space-x-2 xs:space-x-1.5 xxs:space-x-1.5 transition-all rounded-full focus:outline-none focus:ring-0 ${
+                w-[128px] h-[45px] md:w-[125px] md:h-[43px] sm:w-[117px] sm:h-[42px] xs:w-[105px] xs:h-[38px] xxs:w-[92px] xxs:h-[35px]
+                flex-shrink-0 flex items-center justify-center sm:space-x-2 xs:space-x-1.5 xxs:space-x-1 transition-all rounded-full focus:outline-none focus:ring-0 ${
                   isResolved ? "opacity-50 cursor-not-allowed" : isSelected ? "bg-hovergreyblue" : "bg-greyblue hover:bg-hovergreyblue"
                 }`}
               onClick={() => !isResolved && handleSelectBet(outcome)}
             >
               {outcome === "draw" ? (
-                <TbCircleLetterDFilled className="text-gray-400 text-[35px] md:text-[31px] sm:text-[29px] xs:text-[27px] xxs:text-[25px]" />
+                <TbCircleLetterDFilled className="text-gray-400 text-[35px] md:text-[31px] sm:text-[29px] xs:text-[27px] xxs:text-[23px]" />
               ) : (
                 <img
                   src={outcome === "home" ? match.homeTeamLogo : match.awayTeamLogo}
                   alt={outcome}
-                  className="w-[34px] h-[34px] md:w-[30px] md:h-[30px] sm:w-[28px] sm:h-[28px] xs:w-[24px] xs:h-[24px] xxs:w-[22px] xxs:h-[22px] object-contain"
+                  className="w-[34px] h-[34px] md:w-[30px] md:h-[30px] sm:w-[28px] sm:h-[28px] xs:w-[24px] xs:h-[24px] xxs:w-[20px] xxs:h-[20px] object-contain"
                 />
               )}
               <span className="text-xl md:text-lg sm:text-base xs:text-sm xxs:text-[14px]">${price.toFixed(2)}</span>
@@ -572,7 +572,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                     {[50, 100, 250, 500, 1000].map((preset) => (
                       <button
                         key={preset}
-                        className="px-3 py-[0.75] rounded-full bg-blue-500 hover:bg-blue-700 text-white font-semibold"
+                        className="px-3 xxs:px-2 py-[0.75] rounded-full bg-blue-500 hover:bg-blue-700 text-white font-semibold"
                         onClick={() => setBetAmount(preset.toString())}
                       >
                         {preset}
@@ -707,7 +707,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
         </>
       )}
       {toastMessage && (
-        <div className="toast fixed bottom-20 left-1/2 -translate-x-1/2 sm:bottom-0 sm:right-4 sm:left-auto sm:translate-x-0">
+        <div className="toast fixed bottom-[58px] left-1/2 -translate-x-1/2 sm:bottom-0 sm:right-4 sm:left-auto sm:translate-x-0">
           <div className="alert bg-greyblue border-2 border-blue-500">
             <div>
               <span className="text-blue-500 font-semibold">{toastMessage}</span>
