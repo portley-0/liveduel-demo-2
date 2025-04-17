@@ -106,7 +106,7 @@ const GetFunds: React.FC = () => {
   };
 
   return (
-    <div className="p-4 lg:py-2">
+    <div className="p-4 lg:pt-0 lg:py-2">
       <div className="flex flex-col space-y-8">
         {/* AVAX Section */}
         <div className="flex flex-col md:flex-row items-center">
@@ -152,8 +152,8 @@ const GetFunds: React.FC = () => {
             </div>
 
             {/* Desktop layout */}
-            <div className="hidden md:block -mt-10">
-              <section className="mb-2">
+            <div className="hidden md:block">
+              <section className="mb-1">
                 <h2 className="text-xl font-semibold mb-2">Mint Testnet AVAX</h2>
                 <div className="mt-1 flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-4">
                   <input
@@ -173,7 +173,6 @@ const GetFunds: React.FC = () => {
                 </div>
               </section>
             </div>
-            {/* Desktop faucet balance display */}
             <div className="mt-1 hidden lg:block">
               {faucetBalance !== null && (
                 <div className="mb-4 text-sm font-semibold text-white">
@@ -182,15 +181,11 @@ const GetFunds: React.FC = () => {
               )}
             </div>
           </div>
-          {/* AVAX image for larger screens - using inline styles for debugging */}
-          <div
-            className="hidden lg:block"
-            style={{ marginTop: "-80px", marginLeft: "200px" }}
-          >
+          <div className="hidden lg:block ml-6">
             <img
               src="/images/AVAX-Tokens.png"
-              alt="Avalanche Token"
-              style={{ width: "1200px", height: "auto", objectFit: "contain" }}
+              alt="USDC Tokens"
+              className="w-[450px] h-auto object-contain"
             />
           </div>
 
@@ -261,7 +256,7 @@ const GetFunds: React.FC = () => {
             <img
               src="/images/USDC-Tokens.png"
               alt="USDC Tokens"
-              className="w-[700px] h-auto object-contain"
+              className="w-[450px] h-auto object-contain"
             />
           </div>
         </div>
