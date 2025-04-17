@@ -14,6 +14,7 @@ import MarketFactoryABI from "@/abis/MarketFactory.json" with { type: "json" };
 import MockUSDCABI from "@/abis/MockUSDC.json" with { type: "json" };
 import { ethers } from "ethers";
 import { useWalletClient } from "wagmi";
+import { Spinner } from './Spinner.tsx';
 
 declare global {
   interface Window {
@@ -635,14 +636,17 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                   </p>
                 ) : (
                   <p>
-                    <strong>You will receive:</strong>{" "}
                     {isCalculating || calculatedSharesScaled === null ? (
-                      "Calculating..."
+                      <span className="inline-flex items-center justify-start space-x-2">
+                        <span>You will receive:</span>
+                        <span>Calculating</span>
+                        <Spinner />
+                      </span>
                     ) : (
                       <>
                         <span className="inline-flex items-center space-x-1">
                           <span>
-                            {(Number(calculatedSharesScaled) / Number(SHARE_SCALE)).toFixed(2)}{" "}
+                            You will receive: {(Number(calculatedSharesScaled) / Number(SHARE_SCALE)).toFixed(2)}{" "}
                           </span>
                           <span
                             className={
