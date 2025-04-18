@@ -59,7 +59,7 @@ const MatchChart: React.FC<{ oddsHistory: OddsHistory }> = React.memo(
 
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ left: 0, right: 10, top: 5, bottom: 10 }}>
+        <LineChart data={data} margin={{ left: 0, right: 11, top: 5, bottom: 10 }}>
           <XAxis dataKey="timestamp" hide />
 
           <YAxis
