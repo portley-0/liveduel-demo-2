@@ -21,6 +21,29 @@ const FAUCET_ABI = [
   }
 ];
 
+const USDC_FAUCET_ABI = [
+  {
+    inputs: [
+      { name: "amount", type: "uint256" }
+    ],
+    name: "mint",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "recipient", type: "address" }
+    ],
+    name: "mint",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  }
+];
+
+
+const USDC_FAUCET_ADDRESS = process.env.USDC_FAUCET_ADDRESS!;
 const FAUCET_ADDRESS = process.env.FAUCET_ADDRESS!;
 const PRIVATE_KEY = process.env.PRIVATE_KEY!;
 const AVALANCHE_FUJI_RPC = process.env.AVALANCHE_FUJI_RPC!;
@@ -113,6 +136,26 @@ async function main() {
     } catch (error: any) {
       console.error('Mint error:', error);
       res.status(500).json({ error: error.reason || error.message || 'Minting failed' });
+    }
+  });
+
+  app.post('/mint-usdc/:walletAddress', async (req: Request<{ walletAddress: string }>, res: Response): Promise<void> => {
+    const { walletAddress } = req.params;
+  
+    if (!ethers.isAddress(walletAddress)) {
+      res.status(400).json({ error: 'Invalid wallet address.' });
+    }
+  
+    try {
+      const provider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
+      const signer = new ethers.Wallet(PRIVATE_KEY, provider);
+      const faucet = new ethers.Contract(USDC_FAUCET_ADDRESS, USDC_FAUCET_ABI, signer);
+      const tx = await faucet["mint(address)"](walletAddress);
+      await tx.wait();
+      res.json({ success: true, txHash: tx.hash });
+    } catch (error: any) {
+      console.error('USDC mint error:', error);
+      res.status(500).json({ error: error.reason || error.message || 'Minting mUSDC failed' });
     }
   });
   

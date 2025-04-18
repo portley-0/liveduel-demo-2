@@ -88,7 +88,7 @@ async function main() {
         const initialDUEL = ethers.utils.parseUnits("10000000", 18);
 
         console.log("Minting MockUSDC to deployer...");
-        const mockUSDCMintTx = await mockUSDC.mint(initialUSDC);
+        const mockUSDCMintTx = await mockUSDC["mint(uint256)"](initialUSDC);
         console.log("Transaction hash:", mockUSDCMintTx.hash);
         await mockUSDCMintTx.wait();
         console.log("MockUSDC minted to deployer.");

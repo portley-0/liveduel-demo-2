@@ -18,7 +18,7 @@ const mUSDCABI = [
   },
 ];
 
-const mUSDCAddress = "0xB1cC53DfF11c564Fbe22145a0b07588e7648db74";
+const mUSDCAddress = "0xAC506d25266599aCe709bcBd197C69aC11D90A78";
 
 const TitleBar = () => {
   const [isMobile, setIsMobile] = useState(false);

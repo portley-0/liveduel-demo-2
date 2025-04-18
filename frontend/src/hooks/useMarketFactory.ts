@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import MarketFactory from "@/abis/MarketFactory.json" with { type: "json" };
 import { Address } from "viem";
 
-const MARKET_FACTORY_ADDRESS: Address = "0x9b532eB694eC397f6eB6C22e450F95222Cb3b1dd";
+const MARKET_FACTORY_ADDRESS: Address = "0x852f15678c4035172854A962b475b504AE252c2e";
 
 export function useMarketFactory(matchId: number) {
   const queryClient = useQueryClient();

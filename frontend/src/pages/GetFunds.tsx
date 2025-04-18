@@ -2,18 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { ethers } from "ethers";
 
-const FAUCET_ADDRESS = "0xDDF15885B4F9d92655ED21d6FD75790A64Eb65c7";
+const FAUCET_ADDRESS = "0x127D700E6B5BE749d604B10F065908b431Eb30a3";
 const AVALANCHE_FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
 const FAUCET_ABI = [
-  {
-    inputs: [],
-    name: "mint",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
+  { inputs: [], name: "mint", outputs: [], stateMutability: "nonpayable", type: "function" },
   {
     inputs: [],
     name: "faucetBalance",
@@ -31,17 +25,18 @@ declare global {
 
 const GetFunds: React.FC = () => {
   const { address: connectedAddress } = useAccount();
-
-  const [wallet, setWallet] = useState("");
-  const [processing, setProcessing] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [wallet, setWallet] = useState<string>("");
+  const [processingAvax, setProcessingAvax] = useState(false);
+  const [successAvax, setSuccessAvax] = useState(false);
+  const [processingUSDC, setProcessingUSDC] = useState(false);
+  const [successUSDC, setSuccessUSDC] = useState(false);
   const [faucetBalance, setFaucetBalance] = useState<string | null>(null);
 
   useEffect(() => {
     if (connectedAddress && !wallet) {
       setWallet(connectedAddress);
     }
-  }, [connectedAddress]);
+  }, [connectedAddress, wallet]);
 
   const fetchFaucetBalance = async () => {
     try {
@@ -59,65 +54,80 @@ const GetFunds: React.FC = () => {
     fetchFaucetBalance();
   }, []);
 
-  const handleMint = async () => {
-    if (!wallet) {
-      alert("Please enter a wallet address.");
+  const handleMintAVAX = async () => {
+    if (!ethers.isAddress(wallet)) {
+      alert("Please enter a valid wallet address.");
       return;
     }
-
-    setProcessing(true);
-    setSuccess(false);
-
+    setProcessingAvax(true);
+    setSuccessAvax(false);
     try {
-      const response = await fetch(`${SERVER_URL}/mint/${wallet}`, {
-        method: "POST",
-      });
-
+      const response = await fetch(`${SERVER_URL}/mint/${wallet}`, { method: "POST" });
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Minting failed");
-      }
-
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 4000);
+      if (!response.ok) throw new Error(data.error || "Minting AVAX failed");
+      setSuccessAvax(true);
+      setTimeout(() => setSuccessAvax(false), 4000);
       await fetchFaucetBalance();
     } catch (err: any) {
-      console.error("Mint error:", err);
-      alert("Minting failed: " + (err.message || "Unknown error"));
+      console.error(err);
+      alert(`Minting AVAX failed: ${err.message || "Unknown error"}`);
     } finally {
-      setProcessing(false);
+      setProcessingAvax(false);
     }
   };
 
-  const getButtonLabel = () => {
-    if (processing) return "Processing...";
-    if (success) return "Minted!";
-    return "Mint 0.1 Testnet AVAX";
+  const handleMintUSDC = async () => {
+    if (!ethers.isAddress(wallet)) {
+      alert("Please enter a valid wallet address.");
+      return;
+    }
+    setProcessingUSDC(true);
+    setSuccessUSDC(false);
+    try {
+      const response = await fetch(`${SERVER_URL}/mint-usdc/${wallet}`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Minting mUSDC failed");
+      setSuccessUSDC(true);
+      setTimeout(() => setSuccessUSDC(false), 4000);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Minting mUSDC failed: ${err.message || "Unknown error"}`);
+    } finally {
+      setProcessingUSDC(false);
+    }
   };
 
-  const getButtonClasses = () => {
-    const base = "btn text-white font-bold transition-all duration-200";
-    const state = success
-      ? "bg-green-500 border-green-500 hover:bg-green-600 hover:border-green-600"
-      : "bg-blue-500 border-blue-500 hover:border-blue-600 hover:bg-blue-600";
-    const disabled = processing ? "disabled:cursor-not-allowed" : "";
-    return `${base} ${state} ${disabled}`;
+  const getButtonLabel = (type: "avax" | "usdc") => {
+    const isProc = type === "avax" ? processingAvax : processingUSDC;
+    const isSucc = type === "avax" ? successAvax : successUSDC;
+    if (isProc) return "Processing...";
+    if (isSucc) return "Minted!";
+    return type === "avax" ? "Mint 0.1 Testnet AVAX" : "Mint 2000 mUSDC";
   };
+
+  const isDisabled = (type: "avax" | "usdc") => {
+    const isProc = type === "avax" ? processingAvax : processingUSDC;
+    return !ethers.isAddress(wallet) || isProc;
+  };
+
+  const buttonClasses =
+    "btn text-white font-bold transition-all duration-200 bg-blue-500 border-blue-500 hover:border-blue-600 hover:bg-blue-600 disabled:cursor-not-allowed";
 
   return (
     <div className="p-4 lg:pt-0 lg:py-2">
       <div className="flex flex-col gap-8 -mt-5">
         {/* AVAX Section */}
-        <div className="flex flex-col md:flex-row items-center max-h-[calc((100vh-80px)/2)] overflow-hidden">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center max-h-[calc((100vh-80px)/2)] overflow-hidden">
           <div className="w-full max-w-3xl lg:ml-8">
             {/* Mobile layout */}
             <div className="md:hidden -mt-6">
-              <div className="flex items-stretch">
-                <div className="flex flex-col justify-center h-48">
-                  <h2 className="text-3xl font-semibold mt-6">1. Mint AVAX</h2>
+              <div className="flex items-center w-full h-48">
+                <div className="flex-1 flex flex-col justify-center">
+                  <h2 className="text-4xl xxs:text-2xl xs:text-2xl font-semibold whitespace-nowrap">
+                    1. Mint AVAX
+                  </h2>
                 </div>
-                <div className="h-48 flex items-center justify-center">
+                <div className="ml-auto flex-shrink-0 h-full flex items-center justify-center">
                   <img
                     src="/images/AVAX-Tokens.png"
                     alt="Avalanche Token"
@@ -125,13 +135,13 @@ const GetFunds: React.FC = () => {
                   />
                 </div>
               </div>
-              <div className="-mt-10">
+              <div className="-mt-10 pt-2">
                 <input
                   type="text"
                   placeholder="Enter your wallet address"
-                  className="bg-gray-900 border border-gray-300 rounded px-4 py-2 w-full focus:outline-none focus:border-2 focus:border-blue-500"
                   value={wallet}
-                  onChange={(e) => setWallet(e.target.value)}
+                  onChange={(e) => setWallet(e.target.value.trim())}
+                  className="bg-gray-900 border border-gray-300 rounded px-4 py-2 w-full focus:outline-none focus:border-2 focus:border-blue-500"
                 />
               </div>
               {faucetBalance !== null && (
@@ -141,11 +151,11 @@ const GetFunds: React.FC = () => {
               )}
               <div className="mt-4 mb-4">
                 <button
-                  onClick={handleMint}
-                  disabled={processing}
-                  className={`${getButtonClasses()} w-full mb-5`}
+                  onClick={handleMintAVAX}
+                  disabled={isDisabled("avax")}
+                  className={`${buttonClasses} w-full mb-5`}
                 >
-                  {getButtonLabel()}
+                  {getButtonLabel("avax")}
                 </button>
               </div>
             </div>
@@ -158,20 +168,21 @@ const GetFunds: React.FC = () => {
                   <input
                     type="text"
                     placeholder="Enter your wallet address"
-                    className="bg-gray-900 border border-gray-300 rounded px-4 py-2 w-full md:w-1/2 focus:outline-none focus:border-2 focus:border-blue-500"
                     value={wallet}
-                    onChange={(e) => setWallet(e.target.value)}
+                    onChange={(e) => setWallet(e.target.value.trim())}
+                    className="bg-gray-900 border border-gray-300 rounded px-4 py-2 w-full md:w-1/2 focus:outline-none focus:border-2 focus:border-blue-500"
                   />
                   <button
-                    onClick={handleMint}
-                    disabled={processing}
-                    className={`${getButtonClasses()} w-full md:w-60`}
+                    onClick={handleMintAVAX}
+                    disabled={isDisabled("avax")}
+                    className={`${buttonClasses} w-full md:w-60`}
                   >
-                    {getButtonLabel()}
+                    {getButtonLabel("avax")}
                   </button>
                 </div>
               </section>
             </div>
+
             <div className="mt-1 hidden lg:block">
               {faucetBalance !== null && (
                 <div className="mb-4 text-sm font-semibold text-white">
@@ -180,10 +191,11 @@ const GetFunds: React.FC = () => {
               )}
             </div>
           </div>
+
           <div className="hidden lg:block ml-6">
             <img
               src="/images/AVAX-Tokens.png"
-              alt="USDC Tokens"
+              alt="Avalanche Token"
               className="w-[350px] h-auto object-contain"
             />
           </div>
@@ -193,12 +205,14 @@ const GetFunds: React.FC = () => {
         <div className="flex flex-col md:flex-row items-center max-h-[calc((100vh-80px)/2)] overflow-hidden transform md:-translate-y-7">
           <div className="w-full max-w-3xl lg:ml-8">
             {/* Mobile layout */}
-            <div className="md:hidden -mt-6">
-              <div className="flex items-stretch">
-                <div className="flex flex-col justify-center h-48">
-                  <h2 className="text-3xl font-semibold">2. Mint mUSDC</h2>
+            <div className="md:hidden -mt-10">
+              <div className="flex items-center w-full h-48">
+                <div className="flex-1 flex flex-col justify-center">
+                  <h2 className="text-4xl xxs:text-xl xs:text-2xl font-semibold whitespace-nowrap">
+                    2. Mint mUSDC
+                  </h2>
                 </div>
-                <div className="h-48 flex items-center justify-center">
+                <div className="ml-auto flex-shrink-0 h-full flex items-center justify-center">
                   <img
                     src="/images/USDC-Tokens.png"
                     alt="USDC Tokens"
@@ -206,28 +220,26 @@ const GetFunds: React.FC = () => {
                   />
                 </div>
               </div>
-              <div className="-mt-10">
+              <div className="-mt-10 pt-2">
                 <input
                   type="text"
                   placeholder="Enter your wallet address"
-                  className="bg-gray-900 border border-gray-300 rounded px-4 py-2 w-full focus:outline-none focus:border-2 focus:border-blue-500"
                   value={wallet}
-                  onChange={(e) => setWallet(e.target.value)}
+                  onChange={(e) => setWallet(e.target.value.trim())}
+                  className="bg-gray-900 border border-gray-300 rounded px-4 py-2 w-full focus:outline-none focus:border-2 focus:border-blue-500"
                 />
+              </div>
+              <div className="mb-4 mt-1 text-sm font-semibold text-white">
+                Faucet balance: Unlimited
               </div>
               <div className="mt-4 mb-4">
                 <button
-                  onClick={handleMint}
-                  disabled={processing}
-                  className={`${getButtonClasses()} w-full mb-5`}
+                  onClick={handleMintUSDC}
+                  disabled={isDisabled("usdc")}
+                  className={`${buttonClasses} w-full mb-5`}
                 >
-                  {getButtonLabel()}
+                  {getButtonLabel("usdc")}
                 </button>
-                <div className="mt-1 hidden lg:block">
-                  <div className="mb-4 text-sm font-semibold text-white">
-                    Faucet balance:
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -239,27 +251,24 @@ const GetFunds: React.FC = () => {
                   <input
                     type="text"
                     placeholder="Enter your wallet address"
-                    className="bg-gray-900 border border-gray-300 rounded px-4 py-2 w-full md:w-1/2 focus:outline-none focus:border-2 focus:border-blue-500"
                     value={wallet}
-                    onChange={(e) => setWallet(e.target.value)}
+                    onChange={(e) => setWallet(e.target.value.trim())}
+                    className="bg-gray-900 border border-gray-300 rounded px-4 py-2 w-full md:w-1/2 focus:outline-none focus:border-2 focus:border-blue-500"
                   />
                   <button
-                    onClick={handleMint}
-                    disabled={processing}
-                    className={`${getButtonClasses()} w-full md:w-60`}
+                    onClick={handleMintUSDC}
+                    disabled={isDisabled("usdc")}
+                    className={`${buttonClasses} w-full md:w-60`}
                   >
-                    {getButtonLabel()}
+                    {getButtonLabel("usdc")}
                   </button>
-                  <div className="mt-1 hidden lg:block">
-                    <div className="mb-4 text-sm font-semibold text-white">
-                      Faucet balance:
-                    </div>
-                  </div>
+                </div>
+                <div className="mb-4 text-sm font-semibold text-white">
+                  Faucet balance: Unlimited
                 </div>
               </section>
             </div>
           </div>
-          {/* mUSDC image for larger screens */}
           <div className="hidden lg:block ml-6">
             <img
               src="/images/USDC-Tokens.png"

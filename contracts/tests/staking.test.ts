@@ -38,7 +38,7 @@ describe("Staking and DUEL Flows", function () {
     // Mint 10,000 USDC to deployer
     const mintAmount = ethers.utils.parseUnits("10000", 6);
     console.log(`\nMinting ${ethers.utils.formatUnits(mintAmount, 6)} USDC to deployer...`);
-    await (await mockUsdc.connect(deployer).mint(mintAmount)).wait();
+    await (await mockUsdc.connect(deployer)["mint(uint256)"](mintAmount)).wait();
 
     const usdcBalance = await mockUsdc.balanceOf(deployer.address);
     console.log(`Deployer USDC Balance: ${ethers.utils.formatUnits(usdcBalance, 6)} USDC`);
@@ -103,7 +103,7 @@ Reserves:
     console.log("\nSTEP 3: ADD REWARDS");
 
     const rewardAmount = ethers.utils.parseUnits("10000", 6);
-    await mockUsdc.connect(deployer).mint(rewardAmount);
+    await mockUsdc.connect(deployer)["mint(uint256)"](rewardAmount);
     await mockUsdc.connect(deployer).approve(liquidityPool.address, rewardAmount);
     
     await (await liquidityPool.connect(deployer).addToRewardsPool(rewardAmount)).wait();
