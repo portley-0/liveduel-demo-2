@@ -121,7 +121,7 @@ const FilterMenu: React.FC = () => {
                         }
                       }
                     }}
-                    className="absolute inset-0 bg-transparent rounded-full flex items-center justify-center"
+                    className="absolute inset-0 bg-transparent rounded-full flex items-center justify-center hidden"
                     title="Add league to Selected"
                   >
                     {isLeagueSelected ? (
@@ -183,7 +183,7 @@ const FilterMenu: React.FC = () => {
               onChange={() => setLiveOnly(!liveOnly)}
             />
           </div>
-          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 hidden">
             <span className="text-sm font-bold text-white text-right">Selected Only</span>
             <input
               type="checkbox"

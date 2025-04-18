@@ -1,15 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import { MatchData } from "@/types/MatchData.ts";
-import TradingViewChart from './TradingViewChart.tsx'; 
+import TradingViewChart from "./TradingViewChart.tsx";
 
 interface MatchCardProps {
   match: MatchData;
 }
 
+type Format = "decimal" | "percent" | "fraction";
+
 const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
   const homePrice = match.latestOdds?.home ?? 0.3333;
   const drawPrice = match.latestOdds?.draw ?? 0.3333;
   const awayPrice = match.latestOdds?.away ?? 0.3333;
+
+  const [format, setFormat] = useState<Format>("percent");
 
   const formatKickoffTime = (timestamp?: number) => {
     if (!timestamp) return "TBD";
@@ -20,6 +24,36 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
       hour12: false,
     });
   };
+
+  const decimalToFraction = (decimal: number): string => {
+    const frac = decimal - 1;
+    if (frac <= 0) return "0/1";
+    const maxDenominator = 20;
+    let bestNumer = 1;
+    let bestDenom = 1;
+    let minError = Math.abs(frac - bestNumer / bestDenom);
+    for (let denom = 1; denom <= maxDenominator; denom++) {
+      const numer = Math.round(frac * denom);
+      const approx = numer / denom;
+      const error = Math.abs(frac - approx);
+      if (error < minError) {
+        minError = error;
+        bestNumer = numer;
+        bestDenom = denom;
+      }
+    }
+    return `${bestNumer}/${bestDenom}`;
+  };
+
+  const formatOdds = (odd: number): string => {
+    if (format === "percent") return `${(100 / odd).toFixed(2)}%`;
+    if (format === "fraction") return decimalToFraction(odd);
+    return `${odd.toFixed(2)}x`;
+  };
+
+  const latestHome = match.oddsHistory?.homeOdds?.slice(-1)[0] ?? homePrice;
+  const latestDraw = match.oddsHistory?.drawOdds?.slice(-1)[0] ?? drawPrice;
+  const latestAway = match.oddsHistory?.awayOdds?.slice(-1)[0] ?? awayPrice;
 
   return (
     <div className="relative p-10 mt-[-20px] sm:px-7 xs:px-7 xxs:px-5 sm:pb-5 xs:pb-5 xxs:pb-5 lg:pr-4 flex flex-col w-full lg:max-h-[calc(100vh-80px)]">
@@ -38,7 +72,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
         <div className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center">
           <span
             className={`2xl:text-5xl lg:text-4xl sm:text-2xl xs:text-2xl xxs:text-2xl font-bold ${
-              match.statusShort && ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
+              match.statusShort &&
+              ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
                 ? "text-redmagenta"
                 : "text-white"
             }`}
@@ -47,7 +82,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
           </span>
           <span
             className={`2xl:text-xl lg:text-lg sm:text-md font-semibold ${
-              match.statusShort && ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
+              match.statusShort &&
+              ["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"].includes(match.statusShort)
                 ? "text-redmagenta"
                 : "text-white"
             }`}
@@ -72,11 +108,13 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
           </span>
         </div>
       </div>
-      
-      <div className="bg-lightgreyblue 2xl:h-[200] lg:h-[160px] sm:h-[100px] xs:h-[100px] xxs:h-[100px] min-w-[200px]">
-        <TradingViewChart 
+
+      <div className="bg-lightgreyblue 2xl:h-[200px] lg:h-[160px] sm:h-[100px] xs:h-[100px] xxs:h-[100px] min-w-[200px]">
+        <TradingViewChart
           oddsHistory={match.oddsHistory || { timestamps: [], homeOdds: [], drawOdds: [], awayOdds: [] }}
           matchData={match}
+          format={format}
+          onFormatChange={setFormat}
         />
       </div>
 
@@ -90,21 +128,15 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
         <div className="flex space-x-4 2xl:text-2xl lg:text-xl sm:text-sm xs:text-sm xxs:text-sm font-[Quicksand Bold]">
           <div className="flex flex-col items-center">
             <span className="text-blue-400 font-semibold">$HOME</span>
-            <span className="text-blue-400 font-semibold">
-              {match.oddsHistory?.homeOdds.slice(-1)[0]?.toFixed(2) ?? homePrice.toFixed(2)}x
-            </span>
+            <span className="text-blue-400 font-semibold">{formatOdds(latestHome)}</span>
           </div>
           <div className="flex flex-col items-center">
             <span className="text-gray-400 font-semibold">$DRAW</span>
-            <span className="text-gray-400 font-semibold">
-              {match.oddsHistory?.drawOdds.slice(-1)[0]?.toFixed(2) ?? drawPrice.toFixed(2)}x
-            </span>
+            <span className="text-gray-400 font-semibold">{formatOdds(latestDraw)}</span>
           </div>
           <div className="flex flex-col items-center">
             <span className="text-redmagenta font-semibold">$AWAY</span>
-            <span className="text-redmagenta font-semibold">
-              {match.oddsHistory?.awayOdds.slice(-1)[0]?.toFixed(2) ?? awayPrice.toFixed(2)}x
-            </span>
+            <span className="text-redmagenta font-semibold">{formatOdds(latestAway)}</span>
           </div>
         </div>
       </div>

@@ -12,7 +12,7 @@ dataSources:
     source:
       address: "0x852f15678c4035172854A962b475b504AE252c2e"
       abi: MarketFactory
-      startBlock: 38400572
+      startBlock: 39576381
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9

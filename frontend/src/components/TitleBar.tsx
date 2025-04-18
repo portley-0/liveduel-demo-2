@@ -7,6 +7,8 @@ import { FaRegMoneyBillAlt } from "react-icons/fa";
 import { MdAccountBalanceWallet } from "react-icons/md";
 import { RiMenuLine } from "react-icons/ri";
 import { useAccount, useReadContract } from "wagmi";
+import { Dialog } from "@headlessui/react";
+import { ethers } from "ethers";
 
 const mUSDCABI = [
   {
@@ -17,12 +19,16 @@ const mUSDCABI = [
     type: "function",
   },
 ];
-
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 const mUSDCAddress = "0xAC506d25266599aCe709bcBd197C69aC11D90A78";
 
 const TitleBar = () => {
   const [isMobile, setIsMobile] = useState(false);
   const { address } = useAccount();
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [processingUSDC, setProcessingUSDC] = useState(false);
+  const [hasClaimed, setHasClaimed] = useState(false);
+
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -42,6 +48,35 @@ const TitleBar = () => {
     const drawerToggle = document.getElementById("my-drawer") as HTMLInputElement | null;
     if (drawerToggle) drawerToggle.checked = false;
   };
+
+  useEffect(() => {
+    if (address && !sessionStorage.getItem("claimedModalShown")) {
+      setShowClaimModal(true);
+      sessionStorage.setItem("claimedModalShown", "true");
+    }
+  }, [address]);
+
+  const handleMintUSDC = async () => {
+    if (!ethers.isAddress(address)) {
+      alert("Invalid wallet address.");
+      return;
+    }
+    setProcessingUSDC(true);
+    try {
+      const response = await fetch(`${SERVER_URL}/mint-usdc/${address}`, {
+        method: "POST",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Minting mUSDC failed");
+      setShowClaimModal(false);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Minting mUSDC failed: ${err.message || "Unknown error"}`);
+    } finally {
+      setProcessingUSDC(false);
+    }
+  };
+  
 
   const navItems = [
     { path: "/dashboard/markets", label: "Markets", icon: FaChartLine },
@@ -155,7 +190,7 @@ const TitleBar = () => {
 
                   return (
                     <button
-                      onClick={connected ? openAccountModal : openConnectModal}
+                      onClick={connected ? openAccountModal : openConnectModal}        
                       className={`
                         btn text-white w-auto
                         px-3 h-[28px] sm:px-3 sm:h-[28px]
@@ -322,6 +357,21 @@ const TitleBar = () => {
           </ul>
         </div>
       </div>
+      <Dialog open={showClaimModal} onClose={() => setShowClaimModal(false)} className="fixed inset-0 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black opacity-50"></div>
+        <div className="bg-greyblue p-6 rounded-xl shadow-lg w-full max-w-sm sm:max-w-[280px] mx-auto text-center relative z-50">
+          <h2 className="text-white text-2xl sm:text-xl font-semibold mb-3">Claim Free Bets</h2>
+          <p className="text-gray-300 text-lg sm:text-base mb-1">You can claim</p>
+          <p className="text-white font-bold text-lg sm:text-base mb-4">2000 mUSDC</p>
+          <button
+            onClick={handleMintUSDC}
+            disabled={processingUSDC}
+            className="mt-2 bg-greyblue border-2 border-white hover:border-blue-500 text-white font-semibold px-6 py-2 sm:px-4 sm:py-1.5 rounded-full transition disabled:opacity-50"
+          >
+            {processingUSDC ? "Claiming..." : "Claim Now"}
+          </button>
+        </div>
+      </Dialog>
     </>
   );
 };

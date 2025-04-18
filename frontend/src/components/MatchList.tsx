@@ -25,51 +25,97 @@ const areArraysEqual = (a?: number[], b?: number[]) => {
 const MatchChart: React.FC<{ oddsHistory: OddsHistory }> = React.memo(
   ({ oddsHistory }) => {
     const data = React.useMemo(() => {
-      return (oddsHistory?.timestamps || []).map((timestamp, index) => ({
-        timestamp,
-        home: oddsHistory?.homeOdds?.[index],
-        draw: oddsHistory?.drawOdds?.[index],
-        away: oddsHistory?.awayOdds?.[index],
-      }));
+      return (oddsHistory?.timestamps || []).map((timestamp, idx) => {
+        const homeOdd = oddsHistory.homeOdds?.[idx];
+        const drawOdd = oddsHistory.drawOdds?.[idx];
+        const awayOdd = oddsHistory.awayOdds?.[idx];
+        return {
+          timestamp,
+          homePct: homeOdd ? 100 / homeOdd : undefined,
+          drawPct: drawOdd ? 100 / drawOdd : undefined,
+          awayPct: awayOdd ? 100 / awayOdd : undefined,
+        };
+      });
     }, [oddsHistory]);
+
+    const [minY, maxY] = React.useMemo(() => {
+      const vals: number[] = [];
+      data.forEach((d) => {
+        if (typeof d.homePct === "number") vals.push(d.homePct);
+        if (typeof d.drawPct === "number") vals.push(d.drawPct);
+        if (typeof d.awayPct === "number") vals.push(d.awayPct);
+      });
+      if (vals.length === 0) return [0, 0];
+      return [Math.min(...vals), Math.max(...vals)];
+    }, [data]);
+
+    const lastHome = data.length ? data[data.length - 1].homePct ?? 0 : 0;
+    const lastDraw = data.length ? data[data.length - 1].drawPct ?? 0 : 0;
+    const lastAway = data.length ? data[data.length - 1].awayPct ?? 0 : 0;
+
+    const ticks = React.useMemo(() => {
+      return Array.from(new Set([lastHome, lastDraw, lastAway])).sort((a, b) => a - b);
+    }, [lastHome, lastDraw, lastAway]);
 
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ left: 0, right: 7, top: 5, bottom: 5 }}>
+        <LineChart data={data} margin={{ left: 0, right: 10, top: 5, bottom: 10 }}>
           <XAxis dataKey="timestamp" hide />
+
           <YAxis
-            domain={[0, 10]}
+            domain={[minY, maxY]}
             allowDecimals
-            ticks={[0, 1, 2.5, 5, 7.5, 10]}
-            tickFormatter={(tick) => (tick % 1 === 0 ? tick : tick.toFixed(1))}
-            tick={{ fill: "white", fontSize: 7, textAnchor: "end", dx: 5 }}
+            ticks={ticks}
+            tickFormatter={(t) => `${t.toFixed(0)}%`}
+            tick={{ fill: "white", fontSize: 7, textAnchor: "end", dx: 10 }}
             tickSize={2}
-            tickCount={5}
-            minTickGap={2}
-            interval={0}
             width={3}
             axisLine={false}
             tickLine={false}
             orientation="right"
+            interval={0}
           />
-          <Line type="linear" dataKey="home" stroke="rgba(0, 123, 255, 1)" strokeWidth={2} dot={false}  />
-          <Line type="linear" dataKey="draw" stroke="rgba(128, 128, 128, 1)" strokeWidth={2} dot={false}  />
-          <Line type="linear" dataKey="away" stroke="rgb(225, 29, 72)" strokeWidth={2} dot={false}  />
+
+          <Line
+            type="linear"
+            dataKey="homePct"
+            stroke="rgba(0, 123, 255, 1)"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+          />
+          <Line
+            type="linear"
+            dataKey="drawPct"
+            stroke="rgba(128, 128, 128, 1)"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+          />
+          <Line
+            type="linear"
+            dataKey="awayPct"
+            stroke="rgb(225, 29, 72)"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+          />
         </LineChart>
       </ResponsiveContainer>
     );
   },
   (prevProps, nextProps) => {
-    const prev = prevProps.oddsHistory;
-    const next = nextProps.oddsHistory;
+    const p = prevProps.oddsHistory, n = nextProps.oddsHistory;
     return (
-      areArraysEqual(prev?.timestamps, next?.timestamps) &&
-      areArraysEqual(prev?.homeOdds, next?.homeOdds) &&
-      areArraysEqual(prev?.drawOdds, next?.drawOdds) &&
-      areArraysEqual(prev?.awayOdds, next?.awayOdds)
+      areArraysEqual(p.timestamps, n.timestamps) &&
+      areArraysEqual(p.homeOdds, n.homeOdds) &&
+      areArraysEqual(p.drawOdds, n.drawOdds) &&
+      areArraysEqual(p.awayOdds, n.awayOdds)
     );
   }
 );
+
+
 
 const MatchList: React.FC = () => {
   const { matches } = useMatches();
@@ -178,18 +224,19 @@ const MatchList: React.FC = () => {
     const displayCheckIcon = isMatchIndividuallySelected || isLeagueSelectedForMatch || isUefaSelected;
 
     const homeOddsArray = match.oddsHistory?.homeOdds || [];
-    const homeOdds =
-      homeOddsArray.length > 0 ? homeOddsArray[homeOddsArray.length - 1] : 3.0;
+    const homeOdds = homeOddsArray.length > 0 ? homeOddsArray[homeOddsArray.length - 1] : 3.0;
+    const homePct = homeOdds > 0 ? 100 / homeOdds : 0;
 
     const drawOddsArray = match.oddsHistory?.drawOdds || [];
-    const drawOdds =
-      drawOddsArray.length > 0 ? drawOddsArray[drawOddsArray.length - 1] : 3.0;
-
+    const drawOdds = drawOddsArray.length > 0 ? drawOddsArray[drawOddsArray.length - 1] : 3.0;
+    const drawPct = drawOdds > 0 ? 100 / drawOdds : 0;
+      
     const awayOddsArray = match.oddsHistory?.awayOdds || [];
-    const awayOdds =
-      awayOddsArray.length > 0 ? awayOddsArray[awayOddsArray.length - 1] : 3.0;
-
+    const awayOdds = awayOddsArray.length > 0 ? awayOddsArray[awayOddsArray.length - 1] : 3.0;
+    const awayPct = awayOdds > 0 ? 100 / awayOdds : 0;
+      
     const [isPlusHovered, setIsPlusHovered] = React.useState(false);
+    const [showSelectionButtons, setShowSelectionButtons] = React.useState(false)
 
     return (
       <Link
@@ -203,7 +250,7 @@ const MatchList: React.FC = () => {
           }`}
         >
           <div
-            className="absolute top-1 right-1 z-20"
+            className={`absolute top-1 right-1 z-20  ${showSelectionButtons ? "" : "hidden"}`}
             style={{ width: "2rem", height: "2rem" }} 
           >
             <button
@@ -313,22 +360,23 @@ const MatchList: React.FC = () => {
                 <div className="flex flex-col items-center">
                   <span className="text-blue-400 font-semibold">$HOME</span>
                   <span className="text-blue-400 font-semibold">
-                    {homeOdds.toFixed(2)}x
+                    {homePct.toFixed(0)}%
                   </span>
                 </div>
                 <div className="flex flex-col items-center">
                   <span className="text-gray-400 font-semibold">$DRAW</span>
                   <span className="text-gray-400 font-semibold">
-                    {drawOdds.toFixed(2)}x
+                    {drawPct.toFixed(0)}%
                   </span>
                 </div>
                 <div className="flex flex-col items-center">
                   <span className="text-redmagenta font-semibold">$AWAY</span>
                   <span className="text-redmagenta font-semibold">
-                    {awayOdds.toFixed(2)}x
+                    {awayPct.toFixed(0)}%
                   </span>
                 </div>
               </div>
+
             </div>
           </div>
         </button>
