@@ -70,7 +70,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
   const drawSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const awaySeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
 
-  const [timeRange, setTimeRange] = useState<TimeRange>("1d");
+  const [timeRange, setTimeRange] = useState<TimeRange>("1w");
   const [tooltip, setTooltip] = useState<TooltipState>({
     active: false,
     label: null,
@@ -125,6 +125,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     const aw = (oddsHistory.awayOdds || []).slice(startIndex);
 
     const rangeStart = getTimeRangeStart();
+    const now = Date.now();
 
     const filtered = ts.reduce<
       { t: number; h?: number; d?: number; a?: number }[]
@@ -140,20 +141,44 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       return acc;
     }, []);
 
+    let seriesData = filtered;
+    if (filtered.length < 5 && filtered.length > 0) {
+      const firstPoint = filtered[0];
+      const interval = 10 * 60 * 1000; // 10 minutes in milliseconds
+      seriesData = [];
+      for (let t = rangeStart; t <= now; t += interval) {
+        seriesData.push({
+          t,
+          h: firstPoint.h,
+          d: firstPoint.d,
+          a: firstPoint.a,
+        });
+      }
+      // Ensure the line extends to the right edge
+      if (seriesData[seriesData.length - 1].t < now) {
+        seriesData.push({
+          t: now,
+          h: firstPoint.h,
+          d: firstPoint.d,
+          a: firstPoint.a,
+        });
+      }
+    }
+
     homeSeriesRef.current!.setData(
-      filtered.map((p) => ({
+      seriesData.map((p) => ({
         time: (p.t / 1000) as Time,
         value: computeValue(p.h),
       }))
     );
     drawSeriesRef.current!.setData(
-      filtered.map((p) => ({
+      seriesData.map((p) => ({
         time: (p.t / 1000) as Time,
         value: computeValue(p.d),
       }))
     );
     awaySeriesRef.current!.setData(
-      filtered.map((p) => ({
+      seriesData.map((p) => ({
         time: (p.t / 1000) as Time,
         value: computeValue(p.a),
       }))
@@ -226,14 +251,17 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     homeSeriesRef.current = chartRef.current.addSeries(LineSeries, {
       color: "rgba(0, 123, 255, 1)",
       lineWidth: 2,
+      pointMarkersVisible: false,
     });
     drawSeriesRef.current = chartRef.current.addSeries(LineSeries, {
       color: "rgba(128, 128, 128, 1)",
       lineWidth: 2,
+      pointMarkersVisible: false,
     });
     awaySeriesRef.current = chartRef.current.addSeries(LineSeries, {
       color: "rgb(225, 29, 72)",
       lineWidth: 2,
+      pointMarkersVisible: false,
     });
 
     chartRef.current.subscribeCrosshairMove((param) => {
@@ -291,7 +319,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       <div
         style={{
           position: "absolute",
-          top: 8,
+          top: 3,
           left: 8,
           display: "flex",
           gap: 6,
@@ -308,7 +336,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
             key={f}
             onClick={() => onFormatChange(f)}
             style={{
-              padding: "2px 4px",
+              padding: isMobile ? "1px 3px" : "1px 3px",
               fontSize: isMobile ? 10 : 12,
               cursor: "pointer",
               fontWeight: format === f ? "bold" : "normal",
@@ -326,11 +354,11 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       <div
         style={{
           position: "absolute",
-          bottom: 8,
+          bottom: 27,
           left: 8,
           display: "flex",
           gap: 6,
-          padding: isMobile ? "2px 4px" : "4px 6px",
+          padding: isMobile ? "1px 2px" : "2px 4px",
           background: "rgba(30,41,60,0.8)",
           borderRadius: 4,
           zIndex: 10,
@@ -341,7 +369,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
             key={r}
             onClick={() => setTimeRange(r)}
             style={{
-              padding: "2px 4px",
+              padding: isMobile ? "1px 3px" : "1px 3px",
               fontSize: isMobile ? 10 : 12,
               cursor: "pointer",
               fontWeight: timeRange === r ? "bold" : "normal",
