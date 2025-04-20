@@ -6,6 +6,7 @@ import "./gnosis/ConditionalTokens.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./MarketFactory.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -111,6 +112,88 @@ contract PredictionMarket is Ownable, ERC1155Holder {
         require(tokenBalance >= amount, "Not enough outcome tokens received");
 
         // Transfer the outcome tokens to the user.
+        conditionalTokens.safeTransferFrom(address(this), msg.sender, tokenId, amount, "");
+
+        require(usdc.approve(address(liquidityPool), halfFee), "Approve to LiquidityPool failed");
+        liquidityPool.addToRewardsPool(halfFee);
+
+        require(usdc.approve(address(owner()), halfFee), "Approve to owner/MarketFactory failed");
+        MarketFactory(address(owner())).addToPlatformProfit(halfFee);
+
+        totalWageredPerOutcome[outcome] += uint256(actualCost);
+
+        emit SharesPurchased(msg.sender, outcome, amount, actualCost);
+
+        uint256 home = marketMaker.calcMarginalPrice(0);
+        uint256 draw = marketMaker.calcMarginalPrice(1);
+        uint256 away = marketMaker.calcMarginalPrice(2);
+
+        emit OddsUpdated(matchId, home, draw, away);
+    }
+
+    function buySharesWithPermit(
+        uint8 outcome,
+        uint256 amount,
+        uint256 value, // Approval amount (totalCost)
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        require(!isResolved, "Market already resolved");
+        require(outcome < 3, "Invalid outcome");
+        require(amount > 0, "Amount must be greater than zero");
+
+        if (!isBettor[msg.sender]) {
+            bettors.push(msg.sender);
+            isBettor[msg.sender] = true;
+        }
+
+        uint256 otherOutcomesTotal = 0;
+        for (uint8 i = 0; i < 3; i++) {
+            if (i != outcome) {
+                otherOutcomesTotal += totalWageredPerOutcome[i];
+            }
+        }
+    
+        uint256 maxAllowedBet = 500000 * 1e6 + otherOutcomesTotal - totalWageredPerOutcome[outcome];
+        require(amount <= maxAllowedBet, "Bet exceeds maximum allowable amount");
+
+        int[] memory tradeAmounts = new int[](3);
+        tradeAmounts[outcome] = int(amount);
+        int netCost = marketMaker.calcNetCost(tradeAmounts);
+        require(netCost > 0, "Invalid trade cost");
+
+        uint256 fee = (uint256(netCost) * FEE_BPS) / 10_000; // 4% fee
+        uint256 totalCost = uint256(netCost) + fee;
+        uint256 halfFee = fee / 2;
+
+        // Use permit to approve USDC transfer
+        IERC20Permit(address(usdc)).permit(
+            msg.sender,
+            address(this),
+            value,
+            deadline,
+            v,
+            r,
+            s
+        );
+
+        // Transfer USDC using the permit approval
+        require(usdc.transferFrom(msg.sender, address(this), totalCost), "transferFrom failed");
+        require(usdc.approve(address(marketMaker), uint256(netCost)), "approve to marketMaker failed");
+
+        int actualCost = marketMaker.trade(tradeAmounts, netCost);
+
+        uint256 indexSet = 1 << outcome;
+        uint256 tokenId = conditionalTokens.getPositionId(
+            usdc,
+            conditionalTokens.getCollectionId(bytes32(0), conditionId, indexSet)
+        );
+
+        uint256 tokenBalance = conditionalTokens.balanceOf(address(this), tokenId);
+        require(tokenBalance >= amount, "Not enough outcome tokens received");
+
         conditionalTokens.safeTransferFrom(address(this), msg.sender, tokenId, amount, "");
 
         require(usdc.approve(address(liquidityPool), halfFee), "Approve to LiquidityPool failed");

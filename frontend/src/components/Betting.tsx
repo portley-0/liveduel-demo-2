@@ -32,9 +32,9 @@ function useDebounce<T>(value: T, delay: number): T {
 }
  
 const DEFAULT_PROB = 0.3333333; 
-const USDC_ADDRESS = "0xAC506d25266599aCe709bcBd197C69aC11D90A78";
-const CONDITIONAL_TOKENS_ADDRESS = "0x6Bd538a9b8f1186b129Acafea85f06D37C808228";
-const MARKET_FACTORY_ADDRESS = "0x852f15678c4035172854A962b475b504AE252c2e";
+const USDC_ADDRESS = "0xf4963D9d18618a82dFa6b5730d059bfF0BBe8707";
+const CONDITIONAL_TOKENS_ADDRESS = "0x956D8a208F8b861292d10139278145502Fd37848";
+const MARKET_FACTORY_ADDRESS = "0x2A6e09dB89Ed9d22eA24115A613b0839Ca985539";
 const USDC_ABI = MockUSDCABI.abi;
 const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 const MARKET_FACTORY_ABI = MarketFactoryABI.abi;
@@ -253,26 +253,31 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     calculateOutcomeShares();
   }, [debouncedBetAmount, selectedBet, marketAddress, tradeType, numericBetAmount]);
 
-  // Transaction and approval functions.
+  
   const sendTransaction = async (
     contractAddress: string,
     functionName: string,
-    args: any[]
+    args: any[],
+    signer: ethers.Signer,
+    options: { gasLimit?: ethers.BigNumberish } = {}
   ): Promise<any> => {
-    if (!walletClient) {
-      console.error("No wallet connected.");
-      return;
-    }
     try {
       setIsTxPending(true);
       setIsSuccess(false);
-      const provider = new ethers.BrowserProvider(walletClient as any);
-      const signer = await provider.getSigner();
       const contract = new ethers.Contract(contractAddress, PredictionMarketABI.abi, signer);
-      const tx = await contract[functionName](...args);
+      const gasEstimate = await contract[functionName].estimateGas(...args);
+      
+      // Apply 20% buffer using bigint arithmetic
+      const gasLimit = (gasEstimate * BigInt(12)) / BigInt(10); // 20% buffer (1.2x)
+      
+      // Execute transaction with estimated gas
+      const tx = await contract[functionName](...args, {
+        gasLimit,
+        ...options,
+      });
       setTxHash(tx.hash);
       console.log(`Transaction sent: ${tx.hash}`);
-      const receipt = await tx.wait();
+      const receipt = await tx.wait(1); // Single confirmation for speed
       console.log("Transaction confirmed:", receipt);
       if (receipt.status !== 1) {
         throw new Error("Transaction failed");
@@ -287,36 +292,114 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       setIsTxPending(false);
     }
   };
-  
-  const approveContracts = async (which: "buy" | "sell") => {
-    if (!walletClient || !marketAddress) {
-      console.error("No wallet or market address.");
+
+  const buyShares = async () => {
+    if (!walletClient) {
+      console.error("No wallet connected. Opening connect modal.");
+      openConnectModal?.();
       return;
     }
+    if (!marketAddress || !selectedBet || calculatedSharesScaled === null) return;
+
     try {
       const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
-      if (which === "buy") {
-        const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
-        const approvalAmount = BigInt(Math.round(parseFloat(betAmount) * 1_000_000));
-        console.log(`Approving USDC for amount: ${approvalAmount.toString()}`);
-        const approveTx = await usdcContract.approve(marketAddress, approvalAmount);
-        await approveTx.wait();
-        console.log("USDC approved.");
-      }
-      if (which === "sell") {
-        const conditionalTokensContract = new ethers.Contract(
-          CONDITIONAL_TOKENS_ADDRESS,
-          CONDITIONAL_TOKENS_ABI,
-          signer
-        );
-        console.log("Approving Conditional Tokens...");
-        const approveCTx = await conditionalTokensContract.setApprovalForAll(marketAddress, true);
-        await approveCTx.wait();
-        console.log("Conditional Tokens approved.");
+      const userAddress = await signer.getAddress();
+
+      const approvalAmount = BigInt(Math.round(parseFloat(betAmount) * 1_000_000));
+      const deadline = Math.floor(Date.now() / 1000) + 60 * 60; // 1 hour
+
+      // EIP-712 Permit signature
+      const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
+      const nonce = await usdcContract.nonces(userAddress);
+      const domain = {
+        name: "Mock USDC",
+        version: "1",
+        chainId: 43113,
+        verifyingContract: USDC_ADDRESS,
+      };
+      const types = {
+        Permit: [
+          { name: "owner", type: "address" },
+          { name: "spender", type: "address" },
+          { name: "value", type: "uint256" },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" },
+        ],
+      };
+      const value = {
+        owner: userAddress,
+        spender: marketAddress,
+        value: approvalAmount,
+        nonce: nonce,
+        deadline: deadline,
+      };
+      const signature = await signer.signTypedData(domain, types, value);
+      const { v, r, s } = ethers.Signature.from(signature);
+
+      // Single transaction with permit
+      const receipt = await sendTransaction(
+        marketAddress,
+        "buySharesWithPermit",
+        [
+          betMapping[selectedBet],
+          calculatedSharesScaled,
+          approvalAmount,
+          deadline,
+          v,
+          r,
+          s,
+        ],
+        signer
+      );
+
+      if (receipt && receipt.status === 1) {
+        const displayShares = Number(calculatedSharesScaled) / Number(SHARE_SCALE);
+        setModalData({ shares: displayShares, cost: parseFloat(betAmount) });
+        setIsModalOpen(true);
       }
     } catch (error) {
-      console.error("Approval transaction failed:", error);
+      console.error("Buy shares failed:", error);
+    }
+  };
+
+  const sellShares = async (): Promise<void> => {
+    if (!walletClient) {
+      console.error("No wallet connected. Opening connect modal.");
+      openConnectModal?.();
+      return;
+    }
+    if (!marketAddress || !isValidBet) return;
+
+    try {
+      const provider = new ethers.BrowserProvider(walletClient as any);
+      const signer = await provider.getSigner();
+      const userAddress = await signer.getAddress();
+
+      // Check if approval is already set
+      const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
+      const isApproved = await conditionalTokensContract.isApprovedForAll(userAddress, marketAddress);
+
+      if (!isApproved) {
+        const approveTx = await conditionalTokensContract.setApprovalForAll(marketAddress, true);
+        await approveTx.wait();
+        console.log("Approval for Conditional Tokens set");
+      }
+
+      // Send sellShares transaction
+      const receipt = await sendTransaction(
+        marketAddress,
+        "sellShares",
+        [betMapping[selectedBet!], betAmountBigInt],
+        signer
+      );
+
+      if (receipt && receipt.status === 1) {
+        setModalData({ shares: numericBetAmount, cost: Number(netCost) / 1e6 });
+        setIsModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Sell shares failed:", error);
     }
   };
   
@@ -337,53 +420,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       setOutcomeBalance(null);
     } finally {
       setIsBalanceLoading(false);
-    }
-  };
-
-  const buyShares = async () => {
-    if (!walletClient) {
-      console.error("No wallet connected. Opening connect modal.");
-      openConnectModal?.();
-      return;
-    }
-    if (!marketAddress || !selectedBet || calculatedSharesScaled === null) return;
-    await approveContracts("buy");
-    try {
-      const receipt = await sendTransaction(
-        marketAddress,
-        "buyShares",
-        [betMapping[selectedBet], calculatedSharesScaled]
-      );
-      if (receipt && receipt.status === 1) {
-        const displayShares = Number(calculatedSharesScaled) / Number(SHARE_SCALE);
-        setModalData({ shares: displayShares, cost: parseFloat(betAmount) });
-        setIsModalOpen(true);
-      }
-    } catch (error) {
-      console.error("Transaction failed:", error);
-    }
-  };
-
-  const sellShares = async (): Promise<void> => {
-    if (!walletClient) {
-      console.error("No wallet connected. Opening connect modal.");
-      openConnectModal?.();
-      return;
-    }
-    if (!marketAddress || !isValidBet) return;
-    await approveContracts("sell");
-    try {
-      const receipt = await sendTransaction(
-        marketAddress,
-        "sellShares",
-        [betMapping[selectedBet!], betAmountBigInt]
-      );
-      if (receipt && receipt.status === 1) {
-        setModalData({ shares: numericBetAmount, cost: Number(netCost) / 1e6 });
-        setIsModalOpen(true);
-      }
-    } catch (error) {
-      console.error("Transaction failed:", error);
     }
   };
   

@@ -5,10 +5,10 @@ import { useWalletClient } from 'wagmi';
 import LiquidityPoolABI from "@/abis/LiquidityPool.json" with { type: "json" };
 import MockUSDCABI from "@/abis/MockUSDC.json" with { type: "json" };
 
-const LIQUIDITY_POOL_ADDRESS = "0x857d1A012Fca9d699C9B6c54c6100bc7dD592DD8";
+const LIQUIDITY_POOL_ADDRESS = "0x56c1398dc20998054786fd3bCA97227ce936Bf55";
 const LIQUIDITY_POOL_ABI = LiquidityPoolABI.abi;
 
-const USDC_ADDRESS = "0xAC506d25266599aCe709bcBd197C69aC11D90A78";
+const USDC_ADDRESS = "0xf4963D9d18618a82dFa6b5730d059bfF0BBe8707";
 const USDC_ABI = MockUSDCABI.abi;
 
 const AVALANCHE_FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";

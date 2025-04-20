@@ -2,9 +2,10 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
-contract MockUSDC is ERC20 {
-    constructor() ERC20("Mock USDC", "mUSDC") {}
+contract MockUSDC is ERC20, ERC20Permit {
+    constructor() ERC20("Mock USDC", "mUSDC") ERC20Permit("Mock USDC") {}
 
     uint256 public constant MINT_AMOUNT = 2000 *10**6;
 
