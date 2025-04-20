@@ -7,6 +7,7 @@ import {
   LineSeries,
   PriceFormat,
   SingleValueData,
+  IRange,
 } from "lightweight-charts";
 import { MatchData } from "@/types/MatchData.ts";
 import CustomTooltip from "./CustomTooltip.tsx";
@@ -19,7 +20,7 @@ export interface OddsHistory {
 }
 
 type Format = "decimal" | "percent" | "fraction";
-type TimeRange = "1h" | "2h" | "1d" | "1w";
+type TimeRange = "1h" | "2h" | "1d" | "1w" | "default";
 
 const decimalToFraction = (decimal: number): string => {
   const frac = decimal - 1;
@@ -70,7 +71,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
   const drawSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const awaySeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
 
-  const [timeRange, setTimeRange] = useState<TimeRange>("1w");
+  const [timeRange, setTimeRange] = useState<TimeRange>("default");
   const [tooltip, setTooltip] = useState<TooltipState>({
     active: false,
     label: null,
@@ -80,13 +81,13 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
 
   const getTimeRangeStart = (): number => {
     const now = Date.now();
-    const ranges: Record<TimeRange, number> = {
+    const ranges: Record<Exclude<TimeRange, "default">, number> = {
       "1h": now - 60 * 60 * 1000,
       "2h": now - 2 * 60 * 60 * 1000,
       "1d": now - 24 * 60 * 60 * 1000,
       "1w": now - 7 * 24 * 60 * 60 * 1000,
     };
-    return ranges[timeRange];
+    return timeRange === "default" ? now - 60 * 60 * 1000 : ranges[timeRange]; 
   };
 
   const localTimeFormatter = (time: Time): string => {
@@ -110,7 +111,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     return { type: "custom", formatter: decimalToFraction, minMove };
   };
 
-  const DEFAULT_ODD = 3.0;
+  const DEFAULT_ODD = 3.00000030000003;
   const computeValue = (odd?: number): number => {
     const o = odd ?? DEFAULT_ODD;
     return format === "percent" ? 100 / o : o;
@@ -124,71 +125,128 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     const dr = (oddsHistory.drawOdds || []).slice(startIndex);
     const aw = (oddsHistory.awayOdds || []).slice(startIndex);
 
-    const rangeStart = getTimeRangeStart();
-    const now = Date.now();
-
-    const filtered = ts.reduce<
-      { t: number; h?: number; d?: number; a?: number }[]
-    >((acc, t, i) => {
-      if (t >= rangeStart) {
+    const realData = ts
+      .reduce<{ t: number; h?: number; d?: number; a?: number }[]>((acc, t, i) => {
         acc.push({
           t,
           h: ho[i],
           d: dr[i],
           a: aw[i],
         });
-      }
-      return acc;
-    }, []);
+        return acc;
+      }, [])
+      .sort((a, b) => a.t - b.t);
 
-    let seriesData = filtered;
-    if (filtered.length < 5 && filtered.length > 0) {
-      const firstPoint = filtered[0];
-      const interval = 10 * 60 * 1000; // 10 minutes in milliseconds
-      seriesData = [];
-      for (let t = rangeStart; t <= now; t += interval) {
-        seriesData.push({
-          t,
-          h: firstPoint.h,
-          d: firstPoint.d,
-          a: firstPoint.a,
-        });
-      }
-      // Ensure the line extends to the right edge
-      if (seriesData[seriesData.length - 1].t < now) {
-        seriesData.push({
-          t: now,
-          h: firstPoint.h,
-          d: firstPoint.d,
-          a: firstPoint.a,
-        });
-      }
+    const now = Date.now();
+    let rangeStart = getTimeRangeStart();
+    let rangeEnd = now;
+    const interval = 10 * 60 * 1000; 
+    const zoomFactor = 0.95;
+
+    let displayData = realData; 
+    if (timeRange === "default" && realData.length > 0) {
+      const zoomCount = Math.ceil(realData.length * zoomFactor);
+      displayData = realData.slice(-zoomCount);
+      rangeStart = realData[0].t - 30 * 60 * 1000; 
+    } else if (timeRange === "default") {
+      rangeStart = now - 60 * 60 * 1000;
     }
 
+    let pointsInRange = timeRange === "default" ? realData : realData.filter((p) => p.t >= rangeStart && p.t <= rangeEnd).slice(-4);
+
+    let combinedData: { t: number; h?: number; d?: number; a?: number }[] = [];
+    let flatlineOdds = { h: DEFAULT_ODD, d: DEFAULT_ODD, a: DEFAULT_ODD };
+
+    if (realData.length > 0) {
+      const priorPoint = realData.filter((p) => p.t < rangeStart).slice(-1)[0];
+      flatlineOdds = priorPoint
+        ? { h: priorPoint.h ?? DEFAULT_ODD, d: priorPoint.d ?? DEFAULT_ODD, a: priorPoint.a ?? DEFAULT_ODD }
+        : { h: DEFAULT_ODD, d: DEFAULT_ODD, a: DEFAULT_ODD };
+    }
+    if (timeRange === "1w" || timeRange === "default") {
+      flatlineOdds = { h: DEFAULT_ODD, d: DEFAULT_ODD, a: DEFAULT_ODD };
+    }
+
+    if (pointsInRange.length === 0) {
+      for (let t = rangeStart; t <= rangeEnd; t += interval) {
+        combinedData.push({
+          t,
+          h: flatlineOdds.h,
+          d: flatlineOdds.d,
+          a: flatlineOdds.a,
+        });
+      }
+    } else {
+      const firstPoint = pointsInRange[0];
+      for (let t = rangeStart; t <= firstPoint.t; t += interval) {
+        combinedData.push({
+          t,
+          h: flatlineOdds.h,
+          d: flatlineOdds.d,
+          a: flatlineOdds.a,
+        });
+      }
+      combinedData.push(...pointsInRange);
+    }
+
+    combinedData = combinedData
+      .sort((a, b) => a.t - b.t)
+      .filter((item, index, arr) => index === 0 || item.t > arr[index - 1].t);
+
     homeSeriesRef.current!.setData(
-      seriesData.map((p) => ({
+      combinedData.map((p) => ({
         time: (p.t / 1000) as Time,
         value: computeValue(p.h),
       }))
     );
     drawSeriesRef.current!.setData(
-      seriesData.map((p) => ({
+      combinedData.map((p) => ({
         time: (p.t / 1000) as Time,
         value: computeValue(p.d),
       }))
     );
     awaySeriesRef.current!.setData(
-      seriesData.map((p) => ({
+      combinedData.map((p) => ({
         time: (p.t / 1000) as Time,
         value: computeValue(p.a),
       }))
     );
 
-    chartRef.current.timeScale().fitContent();
     const pf = getPriceFormat();
-    homeSeriesRef.current!.applyOptions({ priceFormat: pf });
-    drawSeriesRef.current!.applyOptions({ priceFormat: pf });
-    awaySeriesRef.current!.applyOptions({ priceFormat: pf });
+    homeSeriesRef.current!.applyOptions({ priceFormat: pf, pointMarkersVisible: false });
+    drawSeriesRef.current!.applyOptions({ priceFormat: pf, pointMarkersVisible: false });
+    awaySeriesRef.current!.applyOptions({ priceFormat: pf, pointMarkersVisible: false });
+
+    if (timeRange === "default" && displayData.length > 0) {
+      const firstTime = displayData[0].t / 1000;
+      const lastTime = displayData[displayData.length - 1].t / 1000;
+      const padding = interval / 1000;
+      const visibleRange: IRange<Time> = {
+        from: firstTime as Time,
+        to: (lastTime + padding) as Time,
+      };
+      chartRef.current!.timeScale().setVisibleRange(visibleRange);
+    } else if (pointsInRange.length > 0) {
+      const firstTime = Math.min(rangeStart, pointsInRange[0].t) / 1000;
+      const lastTime = pointsInRange[pointsInRange.length - 1].t / 1000;
+      const padding = interval / 1000;
+      const visibleRange: IRange<Time> = {
+        from: firstTime as Time,
+        to: (lastTime + padding) as Time,
+      };
+      chartRef.current!.timeScale().setVisibleRange(visibleRange);
+    } else if (combinedData.length > 0) {
+      const firstTime = combinedData[0].t / 1000;
+      const lastTime = combinedData[combinedData.length - 1].t / 1000;
+      const padding = interval / 1000;
+      const visibleRange: IRange<Time> = {
+        from: firstTime as Time,
+        to: (lastTime + padding) as Time,
+      };
+      chartRef.current!.timeScale().setVisibleRange(visibleRange);
+    } else {
+      chartRef.current!.timeScale().fitContent();
+    }
   };
 
   const updateChartSizeAndLayout = () => {
@@ -204,7 +262,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       },
       timeScale: { barSpacing: isMobile ? 1 : 6 },
     });
-    chartRef.current.timeScale().fitContent();
   };
 
   useEffect(() => {
@@ -303,9 +360,13 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       });
     });
 
-    updateSeriesAndFormat();
+    // Delay initial update to ensure chart is fully initialized
+    setTimeout(() => {
+      updateSeriesAndFormat();
+    }, 0);
+
     return () => chartRef.current?.remove();
-  }, []);
+  }, [timeRange]);
 
   useEffect(() => {
     updateSeriesAndFormat();
@@ -315,7 +376,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
-      {/* format tabs */}
       <div
         style={{
           position: "absolute",
@@ -350,7 +410,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
         ))}
       </div>
 
-      {/* time range filter */}
       <div
         style={{
           position: "absolute",
@@ -364,7 +423,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
           zIndex: 10,
         }}
       >
-        {(["1h", "2h", "1d", "1w"] as TimeRange[]).map((r) => (
+        {(["default", "1h", "2h", "1d", "1w"] as TimeRange[]).map((r) => (
           <button
             key={r}
             onClick={() => setTimeRange(r)}
@@ -378,15 +437,13 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
               color: timeRange === r ? "#fff" : "#ccc",
             }}
           >
-            {r}
+            {r === "default" ? "Recent" : r}
           </button>
         ))}
       </div>
 
-      {/* chart */}
       <div ref={chartContainerRef} style={{ width: "100%", height: "100%" }} />
 
-      {/* tooltip */}
       {tooltip.active && tooltip.label && (
         <div
           style={{
