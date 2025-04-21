@@ -1,7 +1,9 @@
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import LoginModal from "./components/LoginModal";
 
 function App() {
+  const { wallets } = useWallets();
+  const embeddedWallet = wallets.find(wallet => wallet.walletClientType === 'privy');
   const { ready, authenticated, user } = usePrivy();
 
   if (authenticated) {
