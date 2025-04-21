@@ -413,7 +413,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       <div
         style={{
           position: "absolute",
-          bottom: isMobile ? 27 : 15,
+          bottom: isMobile ? 15 : 27,
           left: 8,
           display: "flex",
           gap: 6,
