@@ -37,3 +37,4 @@ typechain/
 subgraph/generated/
 subgraph/build/
 node_modules/
+.vercel

@@ -25,7 +25,7 @@ const connectors = connectorsForWallets(
       wallets: [
         metaMaskWallet,
         toPrivyWallet({
-          id: 'cm935vklg01mhla0mlm1x4lf4',
+          id: 'cm9hex1d0018sjs0m6lw158w8',
           name: 'Privy (Google/Email)',
           iconUrl: '/images/privy.jpg'
         }),
