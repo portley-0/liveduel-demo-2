@@ -680,7 +680,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                       </span>
                     ) : (
                       <>
-                        <span className="inline-flex items-center space-x-1">
+                        <span className="inline-flex items-center space-x-1 whitespace-nowrap">
                           <span>
                             You will receive: {(Number(calculatedSharesScaled) / Number(SHARE_SCALE)).toFixed(2)}{" "}
                           </span>

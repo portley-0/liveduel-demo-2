@@ -16,7 +16,7 @@ async function deploy() {
     const functionsRouterAddress = "0xA9d587a00A31A52Ed70D6026794a8FC5E2F5dCb0";
     let donId = "fun-avalanche-fuji-1";
 
-    const source = fs.readFileSync("./API-request.js").toString();
+    const source = fs.readFileSync("./result-request.js").toString();
 
     // Subscription ID is a unique identifier for the subscription
     const subscriptionId = 15388;

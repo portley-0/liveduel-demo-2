@@ -19,13 +19,22 @@ dataSources:
       language: wasm/assemblyscript
 
       entities:
-        - PredictionMarket  
+        - PredictionMarket 
+        - TournamentMarket 
       abis:
         - name: MarketFactory
           file: ./abis/MarketFactory.json
+        - name: TournamentMarket
+          file: ./abis/TournamentMarket.json
+        - name: PredictionMarket
+          file: ./abis/PredictionMarket.json
+
       eventHandlers:
         - event: PredictionMarketDeployed(uint256,address,uint256)
           handler: handlePredictionMarketDeployed
+        - event: TournamentDeployed(indexed uint256,indexed address)
+          handler: handleTournamentDeployed
+
       file: ./src/market-factory.ts
 
 templates:
@@ -63,3 +72,39 @@ templates:
           handler: handlePayoutRedeemed
 
       file: ./src/prediction-market.ts
+
+  - name: TournamentMarket
+    kind: ethereum/contract
+    network: fuji
+    source:
+      abi: TournamentMarket
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+
+      entities:
+        - TournamentMarket
+        - TournamentSharesPurchased
+        - TournamentSharesSold
+        - TournamentOddsUpdated
+        - TournamentMarketResolved
+        - TournamentPayoutRedeemed
+
+      abis:
+        - name: TournamentMarket
+          file: ./abis/TournamentMarket.json
+
+      eventHandlers:
+        - event: SharesPurchased(indexed uint256,indexed address,indexed uint8,uint256,int256)
+          handler: handleTournamentSharesPurchased
+        - event: SharesSold(indexed uint256,indexed address,indexed uint8,uint256,int256)
+          handler: handleTournamentSharesSold
+        - event: OddsUpdated(indexed uint256,uint256[])
+          handler: handleTournamentOddsUpdated
+        - event: MarketResolved(indexed uint256,indexed uint8)
+          handler: handleTournamentMarketResolved
+        - event: PayoutRedeemed(indexed uint256,indexed address,indexed uint8,uint256)
+          handler: handleTournamentPayoutRedeemed
+
+      file: ./src/tournament-market.ts

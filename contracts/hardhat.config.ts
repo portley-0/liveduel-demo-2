@@ -14,7 +14,10 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 1000, 
+            runs: 1, 
+          },
+          metadata: {
+            bytecodeHash: "none"
           },
           evmVersion: "istanbul",
           viaIR: true

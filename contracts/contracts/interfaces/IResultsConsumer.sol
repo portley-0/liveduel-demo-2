@@ -9,9 +9,14 @@ interface IResultsConsumer {
     // ------------------------------------------------------------------------
     // Events
     // ------------------------------------------------------------------------
-    event RequestedResult(uint256 matchId, bytes32 requestId);
-    event ResultReceived(uint256 matchId, uint8 result);
-    event RequestFailed(uint256 matchId, bytes32 requestId, string errorMessage);
+    event RequestedResult(uint256 indexed matchId, bytes32 requestId);
+    event ResultReceived(
+        uint256 indexed matchId,
+        uint8   outcome,
+        uint256 homeId,
+        uint256 awayId
+    );
+    event RequestFailed(uint256 indexed matchId, bytes32 requestId, string errorMessage);
 
     // From Chainlink's ConfirmedOwner:
     event OwnershipTransferRequested(address indexed from, address indexed to);
@@ -46,9 +51,18 @@ interface IResultsConsumer {
      * @notice Returns the result of a resolved match.
      * @dev Reverts if the match has not been resolved yet.
      * @param matchId The match ID to query.
-     * @return result The outcome/result for that match (0,1,2, etc.)
+     * @return outcome The outcome/result for that match (0=home, 1=draw, 2=away).
+     * @return homeId  The API-football team ID of the home side.
+     * @return awayId  The API-football team ID of the away side.
      */
-    function returnResult(uint256 matchId) external view returns (uint8);
+    function returnResult(uint256 matchId)
+        external
+        view
+        returns (
+            uint8  outcome,
+            uint256 homeId,
+            uint256 awayId
+        );
 
     // ------------------------------------------------------------------------
     // Owner/ConfirmedOwner Functions

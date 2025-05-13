@@ -52,3 +52,57 @@ type PayoutRedeemed @entity {
   amount: BigInt!
   timestamp: BigInt!
 }
+
+type TournamentMarket @entity {
+  id: ID!
+  tournamentId: BigInt!
+  totalTeams: Int!
+  isResolved: Boolean!
+  resolvedOutcome: Int
+}
+
+type TournamentSharesPurchased @entity {
+  id: ID!
+  market: Bytes!
+  buyer: Bytes!
+  outcome: Int!
+  shares: BigInt!
+  cost: BigInt!
+  timestamp: BigInt!
+}
+
+type TournamentSharesSold @entity {
+  id: ID!
+  market: Bytes!
+  seller: Bytes!
+  outcome: Int!
+  shares: BigInt!
+  actualGain: BigInt!
+  timestamp: BigInt!
+}
+
+type TournamentOddsUpdated @entity {
+  id: ID!
+  market: Bytes!
+  prices: [BigInt!]!
+  timestamp: BigInt!
+}
+
+type TournamentMarketResolved @entity {
+  id: ID!
+  market: Bytes!
+  tournamentId: BigInt!
+  outcome: Int!
+  timestamp: BigInt!
+}
+
+type TournamentPayoutRedeemed @entity {
+  id: ID!
+  market: Bytes!
+  tournamentId: BigInt!
+  redeemer: Bytes!
+  outcome: Int!
+  amount: BigInt!
+  timestamp: BigInt!
+}
+

@@ -67,7 +67,8 @@ async function main() {
             RESULTS_CONSUMER_ADDRESS,
             mockUSDC.address,
             CONDITIONAL_TOKENS_ADDRESS,
-            LMSR_MARKET_MAKER_FACTORY_ADDRESS
+            LMSR_MARKET_MAKER_FACTORY_ADDRESS,
+            ethers.constants.AddressZero 
         )) as MarketFactory;
         await marketFactory.deployed();
         console.log("MarketFactory deployed to:", marketFactory.address);

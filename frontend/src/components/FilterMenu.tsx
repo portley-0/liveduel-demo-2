@@ -21,6 +21,14 @@ const SORT_OPTIONS = [
   { id: "date-desc", name: "Date (DESC)" },
 ];
 
+const MOBILE_BREAKPOINT = 768;
+const ARROW_WIDTH = 20;
+const SORT_EXTRA = 10; 
+
+const SORT_SELECT_CLASS =
+  "select select-sm select-ghost text-white bg-darkblue font-bold text-sm " +
+  "transition-all duration-200 ease-in-out whitespace-nowrap";
+
 const FilterMenu: React.FC = () => {
   const {
     selectedLeague,
@@ -31,132 +39,173 @@ const FilterMenu: React.FC = () => {
     setLiveOnly,
     deployedOnly,
     setDeployedOnly,
-    selectedOnly,
-    setSelectedOnly,
     addDefaultSelection,
     defaultSelections,
   } = useFilter();
 
   const categoryRef = useRef<HTMLSpanElement>(null);
   const sortRef = useRef<HTMLSpanElement>(null);
+
+  const [initialCategoryWidth, setInitialCategoryWidth] = useState<number | null>(null);
   const [categoryWidth, setCategoryWidth] = useState(190);
   const [sortWidth, setSortWidth] = useState(140);
 
+  const smallLeagues = [61, 140, 135];
+  const mediumLeagues = [null, 78];
+  const isSmallLeague =
+    selectedLeague !== null &&
+    typeof selectedLeague === "number" &&
+    smallLeagues.includes(selectedLeague);
+  const isMediumLeague =
+    selectedLeague !== null &&
+    typeof selectedLeague === "number" &&
+    mediumLeagues.includes(selectedLeague);
+
+  const selectClassName =
+    "select select-sm select-ghost text-white bg-darkblue font-bold text-sm " +
+    "transition-all duration-200 ease-in-out overflow-hidden whitespace-nowrap text-ellipsis md:overflow-visible md:whitespace-nowrap";
+
+  const isMobileViewport = typeof window !== "undefined" && window.innerWidth < MOBILE_BREAKPOINT;
+
   useEffect(() => {
-    if (categoryRef.current) {
-      const textWidth = categoryRef.current.offsetWidth + 45;
-      setCategoryWidth(Math.max(100, Math.min(textWidth, 300)));
+    if (categoryRef.current && initialCategoryWidth === null) {
+      const base = categoryRef.current.getBoundingClientRect().width + 45;
+      setInitialCategoryWidth(base);
+      setCategoryWidth(base);
     }
-  }, [selectedLeague]);
+  }, [initialCategoryWidth]);
+
+  useEffect(() => {
+    if (!categoryRef.current) return;
+    const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
+    const textW = categoryRef.current.getBoundingClientRect().width;
+    const padding = isSmallLeague ? 30 : isMediumLeague ? 35 : 40;
+
+    if (isMobile && initialCategoryWidth) {
+      setCategoryWidth(initialCategoryWidth);
+    } else {
+      const raw = textW + padding + ARROW_WIDTH;
+      setCategoryWidth(Math.max(100, raw));
+    }
+  }, [selectedLeague, isSmallLeague, isMediumLeague, initialCategoryWidth]);
 
   useEffect(() => {
     if (sortRef.current) {
-      const textWidth = sortRef.current.offsetWidth + 40;
-      setSortWidth(Math.max(110, Math.min(textWidth, 170)));
+      const textW = sortRef.current.getBoundingClientRect().width;
+      const raw = textW + 40 + SORT_EXTRA;
+      setSortWidth(Math.max(110, Math.min(raw, 180)));
     }
   }, [sortBy]);
 
   const isLeagueSelected =
-  selectedLeague !== null &&
-  defaultSelections.some(
-    (selection) =>
-      selection.type === "league" &&
-      selection.id === selectedLeague &&
-      selection.autoAdded !== true
-  );
+    selectedLeague !== null &&
+    defaultSelections.some(
+      (sel) => sel.type === "league" && sel.id === selectedLeague && !sel.autoAdded
+    );
 
   return (
     <div className="sticky top-0 z-20 bg-darkblue py-1 px-4 flex flex-col space-y-2 shadow-xl">
       <h1 className="text-xs font-bold text-white">Markets</h1>
 
-      <div className="flex items-center space-x-2 pb-1">
+      <div className="flex items-center justify-between space-x-2 pb-1">
         <span className="text-sm font-bold text-white">Category:</span>
-        <div className="relative">
+        <div className="relative flex-1 min-w-0">
           <span
             ref={categoryRef}
             className="absolute opacity-0 pointer-events-none whitespace-nowrap text-sm font-bold"
           >
-            {LEAGUES.find((league) => league.id === selectedLeague)?.name ??
-              "All Leagues"}
+            {LEAGUES.find((l) => l.id === selectedLeague)?.name || "All Leagues"}
           </span>
-          <div className="relative">
-            <div className="flex items-center">
-              <select
-                className="select select-sm select-ghost text-white bg-darkblue font-bold text-sm transition-all duration-200 ease-in-out"
-                style={{ width: `${categoryWidth}px` }}
-                value={selectedLeague ?? ""}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === "") {
-                    setSelectedLeague(null);
-                  } else if (value === "uefa") {
-                    setSelectedLeague("uefa");
-                  } else {
-                    setSelectedLeague(Number(value));
+
+          <select
+            className={selectClassName}
+            style={
+              isMobileViewport
+                ? {
+                    width: "100%",
+                    minWidth: `${categoryWidth}px`,
+                  }
+                : {
+                    width: `${categoryWidth}px`,
+                  }
+            }
+            value={selectedLeague ?? ""}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "") setSelectedLeague(null);
+              else if (val === "uefa") setSelectedLeague("uefa");
+              else setSelectedLeague(Number(val));
+            }}
+          >
+            {LEAGUES.map((league) => (
+              <option key={String(league.id)} value={league.id ?? ""}>
+                {league.name}
+              </option>
+            ))}
+          </select>
+
+          {selectedLeague !== null && (
+            <div className="absolute right-0 top-0 w-8 h-8">
+              <button
+                onClick={() => {
+                  if (!isLeagueSelected) {
+                    const league = LEAGUES.find((l) => l.id === selectedLeague);
+                    league &&
+                      league.id !== null &&
+                      addDefaultSelection({
+                        id: league.id,
+                        type: "league",
+                        name: league.name,
+                      });
                   }
                 }}
+                className="w-full h-full flex items-center justify-center hidden"
+                title="Add league to Selected"
               >
-                {LEAGUES.map((league) => (
-                  <option
-                    key={league.id}
-                    value={league.id ?? ""}
-                    className="font-bold text-sm"
-                  >
-                    {league.name}
-                  </option>
-                ))}
-              </select>
-              {selectedLeague !== null && (
-                <div className=" relative" style={{ width: "2rem", height: "2rem" }}>
-                  <button
-                    onClick={() => {
-                      if (!isLeagueSelected) {
-                        const league = LEAGUES.find((l) => l.id === selectedLeague);
-                        if (league && league.id !== null) {
-                          addDefaultSelection({
-                            id: league.id,
-                            type: "league",
-                            name: league.name,
-                          });
-                        }
-                      }
-                    }}
-                    className="absolute inset-0 bg-transparent rounded-full flex items-center justify-center hidden"
-                    title="Add league to Selected"
-                  >
-                    {isLeagueSelected ? (
-                      <LuCircleCheck className="text-blue-500 w-6 h-6" />
-                    ) : (
-                      <LuCirclePlus className="text-white w-6 h-6 hover:text-gray-300" />
-                    )}
-                  </button>
-                </div>
-              )}
-
+                {isLeagueSelected ? (
+                  <LuCircleCheck className="text-blue-500 w-6 h-6" />
+                ) : (
+                  <LuCirclePlus className="text-white w-6 h-6 hover:text-gray-300" />
+                )}
+              </button>
             </div>
-          </div>
+          )}
+        </div>
 
+        <div className="flex space-x-2 -mr-3">
+          <button
+            className="btn btn-sm btn-ghost bg-greyblue hover:bg-hovergreyblue active:scale-95 focus:ring-2 focus:ring-blue-500 text-white font-bold"
+            onClick={() => console.log("Games clicked")}
+          >
+            Games
+          </button>
+          <button
+            className="btn btn-sm btn-ghost bg-greyblue hover:bg-hovergreyblue active:scale-95 focus:ring-2 focus:ring-blue-500 text-white font-bold"
+            onClick={() => console.log("Futures clicked")}
+          >
+            Futures
+          </button>
         </div>
       </div>
 
-      <div className="flex flex-nowrap items-center justify-between w-full">
-        <div className="flex items-center space-x-2 whitespace-nowrap -mt-4">
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center space-x-2 whitespace-nowrap">
           <span className="text-sm font-bold text-white">Sort by:</span>
           <div className="relative">
             <span
               ref={sortRef}
               className="absolute opacity-0 pointer-events-none whitespace-nowrap text-sm font-bold"
             >
-              {SORT_OPTIONS.find((option) => option.id === sortBy)?.name ?? "Volume"}
+              {SORT_OPTIONS.find((o) => o.id === sortBy)?.name || "Volume"}
             </span>
             <select
-              className="select select-sm select-ghost text-white bg-darkblue font-bold text-sm transition-all duration-200 ease-in-out"
+              className={SORT_SELECT_CLASS}
               style={{ width: `${sortWidth}px` }}
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
               {SORT_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id} className="font-bold text-sm">
+                <option key={option.id} value={option.id}>
                   {option.name}
                 </option>
               ))}
@@ -164,12 +213,12 @@ const FilterMenu: React.FC = () => {
           </div>
         </div>
 
-        <div data-theme="dark" className="bg-darkblue flex flex-col space-y-2 whitespace-nowrap xxs:-ml-4">
-          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 -mt-3 ">
+        <div data-theme="dark" className="bg-darkblue flex flex-col space-y-2 whitespace-nowrap">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 -mt-1">
             <span className="text-sm font-bold text-white text-right">Deployed Only</span>
             <input
               type="checkbox"
-              className="toggle toggle-sm "
+              className="toggle toggle-sm"
               checked={deployedOnly}
               onChange={() => setDeployedOnly(!deployedOnly)}
             />
@@ -178,18 +227,9 @@ const FilterMenu: React.FC = () => {
             <span className="text-sm font-bold text-white text-right">Live Only</span>
             <input
               type="checkbox"
-              className="toggle toggle-sm "
+              className="toggle toggle-sm"
               checked={liveOnly}
               onChange={() => setLiveOnly(!liveOnly)}
-            />
-          </div>
-          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 hidden">
-            <span className="text-sm font-bold text-white text-right">Selected Only</span>
-            <input
-              type="checkbox"
-              className="toggle toggle-sm "
-              checked={selectedOnly}
-              onChange={() => setSelectedOnly(!selectedOnly)}
             />
           </div>
         </div>

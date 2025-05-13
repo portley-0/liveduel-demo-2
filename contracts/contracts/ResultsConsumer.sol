@@ -10,18 +10,28 @@ contract ResultsConsumer is FunctionsClient, ConfirmedOwner {
     using FunctionsRequest for FunctionsRequest.Request;
 
     bytes32 private donId;
-    string private source;
-    bytes private secrets;
-    uint64 private subscriptionId;
+    string  private source;
+    bytes   private secrets;
+    uint64  private subscriptionId;
 
     mapping(bytes32 => uint256) public pendingRequests;
-    mapping(uint256 => uint8) private matchResults;
-    mapping(uint256 => bool) public matchResolved;
 
-    event RequestedResult(uint256 matchId, bytes32 requestId);
-    event ResultReceived(uint256 matchId, uint8 result);
-    event RequestFailed(uint256 matchId, bytes32 requestId, string errorMessage);
+    struct MatchResult {
+      uint8   outcome;
+      uint256 homeId;
+      uint256 awayId;
+    }
+    mapping(uint256 => MatchResult) private matchResults;
+    mapping(uint256 => bool)       public matchResolved;
 
+    event RequestedResult(uint256 indexed matchId, bytes32 requestId);
+    event ResultReceived(
+      uint256 indexed matchId,
+      uint8   outcome,
+      uint256 homeId,
+      uint256 awayId
+    );
+    event RequestFailed(uint256 indexed matchId, bytes32 requestId, string errorMessage);
 
     constructor(
         address router,
@@ -30,62 +40,79 @@ contract ResultsConsumer is FunctionsClient, ConfirmedOwner {
         bytes memory _secrets,
         uint64 _subscriptionId
     )
-        FunctionsClient(router)                  
-        ConfirmedOwner(msg.sender)               
+        FunctionsClient(router)
+        ConfirmedOwner(msg.sender)
     {
-        donId = _donId;
-        source = _source;
-        secrets = _secrets;
+        donId          = _donId;
+        source         = _source;
+        secrets        = _secrets;
         subscriptionId = _subscriptionId;
     }
 
     function requestMatchResult(uint256 matchId) external {
-        string[] memory args = new string[](1);
-        args[0] = Strings.toString(matchId); 
+        string [] memory args = new string[](1);
+        args[0] = Strings.toString(matchId);
 
         bytes32 requestId = _executeRequest(args);
-
         pendingRequests[requestId] = matchId;
-
         emit RequestedResult(matchId, requestId);
     }
 
-    function _executeRequest(string[] memory args) internal returns (bytes32 requestId) {
+    function _executeRequest(string[] memory args) internal returns (bytes32) {
         FunctionsRequest.Request memory req;
-        req.initializeRequest(FunctionsRequest.Location.Inline, FunctionsRequest.CodeLanguage.JavaScript, source);
+        req.initializeRequest(
+            FunctionsRequest.Location.Inline,
+            FunctionsRequest.CodeLanguage.JavaScript,
+            source
+        );
         req.addSecretsReference(secrets);
-        
         if (args.length > 0) {
             req.setArgs(args);
         }
-        
-        requestId = _sendRequest(req.encodeCBOR(), subscriptionId, 250000, donId);
+        return _sendRequest(req.encodeCBOR(), subscriptionId, 250000, donId);
     }
 
-    function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
+    function fulfillRequest(
+        bytes32 requestId,
+        bytes memory response,
+        bytes memory err
+    ) internal override {
         uint256 matchId = pendingRequests[requestId];
-
         delete pendingRequests[requestId];
 
         if (err.length > 0) {
-            string memory errorMessage = string(err);
-            emit RequestFailed(matchId, requestId, errorMessage);
+            emit RequestFailed(matchId, requestId, string(err));
             return;
         }
 
-        uint8 result = abi.decode(response, (uint8));
+        // Decode uint256[]: [outcome, homeId, awayId]
+        uint256[] memory flat = abi.decode(response, (uint256[]));
+        require(flat.length == 3, "Bad response shape");
 
-        emit ResultReceived(matchId, result);
+        uint8   outcome = uint8(flat[0]);
+        uint256 homeId  = flat[1];
+        uint256 awayId  = flat[2];
 
-        matchResults[matchId] = result;
+        matchResults[matchId] = MatchResult({
+          outcome: outcome,
+          homeId:  homeId,
+          awayId:  awayId
+        });
         matchResolved[matchId] = true;
 
+        emit ResultReceived(matchId, outcome, homeId, awayId);
     }
 
-    function returnResult(uint256 matchId) public view returns (uint8) {
+    /// @return outcome 0=home,1=draw,2=away
+    /// @return homeId  API’s home team ID
+    /// @return awayId  API’s away team ID
+    function returnResult(uint256 matchId)
+      public
+      view
+      returns (uint8 outcome, uint256 homeId, uint256 awayId)
+    {
         require(matchResolved[matchId], "Result not yet available");
-        uint8 result = matchResults[matchId];
-        return result;
+        MatchResult memory r = matchResults[matchId];
+        return (r.outcome, r.homeId, r.awayId);
     }
-
 }

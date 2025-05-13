@@ -2,7 +2,7 @@ import '@nomiclabs/hardhat-ethers';
 import { ethers } from "hardhat";
 import { ContractReceipt, Event } from "ethers";
 import dotenv from "dotenv";
-import { ResultsConsumer } from "../typechain-types"; 
+import { ResultsConsumer } from "../typechain-types";
 dotenv.config();
 
 async function main() {
@@ -11,7 +11,7 @@ async function main() {
   const ResultsConsumer = await ethers.getContractFactory("ResultsConsumer");
   const resultsConsumer = ResultsConsumer.attach(resultsConsumerAddress) as ResultsConsumer;
 
-  const matchId = 1222840;
+  const matchId = 1339082;
   console.log(`Requesting match result for matchId: ${matchId}`);
 
   // Request match result
@@ -31,30 +31,26 @@ async function main() {
   console.log("\nWaiting for the result...\n");
 
   const maxWaitTime = 10 * 60 * 1000; // 10 minutes
-  const pollingInterval = 5000; // 5 seconds
+  const pollingInterval = 5000;      // 5 seconds
   const startTime = Date.now();
 
   const fetchEvents = async (filter: any, fromBlock: number, toBlock: number) => {
     const events: Event[] = [];
     const chunkSize = 1000;
-
     for (let i = 0; i <= Math.floor((toBlock - fromBlock) / chunkSize); i++) {
       const chunkFromBlock = fromBlock + i * chunkSize;
-      const chunkToBlock = Math.min(chunkFromBlock + chunkSize - 1, toBlock);
-
-      const chunkEvents = await resultsConsumer.queryFilter(filter, chunkFromBlock, chunkToBlock);
+      const chunkToBlock  = Math.min(chunkFromBlock + chunkSize - 1, toBlock);
+      const chunkEvents   = await resultsConsumer.queryFilter(filter, chunkFromBlock, chunkToBlock);
       events.push(...chunkEvents);
     }
-
     return events;
   };
 
   const initialBlock = await ethers.provider.getBlockNumber();
-  const startBlock = Math.max(initialBlock - 2048, 0);
+  const startBlock   = Math.max(initialBlock - 2048, 0);
 
   while (Date.now() - startTime < maxWaitTime) {
-    const latestBlock = await ethers.provider.getBlockNumber();
-
+    const latestBlock         = await ethers.provider.getBlockNumber();
     const resultReceivedEvents = await fetchEvents(
       resultsConsumer.filters.ResultReceived(),
       startBlock,
@@ -63,17 +59,33 @@ async function main() {
 
     for (const event of resultReceivedEvents) {
       if (event.args?.matchId.toString() === matchId.toString()) {
-        console.log("ResultReceived event detected for desired matchId:");
-        console.log(`  Match ID: ${event.args?.matchId}`);
-        console.log(`  Result (from event): ${event.args?.result}`);
+        // Always string-ify these fields
+        const outcome = event.args.outcome.toString();
+        const homeId  = event.args.homeId.toString();
+        const awayId  = event.args.awayId.toString();
+
+        console.log("✅ ResultReceived event detected:");
+        console.log(`  Match ID:       ${event.args.matchId.toString()}`);
+        console.log(`  Outcome:        ${outcome}  (0=home,1=draw,2=away)`);
+        console.log(`  Home Team ID:   ${homeId}`);
+        console.log(`  Away Team ID:   ${awayId}`);
 
         const isResolved = await resultsConsumer.matchResolved(matchId);
         if (isResolved) {
           console.log(`Match ID ${matchId} is resolved. Fetching result...`);
-
           try {
-            const result = await resultsConsumer.returnResult(matchId);
-            console.log(`Result for Match ID ${matchId}: ${result}`);
+            // Destructure the tuple from returnResult()
+            const [resOutcomeRaw, resHomeIdRaw, resAwayIdRaw] =
+              await resultsConsumer.returnResult(matchId);
+
+            const resOutcome = resOutcomeRaw.toString();
+            const resHomeId  = resHomeIdRaw.toString();
+            const resAwayId  = resAwayIdRaw.toString();
+
+            console.log(`📋 returnResult gives:`);
+            console.log(`  outcome: ${resOutcome}  (0=home,1=draw,2=away)`);
+            console.log(`  homeId:  ${resHomeId}`);
+            console.log(`  awayId:  ${resAwayId}`);
           } catch (error) {
             if (error instanceof Error) {
               console.error("Error fetching result:", error.message);
@@ -84,7 +96,6 @@ async function main() {
         } else {
           console.log(`Match ID ${matchId} is not yet resolved in the mapping.`);
         }
-
         return;
       }
     }
@@ -96,23 +107,23 @@ async function main() {
     );
 
     if (requestFailedEvents.length > 0) {
-      requestFailedEvents.forEach((event) => {
+      for (const event of requestFailedEvents) {
         if (event.args?.matchId.toString() === matchId.toString()) {
-          console.log("RequestFailed event detected for desired matchId:");
-          console.log(`  Match ID: ${event.args?.matchId}`);
-          console.log(`  Request ID: ${event.args?.requestId}`);
-          console.log(`  Error Message: ${event.args?.errorMessage}`);
+          console.log("🛑 RequestFailed event detected for desired matchId:");
+          console.log(`  Match ID:    ${event.args.matchId.toString()}`);
+          console.log(`  Request ID:  ${event.args.requestId}`);
+          console.log(`  Error Msg:   ${event.args.errorMessage}`);
         }
-      });
+      }
       console.error("Request for the match result failed. Exiting...");
       return;
     }
 
-    console.log(`No result yet for Match ID ${matchId}, retrying after ${pollingInterval / 1000} seconds...`);
-    await new Promise((resolve) => setTimeout(resolve, pollingInterval));
+    console.log(`No result yet for Match ID ${matchId}, retrying in ${pollingInterval/1000}s…`);
+    await new Promise((r) => setTimeout(r, pollingInterval));
   }
 
-  console.error("Timeout: Result not available within the maximum wait time.");
+  console.error("⏰ Timeout: Result not available within the maximum wait time.");
 }
 
 main()

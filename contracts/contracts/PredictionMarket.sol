@@ -4,13 +4,14 @@ pragma solidity ^0.8.20;
 import "./gnosis/LMSRMarketMaker.sol";
 import "./gnosis/ConditionalTokens.sol";
 import "./interfaces/ILiquidityPool.sol";
-import "./MarketFactory.sol";
+import "./interfaces/IMarketFactory.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract PredictionMarket is Ownable, ERC1155Holder {
+contract PredictionMarket is Initializable, OwnableUpgradeable, ERC1155Holder {
 
     uint256 public matchId;
     ILiquidityPool public liquidityPool;
@@ -20,8 +21,7 @@ contract PredictionMarket is Ownable, ERC1155Holder {
     ConditionalTokens public conditionalTokens;
     LMSRMarketMaker public marketMaker;
 
-    bool public initialized;
-
+    bool public isInitialized;
     bool public isResolved;
     uint8 public resolvedOutcome;
 
@@ -38,32 +38,28 @@ contract PredictionMarket is Ownable, ERC1155Holder {
     event OddsUpdated(uint256 indexed matchId, uint256 home, uint256 draw, uint256 away);
     event SharesSold(address indexed seller, uint8 indexed outcome, uint256 shares, int actualGain);
 
-    constructor(
-        uint256 _matchId,
+    function initializeMarket(
+        uint256 _matchId, 
+        bytes32 _questionId, 
+        bytes32 _conditionId, 
+        address _marketMaker,       
         address _liquidityPool, 
         address _usdc,
-        address _conditionalTokens
-    ) Ownable(msg.sender) {
-        require(_liquidityPool != address(0), "Invalid LiquidityPool address");
-        require(_usdc != address(0), "Invalid USDC token address");
-        require(_conditionalTokens != address(0), "Invalid ConditionalTokens address");
-
-        matchId = _matchId;
-        liquidityPool = ILiquidityPool(_liquidityPool);
-        usdc = IERC20(_usdc);
-        conditionalTokens = ConditionalTokens(_conditionalTokens);
-    }
-
-    function initializeMarket(bytes32 _questionId, bytes32 _conditionId, address _marketMaker) external onlyOwner {
-        require(!initialized, "Market already initialized");
+        address _conditionalTokens) external initializer {
+        __Ownable_init(msg.sender);
+        matchId      = _matchId;
         conditionId = _conditionId;
         questionId = _questionId;
         marketMaker = LMSRMarketMaker(_marketMaker);
+        liquidityPool = ILiquidityPool(_liquidityPool);
+        usdc = IERC20(_usdc);
+        conditionalTokens = ConditionalTokens(_conditionalTokens);
         conditionalTokens.setApprovalForAll(_marketMaker, true);
-        initialized = true;
+        isInitialized = true;
     }
 
     function buyShares(uint8 outcome, uint256 amount) external {
+        require(isInitialized, "Not initialized");
         require(!isResolved, "Market already resolved");
         require(outcome < 3, "Invalid outcome");
         require(amount > 0, "Amount must be greater than zero");
@@ -118,7 +114,7 @@ contract PredictionMarket is Ownable, ERC1155Holder {
         liquidityPool.addToRewardsPool(halfFee);
 
         require(usdc.approve(address(owner()), halfFee), "Approve to owner/MarketFactory failed");
-        MarketFactory(address(owner())).addToPlatformProfit(halfFee);
+        IMarketFactory(address(owner())).addToPlatformProfit(halfFee);
 
         totalWageredPerOutcome[outcome] += uint256(actualCost);
 
@@ -140,6 +136,7 @@ contract PredictionMarket is Ownable, ERC1155Holder {
         bytes32 r,
         bytes32 s
     ) external {
+        require(isInitialized, "Not initialized");
         require(!isResolved, "Market already resolved");
         require(outcome < 3, "Invalid outcome");
         require(amount > 0, "Amount must be greater than zero");
@@ -200,7 +197,7 @@ contract PredictionMarket is Ownable, ERC1155Holder {
         liquidityPool.addToRewardsPool(halfFee);
 
         require(usdc.approve(address(owner()), halfFee), "Approve to owner/MarketFactory failed");
-        MarketFactory(address(owner())).addToPlatformProfit(halfFee);
+        IMarketFactory(address(owner())).addToPlatformProfit(halfFee);
 
         totalWageredPerOutcome[outcome] += uint256(actualCost);
 
@@ -214,6 +211,7 @@ contract PredictionMarket is Ownable, ERC1155Holder {
     }
 
     function sellShares(uint8 outcome, uint256 amount) external {
+        require(isInitialized, "Not initialized");
         require(!isResolved, "Market already resolved");
         require(outcome < 3, "Invalid outcome");
         require(amount > 0, "Amount must be greater than zero");
@@ -264,6 +262,7 @@ contract PredictionMarket is Ownable, ERC1155Holder {
     }
 
     function resolveMarket(uint8 result) external onlyOwner {
+        require(isInitialized, "Not initialized");
         require(!isResolved, "Market already resolved");
         require(result < 3, "Invalid outcome");
 
@@ -292,6 +291,7 @@ contract PredictionMarket is Ownable, ERC1155Holder {
     }
 
     function redeemPayouts() external {
+        require(isInitialized, "Not initialized");
         require(isResolved, "Market not resolved"); 
         uint256 indexSet = 1 << resolvedOutcome;
         uint256[] memory indexSetArray = new uint256[](1);

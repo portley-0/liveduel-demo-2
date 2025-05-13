@@ -50,6 +50,7 @@ export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
+
   const setSortBy = (sort: string) => setSortByState(sort);
   const setLiveOnly = (live: boolean) => setLiveOnlyState(live);
   const setDeployedOnly = (deployed: boolean) => setDeployedOnlyState(deployed);
