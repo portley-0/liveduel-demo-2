@@ -59,6 +59,7 @@ type TournamentMarket @entity {
   totalTeams: Int!
   isResolved: Boolean!
   resolvedOutcome: Int
+  fixtures: [TournamentFixture!]! @derivedFrom(field: "market")
 }
 
 type TournamentSharesPurchased @entity {
@@ -104,5 +105,15 @@ type TournamentPayoutRedeemed @entity {
   outcome: Int!
   amount: BigInt!
   timestamp: BigInt!
+}
+
+type TournamentFixture @entity {
+  id: ID! 
+  tournamentId: BigInt!
+  matchId: BigInt!
+  market: TournamentMarket!
+  isRoundFinal: Boolean!
+  isTournamentFinal: Boolean!
+  resolved: Boolean!
 }
 
