@@ -452,7 +452,7 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
           updatedOddsHistory.teamOdds[teamId].push(decimalProbabilityToOdds(prob));
         });
       });
-      const currentLength: number = updatedOddsHistory.timestamps.length; 
+      const currentLength: number = updatedOddsHistory.timestamps.length;
       if (currentLength === 1) {
         const firstTimestamp = updatedOddsHistory.timestamps[0];
         const flatTimestamp = firstTimestamp - WEEK_MS;
