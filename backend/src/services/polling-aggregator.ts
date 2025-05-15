@@ -391,22 +391,29 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
     const currentTournament = getTournamentData(tournamentId);
     if (!currentTournament) return;
 
+    // Fetch teamIds from subgraph
+    const tournamentMarket = await getTournamentMarketByTournamentId(tournamentId);
+    if (!tournamentMarket || !tournamentMarket.teamIds) {
+      console.warn(`[refreshTournamentSubgraphData] No tournament market or teamIds for tournamentId=${tournamentId}`);
+      return;
+    }
+    const teamIds = tournamentMarket.teamIds.map(Number); // Convert string[] to number[]
+
     let updatedOddsHistory = currentTournament.oddsHistory || {
       timestamps: [],
       teamOdds: {},
     };
-
-    // Get team IDs from standings (if available)
-    const teamIds = currentTournament.standings?.league.standings
-      .flat()
-      .map((s) => s.team.id) || [];
 
     // Process odds data
     if (oddsData && oddsData.length > 0) {
       oddsData.forEach((oddsItem) => {
         const ts = Number(oddsItem.timestamp) * 1000;
         oddsItem.prices.forEach((price, index) => {
-          const teamId: number = teamIds[index] || index + 1; // Fallback to index+1
+          if (index >= teamIds.length) {
+            console.warn(`[refreshTournamentSubgraphData] Odds index ${index} exceeds teamIds length for tournamentId=${tournamentId}`);
+            return;
+          }
+          const teamId = teamIds[index];
           const odds = convert192x64ToDecimal(Number(price));
           if (!updatedOddsHistory.teamOdds[teamId]) {
             updatedOddsHistory.teamOdds[teamId] = [];
@@ -432,7 +439,8 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
       const lastOddsItem = oddsData[oddsData.length - 1];
       const latestOdds: Record<number, number> = {};
       lastOddsItem.prices.forEach((price, index) => {
-        const teamId = teamIds[index] || index + 1;
+        if (index >= teamIds.length) return;
+        const teamId = teamIds[index];
         latestOdds[teamId] = convert192x64ToDecimal(Number(price));
       });
 
@@ -464,18 +472,17 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
     }
 
     // Fetch prediction market and update contract, resolution, fixtures, and betting volume
-    const predictionMarket = await getTournamentMarketByTournamentId(tournamentId);
-    if (predictionMarket) {
-      if (predictionMarket.isResolved) {
+    if (tournamentMarket) {
+      if (tournamentMarket.isResolved) {
         updateTournamentData(tournamentId, {
           resolvedAt: Date.now(),
-          outcome: predictionMarket.resolvedOutcome ?? undefined,
+          outcome: tournamentMarket.resolvedOutcome ?? undefined,
         });
       }
 
       // Update contract address
       if (!currentTournament.contract) {
-        updateTournamentData(tournamentId, { contract: predictionMarket.id });
+        updateTournamentData(tournamentId, { contract: tournamentMarket.id });
       }
 
       // Fetch next round fixtures
@@ -486,8 +493,8 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
       updateTournamentData(tournamentId, { nextRoundFixtures });
 
       // Compute betting volume
-      const purchasedData = await getTournamentSharesPurchasedByMarket(predictionMarket.id);
-      const soldData = await getTournamentSharesSoldByMarket(predictionMarket.id);
+      const purchasedData = await getTournamentSharesPurchasedByMarket(tournamentMarket.id);
+      const soldData = await getTournamentSharesSoldByMarket(tournamentMarket.id);
 
       let totalVolume = 0;
       for (const purchaseItem of purchasedData) {
