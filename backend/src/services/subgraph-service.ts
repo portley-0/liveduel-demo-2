@@ -108,6 +108,39 @@ export async function getPredictionMarketByMatchId(
   return data.predictionMarkets[0];
 }
 
+export async function getTournamentMarketByAddress(
+  marketAddress: string
+): Promise<TournamentMarketEntity | null> {
+  const query = gql`
+    query TournamentMarketByAddress($market: Bytes!) {
+      tournamentMarkets(where: { id: $market }) {
+        id
+        tournamentId
+        totalTeams
+        isResolved
+        resolvedOutcome
+        teamIds
+      }
+    }
+  `;
+
+  const variables = { market: marketAddress.toLowerCase() };
+  try {
+    const data = await request<{ tournamentMarkets: TournamentMarketEntity[] }>(
+      SUBGRAPH_URL,
+      query,
+      variables
+    );
+    if (!data.tournamentMarkets || data.tournamentMarkets.length === 0) {
+      return null;
+    }
+    return { ...data.tournamentMarkets[0], id: data.tournamentMarkets[0].id.toLowerCase() };
+  } catch (error) {
+    console.error(`[SubgraphService] Error fetching tournament market for address ${marketAddress}:`, error);
+    return null;
+  }
+}
+
 export async function getPredictionMarketByAddress(
   marketAddress: string
 ): Promise<PredictionMarketEntity | null> {

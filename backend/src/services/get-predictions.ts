@@ -10,7 +10,7 @@ import {
   getAllTournamentPurchasesForUser,
   getAllTournamentSalesForUser,
   getAllTournamentRedeemedForUser,
-  getTournamentMarketByTournamentId,
+  getTournamentMarketByAddress,
   TournamentMarketEntity,
   TournamentSharesPurchasedEntity,
   TournamentSharesSoldEntity,
@@ -141,8 +141,9 @@ export async function getUserPredictions(userAddress: string): Promise<UserPredi
 
   const predictions: UserPrediction[] = [];
 
-  // Cache for team names
+  // Cache for team names and tournament data
   const teamNameCache: Record<string, string> = {};
+  const tournamentCache: Record<number, { teamIds: string[]; details: any }> = {};
 
   async function getCachedTeamNameById(teamId: number, leagueId?: number, season?: number): Promise<string | undefined> {
     const cacheKey = `${teamId}-${leagueId || ''}-${season || ''}`;
@@ -150,6 +151,15 @@ export async function getUserPredictions(userAddress: string): Promise<UserPredi
       teamNameCache[cacheKey] = await getTeamNameById(teamId, leagueId, season) || `Team_${teamId}`;
     }
     return teamNameCache[cacheKey];
+  }
+
+  async function getCachedTournamentData(tournamentId: number) {
+    if (!tournamentCache[tournamentId]) {
+      const teamIds = await getTeamIdsByTournamentId(tournamentId);
+      const details = await getTournamentDetails({ league: tournamentId });
+      tournamentCache[tournamentId] = { teamIds, details: details[0] || {} };
+    }
+    return tournamentCache[tournamentId];
   }
 
   for (const key of Object.keys(grouped)) {
@@ -164,118 +174,128 @@ export async function getUserPredictions(userAddress: string): Promise<UserPredi
 
     let prediction: UserPrediction;
 
-    if (info.isTournament) {
-      // Handle tournament predictions
-      const tournamentMarket: TournamentMarketEntity | null = await getTournamentMarketByTournamentId(
-        parseInt(info.market, 10)
-      );
-      if (!tournamentMarket) {
-        continue;
-      }
-
-      const tournamentId = parseInt(tournamentMarket.tournamentId, 10);
-      const isResolved = tournamentMarket.isResolved;
-      const resolvedOutcome = tournamentMarket.resolvedOutcome ?? null;
-
-      let hasRedeemed = false;
-      if (isResolved) {
-        const userRedemptionsInMarket = allTournamentRedeems.filter(
-          (r) => r.market.toLowerCase() === info.market.toLowerCase()
-        );
-        if (userRedemptionsInMarket.length > 0) {
-          hasRedeemed = true;
+    try {
+      if (info.isTournament) {
+        // Handle tournament predictions
+        const tournamentMarket: TournamentMarketEntity | null = await getTournamentMarketByAddress(info.market);
+        if (!tournamentMarket) {
+          console.warn(`[getUserPredictions] No tournament market found for address ${info.market}`);
+          continue;
         }
-      }
 
-      // Fetch tournament details and team name
-      let leagueId: number | undefined;
-      let leagueName: string | undefined;
-      let selectedTeamName: string | undefined;
+        const tournamentId = parseInt(tournamentMarket.tournamentId, 10);
+        const isResolved = tournamentMarket.isResolved;
+        const resolvedOutcome = tournamentMarket.resolvedOutcome ?? null;
 
-      const tournamentDetails = await getTournamentDetails({ league: tournamentId });
-      if (tournamentDetails.length > 0) {
-        const tournament = tournamentDetails[0];
-        leagueId = tournament.id;
-        leagueName = tournament.name;
-        const teamIds = await getTeamIdsByTournamentId(tournamentId);
-        if (info.outcome < teamIds.length) {
-          const teamId = Number(teamIds[info.outcome]);
-          const teamName = await getCachedTeamNameById(teamId, tournament.id, tournament.season);
-          selectedTeamName = teamName ? `${teamName} To Win` : undefined;
-          if (!teamName) {
-            console.warn(`Team name not found for teamId ${teamId} in league ${tournament.id}`);
+        let hasRedeemed = false;
+        if (isResolved) {
+          const userRedemptionsInMarket = allTournamentRedeems.filter(
+            (r) => r.market.toLowerCase() === info.market.toLowerCase()
+          );
+          if (userRedemptionsInMarket.length > 0) {
+            hasRedeemed = true;
           }
         }
-      }
 
-      prediction = {
-        marketAddress: info.market,
-        tournamentId,
-        outcome: info.outcome,
-        netShares,
-        netCost,
-        isResolved,
-        resolvedOutcome,
-        hasRedeemed,
-        selectedTeamName,
-        leagueId,
-        leagueName,
-      };
-    } else {
-      // Handle match predictions 
-      const marketEntity: PredictionMarketEntity | null = await getPredictionMarketByAddress(info.market);
-      if (!marketEntity) {
-        continue;
-      }
+        // Fetch tournament details and team name
+        let leagueId: number | undefined;
+        let leagueName: string | undefined;
+        let selectedTeamName: string | undefined;
 
-      const matchId = parseInt(marketEntity.matchId, 10);
-      const isResolved = marketEntity.isResolved;
-      const resolvedOutcome = marketEntity.resolvedOutcome ?? null;
-
-      let hasRedeemed = false;
-      if (isResolved) {
-        const userRedemptionsInMarket = allRedeems.filter(
-          (r) => r.market.toLowerCase() === info.market.toLowerCase()
-        );
-        if (userRedemptionsInMarket.length > 0) {
-          hasRedeemed = true;
+        const { teamIds, details: tournament } = await getCachedTournamentData(tournamentId);
+        if (tournament) {
+          leagueId = tournament.id;
+          leagueName = tournament.name;
+          if (info.outcome < teamIds.length) {
+            const teamId = Number(teamIds[info.outcome]);
+            const teamIdMapping: Record<string, number> = {
+            };
+            const apiTeamId = teamIdMapping[teamId.toString()] || teamId;
+            const teamName = await getCachedTeamNameById(apiTeamId, tournament.id, tournament.season);
+            selectedTeamName = teamName ? `${teamName} To Win` : undefined;
+            if (!teamName) {
+              console.warn(`[getUserPredictions] Team name not found for teamId ${teamId} (API teamId ${apiTeamId}) in league ${tournament.id}`);
+            }
+          } else {
+            console.warn(`[getUserPredictions] Outcome ${info.outcome} exceeds teamIds length for tournamentId ${tournamentId}`);
+          }
+        } else {
+          console.warn(`[getUserPredictions] No tournament details found for tournamentId ${tournamentId}`);
         }
+
+        prediction = {
+          marketAddress: info.market,
+          tournamentId,
+          outcome: info.outcome,
+          netShares,
+          netCost,
+          isResolved,
+          resolvedOutcome,
+          hasRedeemed,
+          selectedTeamName,
+          leagueId,
+          leagueName,
+        };
+      } else {
+        // Handle match predictions
+        const marketEntity: PredictionMarketEntity | null = await getPredictionMarketByAddress(info.market);
+        if (!marketEntity) {
+          console.warn(`[getUserPredictions] No prediction market found for address ${info.market}`);
+          continue;
+        }
+
+        const matchId = parseInt(marketEntity.matchId, 10);
+        const isResolved = marketEntity.isResolved;
+        const resolvedOutcome = marketEntity.resolvedOutcome ?? null;
+
+        let hasRedeemed = false;
+        if (isResolved) {
+          const userRedemptionsInMarket = allRedeems.filter(
+            (r) => r.market.toLowerCase() === info.market.toLowerCase()
+          );
+          if (userRedemptionsInMarket.length > 0) {
+            hasRedeemed = true;
+          }
+        }
+
+        let timestamp: number | null = null;
+        let homeTeamName: string | undefined;
+        let homeTeamLogo: string | undefined;
+        let awayTeamName: string | undefined;
+        let awayTeamLogo: string | undefined;
+
+        const fixtureArray = await getFixtures({ id: matchId });
+        if (fixtureArray.length > 0) {
+          const fixture = fixtureArray[0];
+          timestamp = fixture.fixture.timestamp;
+          homeTeamName = fixture.teams.home.name;
+          homeTeamLogo = fixture.teams.home.logo;
+          awayTeamName = fixture.teams.away.name;
+          awayTeamLogo = fixture.teams.away.logo;
+        }
+
+        prediction = {
+          marketAddress: info.market,
+          matchId,
+          timestamp,
+          outcome: info.outcome,
+          netShares,
+          netCost,
+          isResolved,
+          resolvedOutcome,
+          hasRedeemed,
+          homeTeamName,
+          homeTeamLogo,
+          awayTeamName,
+          awayTeamLogo,
+        };
       }
 
-      let timestamp: number | null = null;
-      let homeTeamName: string | undefined;
-      let homeTeamLogo: string | undefined;
-      let awayTeamName: string | undefined;
-      let awayTeamLogo: string | undefined;
-
-      const fixtureArray = await getFixtures({ id: matchId });
-      if (fixtureArray.length > 0) {
-        const fixture = fixtureArray[0];
-        timestamp = fixture.fixture.timestamp;
-        homeTeamName = fixture.teams.home.name;
-        homeTeamLogo = fixture.teams.home.logo;
-        awayTeamName = fixture.teams.away.name;
-        awayTeamLogo = fixture.teams.away.logo;
-      }
-
-      prediction = {
-        marketAddress: info.market,
-        matchId,
-        timestamp,
-        outcome: info.outcome,
-        netShares,
-        netCost,
-        isResolved,
-        resolvedOutcome,
-        hasRedeemed,
-        homeTeamName,
-        homeTeamLogo,
-        awayTeamName,
-        awayTeamLogo,
-      };
+      predictions.push(prediction);
+    } catch (error) {
+      console.error(`[getUserPredictions] Error processing prediction for market ${info.market}, outcome ${info.outcome}:`, error);
+      continue;
     }
-
-    predictions.push(prediction);
   }
 
   return predictions;
