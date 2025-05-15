@@ -5,8 +5,8 @@ import cors from "cors";
 import { Server as SocketIOServer } from 'socket.io';
 import { deployMarket } from './services/deploy-market';
 import { getUserPredictions } from './services/get-predictions'
-import { startDataPolling, startFastSubgraphPolling, startMatchCachePolling, startStandingsPolling } from './services/polling-aggregator';
-import { initCache, getMatchData } from './cache';
+import { startDataPolling, startFastSubgraphPolling, startMatchCachePolling, startStandingsPolling, startTournamentCachePolling } from './services/polling-aggregator';
+import { initCache, initTournamentCache, getMatchData, getTournamentData } from './cache';
 import { initSocket } from './socket';
 import { ethers } from "ethers";
 
@@ -62,8 +62,15 @@ async function main() {
   }));
   const server = http.createServer(app);
   const io = new SocketIOServer(server, {
-    cors: {  
+    cors: {
+      origin: [
+        "http://localhost:5173",
+        "https://liveduel-demo-2.app",
+        "https://www.liveduel-demo-2.app",
+        "https://api.liveduel-demo-2.app"
+      ],
       methods: ["GET", "POST"],
+      allowedHeaders: ["Content-Type"]
     },
   });
 
@@ -78,8 +85,10 @@ async function main() {
   app.use(express.json());
 
   initCache();
+  initTournamentCache();
   initSocket(io);
   startMatchCachePolling();
+  startTournamentCachePolling();
   startStandingsPolling();
   startDataPolling();
   startFastSubgraphPolling();
@@ -114,6 +123,12 @@ async function main() {
     const matchId = Number(req.params.matchid);
     const match = getMatchData(matchId);
     res.json({ success: true, data: match });
+  });
+
+  app.get('/debug-tournament/:tournamentId', (req, res) => {
+    const tournamentId = Number(req.params.tournamentId);
+    const tournament = getTournamentData(tournamentId);
+    res.json({ success: true, data: tournament });
   });
 
   app.post('/mint/:walletAddress', async (req: Request<{ walletAddress: string }>, res: Response): Promise<void> => {

@@ -29,6 +29,11 @@ export interface GetFixtureParams {
   status?: string;      
 }
 
+export interface TournamentQueryParams {
+  league?: number;
+  season?: number;
+}
+
 export async function getFixtures(params: GetFixtureParams) {
   const cleanedParams = Object.fromEntries(
     Object.entries(params).filter(([_, val]) => val !== undefined)
@@ -75,5 +80,54 @@ export async function getStandings(leagueId: number, season: number) {
   } catch (error) {
     console.error(`[FootballService] Error fetching standings:`, error);
     return [];
+  }
+}
+
+export async function getTournamentDetails(params: TournamentQueryParams): Promise<any[]> {
+  try {
+    const cleanedParams = Object.fromEntries(
+      Object.entries(params).filter(([_, val]) => val !== undefined)
+    );
+
+    const response = await apiClient.get('/leagues', { params: cleanedParams });
+    if (response.status !== 200) {
+      throw new Error(`[FootballService] getTournamentDetails failed with status ${response.status}`);
+    }
+
+    const leagues = response.data?.response ?? [];
+    return leagues.map((league: any) => ({
+      id: league.league.id,
+      name: league.league.name,
+      logo: league.league.logo,
+      season: league.season,
+    }));
+  } catch (error) {
+    console.error(
+      `[FootballService] Error fetching tournament details for league ${params.league}, season ${params.season}:`,
+      error
+    );
+    throw error;
+  }
+}
+
+export async function getTeamNameById(teamId: number, leagueId?: number, season?: number): Promise<string | undefined> {
+  try {
+    const params: any = { id: teamId };
+    if (leagueId) params.league = leagueId;
+    if (season) params.season = season;
+
+    const response = await apiClient.get('/teams', { params });
+    if (response.status !== 200) {
+      throw new Error(`[FootballService] getTeamNameById failed with status ${response.status}`);
+    }
+
+    const teams = response.data.response;
+    if (teams.length > 0) {
+      return teams[0].team.name;
+    }
+    return undefined;
+  } catch (error) {
+    console.error(`[FootballService] Error fetching team name for teamId ${teamId}:`, error);
+    return undefined;
   }
 }

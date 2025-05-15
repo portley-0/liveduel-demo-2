@@ -60,6 +60,7 @@ type TournamentMarket @entity {
   isResolved: Boolean!
   resolvedOutcome: Int
   fixtures: [TournamentFixture!]! @derivedFrom(field: "market")
+  teamIds: [BigInt!]!
 }
 
 type TournamentSharesPurchased @entity {

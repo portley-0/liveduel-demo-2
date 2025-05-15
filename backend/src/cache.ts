@@ -1,4 +1,5 @@
 import { broadcastMatchUpdate } from './socket';
+import { broadcastTournamentUpdate } from './socket';
 
 export interface TeamStanding {
   rank: number;
@@ -184,7 +185,31 @@ export interface MatchData {
   standings?: LeagueStanding;
 }
 
+export interface TournamentData {
+  tournamentId: number;
+  season?: number;
+  contract?: string;
+  name?: string;
+  logo?: string;
+  resolvedAt?: number;
+  outcome?: number; 
+
+  nextRoundFixtures?: number[];
+
+  oddsHistory?: {
+    timestamps: number[];
+    teamOdds: Record<number, number[]>; // teamId -> odds over time
+  };
+  latestOdds?: Record<number, number>; // teamId -> latest odds
+
+  bettingVolume?: number;
+
+  standings?: LeagueStanding;
+}
+
+
 const matchCache: Record<number, MatchData> = {};
+const tournamentCache: Record<number, TournamentData> = {};
 
 export function initCache() {
   for (const key of Object.keys(matchCache)) {
@@ -193,8 +218,19 @@ export function initCache() {
   console.log('Match cache initialized (cleared).');
 }
 
+export function initTournamentCache() {
+  for (const key of Object.keys(tournamentCache)) {
+    delete tournamentCache[+key];
+  }
+  console.log('Tournament cache initialized (cleared).');
+}
+
 export function getMatchData(matchId: number): MatchData | undefined {
   return matchCache[matchId];
+}
+
+export function getTournamentData(tournamentId: number): TournamentData | undefined {
+  return tournamentCache[tournamentId];
 }
 
 export function updateMatchData(matchId: number, partialData: Partial<MatchData>) {
@@ -211,10 +247,33 @@ export function updateMatchData(matchId: number, partialData: Partial<MatchData>
   broadcastMatchUpdate(updatedMatch);
 }
 
+
+export function updateTournamentData(tournamentId: number, partialData: Partial<TournamentData>) {
+  if (!tournamentCache[tournamentId]) {
+    tournamentCache[tournamentId] = { tournamentId };
+  }
+
+  tournamentCache[tournamentId] = {
+    ...tournamentCache[tournamentId],
+    ...partialData,
+  };
+
+  const updatedTournament = tournamentCache[tournamentId];
+  broadcastTournamentUpdate(updatedTournament);
+}
+
 export function deleteMatchData(matchId:number) {
   delete matchCache[matchId];
 }
 
+export function deleteTournamentData(tournamentId: number) {
+  delete tournamentCache[tournamentId];
+}
+
 export function getAllMatches(): MatchData[] {
   return Object.values(matchCache);
+}
+
+export function getAllTournaments(): TournamentData[] {
+  return Object.values(tournamentCache);
 }

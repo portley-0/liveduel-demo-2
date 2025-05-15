@@ -3,6 +3,10 @@ import {
   getMatchData,
   updateMatchData,
   deleteMatchData,
+  getAllTournaments,
+  getTournamentData,
+  updateTournamentData,
+  deleteTournamentData,
   LeagueStanding,
   FixtureLineups,
   FixtureEvent,
@@ -14,7 +18,8 @@ import {
   getStatistics,
   getEvents,
   getLineups,
-  getStandings
+  getStandings,
+  getTournamentDetails
 } from './football-service';
 
 import {
@@ -22,7 +27,14 @@ import {
   getPredictionMarketByMatchId,
   getSharesPurchasedByMarket,
   getSharesSoldByMarket,
-  OddsUpdatedEntity
+  OddsUpdatedEntity,
+  getTournamentOddsById,
+  getTournamentMarketByTournamentId,
+  getTournamentSharesPurchasedByMarket,
+  getTournamentSharesSoldByMarket,
+  getTournamentFixtures,
+  TournamentOddsUpdatedEntity,
+  getAllActiveTournaments
 } from './subgraph-service';
 
 const LEAGUES = [2, 3, 39, 140, 78, 61, 135, 848];
@@ -31,6 +43,7 @@ const SEASONS = [2024, 2025];
 let dataUpdateInterval: NodeJS.Timeout | undefined;
 let matchCacheInterval: NodeJS.Timeout | undefined;
 let subgraphRefreshInterval: NodeJS.Timeout | undefined;
+let tournamentPollInterval: NodeJS.Timeout | undefined;
 
 export function startFastSubgraphPolling() {
   if (subgraphRefreshInterval) return;
@@ -39,16 +52,26 @@ export function startFastSubgraphPolling() {
 
   subgraphRefreshInterval = setInterval(async () => {
     try {
+      // Refresh match data
       const allMatches = getAllMatches();
       for (const match of allMatches) {
         if (match.resolvedAt) continue;
         console.log(`[SubgraphPolling] Refreshing match ${match.matchId}`);
         await refreshSubgraphData(match.matchId);
       }
+
+      // Refresh tournament data
+      const allTournaments = getAllTournaments();
+      for (const tournament of allTournaments) {
+        if (tournament.resolvedAt) continue;
+        console.log(`[SubgraphPolling] Refreshing tournament ${tournament.tournamentId}`);
+        const oddsData = await getTournamentOddsById(tournament.tournamentId);
+        await refreshTournamentSubgraphData(tournament.tournamentId, oddsData);
+      }
     } catch (err) {
       console.error('[SubgraphPolling] Error during fast polling:', err);
     }
-  }, 10000); 
+  }, 10000); // Every 10 seconds
 }
 
 export function startMatchCachePolling() {
@@ -70,8 +93,27 @@ export function startMatchCachePolling() {
   }, 6 * 60 * 60 * 1000); 
 }
 
+export function startTournamentCachePolling() {
+  if (tournamentPollInterval) return;
+
+  console.log('[TournamentCachePolling] Doing initial poll immediately...');
+  addUpcomingTournamentsToCache().catch((err) =>
+    console.error('[TournamentCachePolling] Error in initial run:', err)
+  );
+
+  tournamentPollInterval = setInterval(async () => {
+    try {
+      console.log('[TournamentCachePolling] Poll cycle started.');
+      await addUpcomingTournamentsToCache();
+      console.log('[TournamentCachePolling] Poll cycle finished.');
+    } catch (error) {
+      console.error('[TournamentCachePolling] Error in poll cycle:', error);
+    }
+  }, 6 * 60 * 60 * 1000); // Every 6 hours
+}
+
 export function startStandingsPolling() {
-  let intervalTime = 24 * 60 * 60 * 1000;
+  let intervalTime = 24 * 60 * 60 * 1000; // 24 hours default
 
   async function updateStandings() {
     const allMatches = getAllMatches();
@@ -80,13 +122,13 @@ export function startStandingsPolling() {
     );
 
     if (hasLiveMatches) {
-      intervalTime = 60 * 60 * 1000; 
+      intervalTime = 60 * 60 * 1000; // 1 hour if live matches
     }
 
     for (const leagueId of LEAGUES) {
       for (const season of SEASONS) {
         try {
-          await new Promise((resolve) => setTimeout(resolve, 1500)); 
+          await new Promise((resolve) => setTimeout(resolve, 1500)); // Rate limit
 
           const rawStandingsData = await getStandings(leagueId, season);
 
@@ -101,12 +143,20 @@ export function startStandingsPolling() {
             continue;
           }
 
+          // Update matches
           const matches = getAllMatches().filter(
             (match) => match.leagueId === leagueId && match.season === season
           );
-
           for (const match of matches) {
             updateMatchData(match.matchId, { standings: parsedStandings });
+          }
+
+          // Update tournaments
+          const tournaments = getAllTournaments().filter(
+            (tournament) => tournament.tournamentId === leagueId && (!tournament.season || tournament.season === season)
+          );
+          for (const tournament of tournaments) {
+            updateTournamentData(tournament.tournamentId, { standings: parsedStandings });
           }
         } catch (error) {
           console.error(
@@ -125,11 +175,8 @@ export function startStandingsPolling() {
   }
 
   updateStandings();
-
   setInterval(updateStandings, intervalTime);
 }
-
-
 
 export function startDataPolling() {
   if (dataUpdateInterval) return;
@@ -137,16 +184,14 @@ export function startDataPolling() {
   dataUpdateInterval = setInterval(async () => {
     try {
       console.log('[PollingAggregator] Poll cycle started.');
-
       await updateCachedMatches();
-
       cleanupOldMatches();
-
+      cleanupOldTournaments();
       console.log('[PollingAggregator] Poll cycle finished.');
     } catch (error) {
       console.error('[PollingAggregator] Error in poll cycle:', error);
     }
-  }, 40_000); 
+  }, 40_000); // Every 40 seconds
 }
 
 export function stopPollingAggregator() {
@@ -154,9 +199,17 @@ export function stopPollingAggregator() {
     clearInterval(matchCacheInterval);
     matchCacheInterval = undefined;
   }
+  if (tournamentPollInterval) {
+    clearInterval(tournamentPollInterval);
+    tournamentPollInterval = undefined;
+  }
   if (dataUpdateInterval) {
     clearInterval(dataUpdateInterval);
     dataUpdateInterval = undefined;
+  }
+  if (subgraphRefreshInterval) {
+    clearInterval(subgraphRefreshInterval);
+    subgraphRefreshInterval = undefined;
   }
 }
 
@@ -205,6 +258,31 @@ async function addUpcomingMatchesToCache() {
         }
       }
     }
+  }
+}
+
+async function addUpcomingTournamentsToCache() {
+  try {
+    const activeTournaments = await getAllActiveTournaments();
+    for (const tournament of activeTournaments) {
+      const tournamentId = Number(tournament.tournamentId);
+      if (getTournamentData(tournamentId)) continue;
+
+      const details = await getTournamentDetails({ league: tournamentId, season: SEASONS[0] });
+      const tournamentDetails = details[0] || {};
+
+      updateTournamentData(tournamentId, {
+        tournamentId,
+        season: tournamentDetails.season || SEASONS[0],
+        name: tournamentDetails.name,
+        logo: tournamentDetails.logo
+      });
+
+      console.log(`[TournamentCachePolling] Added tournament ${tournamentId} to cache.`);
+      await new Promise(resolve => setTimeout(resolve, 1000)); 
+    }
+  } catch (error) {
+    console.error('[TournamentCachePolling] Error adding tournaments to cache:', error);
   }
 }
 
@@ -305,6 +383,124 @@ async function refreshSubgraphData(matchId: number) {
     }
   } catch (error) {
     console.error(`[refreshSubgraphData] Error for matchId=${matchId}`, error);
+  }
+}
+
+async function refreshTournamentSubgraphData(tournamentId: number, oddsData: TournamentOddsUpdatedEntity[]) {
+  try {
+    const currentTournament = getTournamentData(tournamentId);
+    if (!currentTournament) return;
+
+    let updatedOddsHistory = currentTournament.oddsHistory || {
+      timestamps: [],
+      teamOdds: {},
+    };
+
+    // Get team IDs from standings (if available)
+    const teamIds = currentTournament.standings?.league.standings
+      .flat()
+      .map((s) => s.team.id) || [];
+
+    // Process odds data
+    if (oddsData && oddsData.length > 0) {
+      oddsData.forEach((oddsItem) => {
+        const ts = Number(oddsItem.timestamp) * 1000;
+        oddsItem.prices.forEach((price, index) => {
+          const teamId: number = teamIds[index] || index + 1; // Fallback to index+1
+          const odds = convert192x64ToDecimal(Number(price));
+          if (!updatedOddsHistory.teamOdds[teamId]) {
+            updatedOddsHistory.teamOdds[teamId] = [];
+          }
+          updatedOddsHistory.teamOdds[teamId].push(decimalProbabilityToOdds(odds));
+        });
+        updatedOddsHistory.timestamps.push(ts);
+      });
+
+      // Add flatline odds for the first week
+      if (updatedOddsHistory.timestamps.length > 0) {
+        const firstTimestamp = updatedOddsHistory.timestamps[0];
+        if (firstTimestamp > Date.now() - WEEK_MS) {
+          const flatTimestamp = firstTimestamp - WEEK_MS;
+          updatedOddsHistory.timestamps.unshift(flatTimestamp);
+          Object.keys(updatedOddsHistory.teamOdds).forEach((teamId) => {
+            updatedOddsHistory.teamOdds[Number(teamId)].unshift(FLATLINE_ODDS);
+          });
+        }
+      }
+
+      // Update latest odds
+      const lastOddsItem = oddsData[oddsData.length - 1];
+      const latestOdds: Record<number, number> = {};
+      lastOddsItem.prices.forEach((price, index) => {
+        const teamId = teamIds[index] || index + 1;
+        latestOdds[teamId] = convert192x64ToDecimal(Number(price));
+      });
+
+      updateTournamentData(tournamentId, {
+        oddsHistory: updatedOddsHistory,
+        latestOdds,
+      });
+    } else if (updatedOddsHistory.timestamps.length === 0) {
+      // Initialize with flatline odds
+      const now = Date.now();
+      const flatTimestamps = [now - WEEK_MS, now - WEEK_MS + 60000, now];
+      flatTimestamps.forEach((ts) => {
+        updatedOddsHistory.timestamps.push(ts);
+        teamIds.forEach((teamId) => {
+          if (!updatedOddsHistory.teamOdds[teamId]) {
+            updatedOddsHistory.teamOdds[teamId] = [];
+          }
+          updatedOddsHistory.teamOdds[teamId].push(FLATLINE_ODDS);
+        });
+      });
+      const flatLatestOdds: Record<number, number> = {};
+      teamIds.forEach((teamId) => {
+        flatLatestOdds[teamId] = DEFAULT_PROB;
+      });
+      updateTournamentData(tournamentId, {
+        oddsHistory: updatedOddsHistory,
+        latestOdds: flatLatestOdds,
+      });
+    }
+
+    // Fetch prediction market and update contract, resolution, fixtures, and betting volume
+    const predictionMarket = await getTournamentMarketByTournamentId(tournamentId);
+    if (predictionMarket) {
+      if (predictionMarket.isResolved) {
+        updateTournamentData(tournamentId, {
+          resolvedAt: Date.now(),
+          outcome: predictionMarket.resolvedOutcome ?? undefined,
+        });
+      }
+
+      // Update contract address
+      if (!currentTournament.contract) {
+        updateTournamentData(tournamentId, { contract: predictionMarket.id });
+      }
+
+      // Fetch next round fixtures
+      const fixtures = await getTournamentFixtures(tournamentId);
+      const nextRoundFixtures = fixtures
+        .filter((fixture) => !fixture.resolved)
+        .map((fixture) => Number(fixture.matchId));
+      updateTournamentData(tournamentId, { nextRoundFixtures });
+
+      // Compute betting volume
+      const purchasedData = await getTournamentSharesPurchasedByMarket(predictionMarket.id);
+      const soldData = await getTournamentSharesSoldByMarket(predictionMarket.id);
+
+      let totalVolume = 0;
+      for (const purchaseItem of purchasedData) {
+        totalVolume += Number(purchaseItem.cost);
+      }
+      for (const saleItem of soldData) {
+        totalVolume += Number(saleItem.actualGain);
+      }
+
+      updateTournamentData(tournamentId, { bettingVolume: totalVolume });
+    }
+  } catch (error) {
+    console.error(`[refreshTournamentSubgraphData] Error for tournamentId=${tournamentId}:`, error);
   }
 }
 
@@ -488,6 +684,38 @@ function cleanupOldMatches() {
     if (isResolved && match.resolvedAt && now - match.resolvedAt > TWO_MONTHS_MS) {
       console.log(`[Cleanup] Removing fully resolved match ${match.matchId} (2 months past)`);
       deleteMatchData(match.matchId);
+    }
+  }
+}
+
+async function cleanupOldTournaments() {
+  const now = Date.now();
+  const TWO_MONTHS_MS = 60 * 24 * 60 * 60 * 1000; // 2 months
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000; // 1 day
+
+  const allTournaments = getAllTournaments();
+
+  for (const tournament of allTournaments) {
+    if (!tournament.resolvedAt) continue;
+
+    const resolvedTimeElapsed = now - tournament.resolvedAt;
+
+    // Clear detailed data after 1 day
+    if (resolvedTimeElapsed > ONE_DAY_MS) {
+      console.log(`[Cleanup] Removing detailed data for resolved tournament ${tournament.tournamentId}`);
+      updateTournamentData(tournament.tournamentId, {
+        standings: undefined,
+        nextRoundFixtures: undefined,
+        oddsHistory: undefined,
+        latestOdds: undefined,
+        bettingVolume: undefined,
+      });
+    }
+
+    // Remove fully resolved tournaments after 2 months
+    if (resolvedTimeElapsed > TWO_MONTHS_MS) {
+      console.log(`[Cleanup] Removing fully resolved tournament ${tournament.tournamentId}`);
+      deleteTournamentData(tournament.tournamentId);
     }
   }
 }

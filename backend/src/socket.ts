@@ -1,6 +1,6 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
-import { getAllMatches } from './cache'; 
-import { MatchData } from './cache';
+import { getAllMatches, getAllTournaments } from './cache'; 
+import { MatchData, TournamentData } from './cache';
 
 let io: SocketIOServer;
 
@@ -17,6 +17,12 @@ export function initSocket(socketServer: SocketIOServer) {
       socket.emit("initialCache", allMatches);
     });
 
+    socket.on("requestTournamentCache", () => {
+      console.log("[socket] Sending initial tournament data...");
+      const allTournaments = getAllTournaments();
+      socket.emit("initialTournamentCache", allTournaments);
+    });
+
     socket.on("disconnect", () => {
       console.log("[socket] Client disconnected:", socket.id);
     });
@@ -27,4 +33,9 @@ export function initSocket(socketServer: SocketIOServer) {
 export function broadcastMatchUpdate(match: MatchData) {
   if (!io) return; 
   io.emit('matchUpdate', match);
+}
+
+export function broadcastTournamentUpdate(tournament: TournamentData) {
+  if (!io) return; 
+  io.emit('tournamentUpdate', tournament);
 }

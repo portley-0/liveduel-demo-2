@@ -14,6 +14,7 @@ import {
 } from "../generated/templates"
 
 import { TournamentMarket as TournamentMarketContract } from "../generated/MarketFactory/TournamentMarket"
+import { BigInt } from "@graphprotocol/graph-ts"
 
 export function handlePredictionMarketDeployed(event: PredictionMarketDeployed): void {
   let matchId = event.params.matchId
@@ -37,10 +38,19 @@ export function handleTournamentDeployed(event: TournamentDeployed): void {
   let totalTeamsResult = contract.try_getTotalTeams()
   let totalTeams = totalTeamsResult.reverted ? 0 : totalTeamsResult.value.toI32()
 
+  let teamIds: BigInt[] = []
+  for (let i = 0; i < totalTeams; i++) {
+    let teamIdResult = contract.try_teamIds(BigInt.fromI32(i))
+    if (!teamIdResult.reverted) {
+      teamIds.push(teamIdResult.value)
+    }
+  }
+
   let entity = new TournamentMarketEntity(marketAddress.toHexString())
   entity.tournamentId = tournamentId
   entity.totalTeams = totalTeams
   entity.isResolved = false
+  entity.teamIds = teamIds
   entity.save()
 
   TournamentMarket.create(marketAddress)
