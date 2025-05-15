@@ -391,87 +391,132 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
     const currentTournament = getTournamentData(tournamentId);
     if (!currentTournament) return;
 
-    // Fetch teamIds from subgraph
     const tournamentMarket = await getTournamentMarketByTournamentId(tournamentId);
     if (!tournamentMarket || !tournamentMarket.teamIds) {
       console.warn(`[refreshTournamentSubgraphData] No tournament market or teamIds for tournamentId=${tournamentId}`);
       return;
     }
-    const teamIds = tournamentMarket.teamIds.map(Number); // Convert string[] to number[]
+    const teamIdMapping: Record<string, number> = {
+      "42": 42, // Arsenal
+      "85": 85, // PSG
+      "529": 529, // Barcelona
+      "505": 505 // Inter
+    };
+    const teamIds = tournamentMarket.teamIds.map(id => teamIdMapping[id] || Number(id));
 
     let updatedOddsHistory = currentTournament.oddsHistory || {
       timestamps: [],
       teamOdds: {},
     };
 
-    // Process odds data
-    if (oddsData && oddsData.length > 0) {
-      oddsData.forEach((oddsItem) => {
+    // Initialize teamOdds for each teamId
+    teamIds.forEach(teamId => {
+      if (!updatedOddsHistory.teamOdds[teamId]) {
+        updatedOddsHistory.teamOdds[teamId] = [];
+      }
+    });
+
+    if (oddsData.length === 0) {
+      if (updatedOddsHistory.timestamps.length === 0) {
+        const now = Date.now();
+        const flatTimestamps = [now - WEEK_MS, now - WEEK_MS + 60000, now];
+        flatTimestamps.forEach(ts => {
+          updatedOddsHistory.timestamps.push(ts);
+          teamIds.forEach(teamId => {
+            updatedOddsHistory.teamOdds[teamId].push(FLATLINE_ODDS);
+          });
+        });
+        const flatLatestOdds: Record<number, number> = {};
+        teamIds.forEach(teamId => {
+          flatLatestOdds[teamId] = DEFAULT_PROB;
+        });
+        updateTournamentData(tournamentId, {
+          oddsHistory: updatedOddsHistory,
+          latestOdds: flatLatestOdds,
+        });
+      }
+      return;
+    }
+
+    if (updatedOddsHistory.timestamps.length === 0) {
+      oddsData.forEach(oddsItem => {
         const ts = Number(oddsItem.timestamp) * 1000;
+        updatedOddsHistory.timestamps.push(ts);
         oddsItem.prices.forEach((price, index) => {
           if (index >= teamIds.length) {
             console.warn(`[refreshTournamentSubgraphData] Odds index ${index} exceeds teamIds length for tournamentId=${tournamentId}`);
             return;
           }
           const teamId = teamIds[index];
-          const odds = convert192x64ToDecimal(Number(price));
-          if (!updatedOddsHistory.teamOdds[teamId]) {
-            updatedOddsHistory.teamOdds[teamId] = [];
-          }
-          updatedOddsHistory.teamOdds[teamId].push(decimalProbabilityToOdds(odds));
+          const prob = convert192x64ToDecimal(Number(price));
+          updatedOddsHistory.teamOdds[teamId].push(decimalProbabilityToOdds(prob));
         });
-        updatedOddsHistory.timestamps.push(ts);
       });
-
-      // Add flatline odds for the first week
-      if (updatedOddsHistory.timestamps.length > 0) {
+      const currentLength: number = updatedOddsHistory.timestamps.length; 
+      if (currentLength === 1) {
         const firstTimestamp = updatedOddsHistory.timestamps[0];
-        if (firstTimestamp > Date.now() - WEEK_MS) {
-          const flatTimestamp = firstTimestamp - WEEK_MS;
-          updatedOddsHistory.timestamps.unshift(flatTimestamp);
-          Object.keys(updatedOddsHistory.teamOdds).forEach((teamId) => {
-            updatedOddsHistory.teamOdds[Number(teamId)].unshift(FLATLINE_ODDS);
+        const flatTimestamp = firstTimestamp - WEEK_MS;
+        updatedOddsHistory.timestamps.unshift(flatTimestamp);
+        teamIds.forEach(teamId => {
+          updatedOddsHistory.teamOdds[teamId].unshift(FLATLINE_ODDS);
+        });
+      }
+    } else {
+      const lastOddsUpdate = oddsData[oddsData.length - 1];
+      const newTimestamp = Number(lastOddsUpdate.timestamp) * 1000;
+      const lastIndex = updatedOddsHistory.timestamps.length - 1;
+      if (updatedOddsHistory.timestamps[lastIndex] !== newTimestamp) {
+        const lastProbs: Record<number, number> = {};
+        teamIds.forEach((teamId, index) => {
+          lastProbs[teamId] = 1 / updatedOddsHistory.teamOdds[teamId][lastIndex];
+        });
+        let hasChanges = false;
+        const newProbs: Record<number, number> = {};
+        lastOddsUpdate.prices.forEach((price, index) => {
+          if (index >= teamIds.length) return;
+          const teamId = teamIds[index];
+          newProbs[teamId] = convert192x64ToDecimal(Number(price));
+          if (newProbs[teamId] !== lastProbs[teamId]) {
+            hasChanges = true;
+          }
+        });
+        if (hasChanges) {
+          updatedOddsHistory.timestamps.push(newTimestamp);
+          lastOddsUpdate.prices.forEach((price, index) => {
+            if (index >= teamIds.length) return;
+            const teamId = teamIds[index];
+            const prob = convert192x64ToDecimal(Number(price));
+            updatedOddsHistory.teamOdds[teamId].push(decimalProbabilityToOdds(prob));
           });
         }
       }
-
-      // Update latest odds
-      const lastOddsItem = oddsData[oddsData.length - 1];
-      const latestOdds: Record<number, number> = {};
-      lastOddsItem.prices.forEach((price, index) => {
-        if (index >= teamIds.length) return;
-        const teamId = teamIds[index];
-        latestOdds[teamId] = convert192x64ToDecimal(Number(price));
-      });
-
-      updateTournamentData(tournamentId, {
-        oddsHistory: updatedOddsHistory,
-        latestOdds,
-      });
-    } else if (updatedOddsHistory.timestamps.length === 0) {
-      // Initialize with flatline odds
-      const now = Date.now();
-      const flatTimestamps = [now - WEEK_MS, now - WEEK_MS + 60000, now];
-      flatTimestamps.forEach((ts) => {
-        updatedOddsHistory.timestamps.push(ts);
-        teamIds.forEach((teamId) => {
-          if (!updatedOddsHistory.teamOdds[teamId]) {
-            updatedOddsHistory.teamOdds[teamId] = [];
-          }
-          updatedOddsHistory.teamOdds[teamId].push(FLATLINE_ODDS);
-        });
-      });
-      const flatLatestOdds: Record<number, number> = {};
-      teamIds.forEach((teamId) => {
-        flatLatestOdds[teamId] = DEFAULT_PROB;
-      });
-      updateTournamentData(tournamentId, {
-        oddsHistory: updatedOddsHistory,
-        latestOdds: flatLatestOdds,
-      });
     }
 
-    // Fetch prediction market and update contract, resolution, fixtures, and betting volume
+    if (updatedOddsHistory.timestamps.length > 0) {
+      if (updatedOddsHistory.teamOdds[teamIds[0]][0] !== FLATLINE_ODDS) {
+        const firstTimestamp = updatedOddsHistory.timestamps[0];
+        const flatTimestamp = firstTimestamp - WEEK_MS;
+        updatedOddsHistory.timestamps.unshift(flatTimestamp);
+        teamIds.forEach(teamId => {
+          updatedOddsHistory.teamOdds[teamId].unshift(FLATLINE_ODDS);
+        });
+      }
+    }
+
+    const lastOddsItem = oddsData[oddsData.length - 1];
+    const latestOdds: Record<number, number> = {};
+    lastOddsItem.prices.forEach((price, index) => {
+      if (index >= teamIds.length) return;
+      const teamId = teamIds[index];
+      latestOdds[teamId] = convert192x64ToDecimal(Number(price));
+    });
+
+    updateTournamentData(tournamentId, {
+      oddsHistory: updatedOddsHistory,
+      latestOdds,
+    });
+
+    // Update contract, resolution, fixtures, and betting volume
     if (tournamentMarket) {
       if (tournamentMarket.isResolved) {
         updateTournamentData(tournamentId, {
@@ -480,19 +525,16 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
         });
       }
 
-      // Update contract address
       if (!currentTournament.contract) {
         updateTournamentData(tournamentId, { contract: tournamentMarket.id });
       }
 
-      // Fetch next round fixtures
       const fixtures = await getTournamentFixtures(tournamentId);
       const nextRoundFixtures = fixtures
         .filter((fixture) => !fixture.resolved)
         .map((fixture) => Number(fixture.matchId));
       updateTournamentData(tournamentId, { nextRoundFixtures });
 
-      // Compute betting volume
       const purchasedData = await getTournamentSharesPurchasedByMarket(tournamentMarket.id);
       const soldData = await getTournamentSharesSoldByMarket(tournamentMarket.id);
 
