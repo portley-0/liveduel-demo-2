@@ -416,6 +416,10 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
       }
     });
 
+    // Calculate dynamic default probability and flatline odds
+    const DEFAULT_PROB = 1 / teamIds.length; // e.g., 1/4 = 0.25 for 4 teams
+    const FLATLINE_ODDS = decimalProbabilityToOdds(DEFAULT_PROB); // e.g., 1/0.25 = 4
+
     if (oddsData.length === 0) {
       if (updatedOddsHistory.timestamps.length === 0) {
         const now = Date.now();
