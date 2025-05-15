@@ -31,10 +31,39 @@ export async function getOddsUpdatesByMatchId(matchId: number): Promise<OddsUpda
 }
 
 export async function getTournamentOddsById(tournamentId: number): Promise<TournamentOddsUpdatedEntity[]> {
-  const query = gql`
-    query GetTournamentOdds($tournamentId: BigInt!) {
+  // Step 1: Get market address for tournamentId
+  const marketQuery = gql`
+    query GetTournamentMarket($tournamentId: BigInt!) {
+      tournamentMarkets(where: { tournamentId: $tournamentId }, first: 1) {
+        id
+      }
+    }
+  `;
+  const marketVariables = { tournamentId: tournamentId.toString() };
+  let marketData;
+  try {
+    marketData = await request<{ tournamentMarkets: { id: string }[] }>(
+      SUBGRAPH_URL,
+      marketQuery,
+      marketVariables
+    );
+  } catch (error) {
+    console.error(`[getTournamentOddsById] Error fetching market for tournamentId ${tournamentId}:`, error);
+    return [];
+  }
+
+  if (!marketData.tournamentMarkets || marketData.tournamentMarkets.length === 0) {
+    console.warn(`[getTournamentOddsById] No market found for tournamentId ${tournamentId}`);
+    return [];
+  }
+
+  const marketAddress = marketData.tournamentMarkets[0].id;
+
+  // Step 2: Get odds updates for market address
+  const oddsQuery = gql`
+    query GetTournamentOdds($market: Bytes!) {
       tournamentOddsUpdateds(
-        where: { market_: { tournamentId: $tournamentId } }
+        where: { market: $market }
         orderBy: timestamp
         orderDirection: asc
       ) {
@@ -45,15 +74,20 @@ export async function getTournamentOddsById(tournamentId: number): Promise<Tourn
       }
     }
   `;
-
-  const variables = { tournamentId: tournamentId.toString() };
-  const data = await request<{ tournamentOddsUpdateds: TournamentOddsUpdatedEntity[] }>(
-    SUBGRAPH_URL,
-    query,
-    variables
-  );
-  return data.tournamentOddsUpdateds;
+  const oddsVariables = { market: marketAddress.toLowerCase() };
+  try {
+    const data = await request<{ tournamentOddsUpdateds: TournamentOddsUpdatedEntity[] }>(
+      SUBGRAPH_URL,
+      oddsQuery,
+      oddsVariables
+    );
+    return data.tournamentOddsUpdateds;
+  } catch (error) {
+    console.error(`[getTournamentOddsById] Error fetching odds for market ${marketAddress}:`, error);
+    return [];
+  }
 }
+
 
 export async function getTournamentMarketByTournamentId(tournamentId: number): Promise<TournamentMarketEntity | null> {
   const query = gql`

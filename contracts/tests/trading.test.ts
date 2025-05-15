@@ -24,7 +24,7 @@ describe("PredictionMarket - buyShares() & sellShares()", function () {
   let usdc: MockUSDC;
   let user: SignerWithAddress;
 
-  const PREDICTION_MARKET_ADDRESS = process.env.TEST_PREDICTION_MARKET_ADDRESS!;
+  const PREDICTION_MARKET_ADDRESS = "0x8CEFAF8783ee1799F77c45ab083734bd9CE90512"//process.env.TEST_PREDICTION_MARKET_ADDRESS!;
   const MARKET_FACTORY_ADDRESS = process.env.MARKET_FACTORY_ADDRESS!;
   const LIQUIDITY_POOL_ADDRESS = process.env.LIQUIDITY_POOL_ADDRESS!;
   const CONDITIONAL_TOKENS_ADDRESS = process.env.CONDITIONAL_TOKENS_ADDRESS!;
