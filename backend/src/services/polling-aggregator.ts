@@ -439,6 +439,7 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
     }
 
     if (updatedOddsHistory.timestamps.length === 0) {
+      // Process odds data
       oddsData.forEach(oddsItem => {
         const ts = Number(oddsItem.timestamp) * 1000;
         if (isNaN(ts) || ts > Date.now()) {
@@ -456,8 +457,23 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
           updatedOddsHistory.teamOdds[teamId].push(decimalProbabilityToOdds(prob));
         });
       });
-      const currentLength = updatedOddsHistory.timestamps.length;
-      if (currentLength === 0) {
+
+      // Prepend three flatline points
+      if (updatedOddsHistory.timestamps.length > 0) {
+        const firstTimestamp = updatedOddsHistory.timestamps[0];
+        const flatTimestamps = [
+          firstTimestamp - WEEK_MS,
+          firstTimestamp - WEEK_MS + 60000,
+          firstTimestamp - WEEK_MS + 120000,
+        ];
+        flatTimestamps.reverse().forEach(ts => {
+          updatedOddsHistory.timestamps.unshift(ts);
+          teamIds.forEach(teamId => {
+            updatedOddsHistory.teamOdds[teamId].unshift(FLATLINE_ODDS);
+          });
+        });
+      } else {
+        // Fallback if no valid timestamps were added
         const now = Date.now();
         const flatTimestamps = [now - WEEK_MS, now - WEEK_MS + 60000, now];
         flatTimestamps.forEach(ts => {
@@ -466,15 +482,9 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
             updatedOddsHistory.teamOdds[teamId].push(FLATLINE_ODDS);
           });
         });
-      } else if (currentLength === 1) {
-        const firstTimestamp = updatedOddsHistory.timestamps[0];
-        const flatTimestamp = firstTimestamp - WEEK_MS;
-        updatedOddsHistory.timestamps.unshift(flatTimestamp);
-        teamIds.forEach(teamId => {
-          updatedOddsHistory.teamOdds[teamId].unshift(FLATLINE_ODDS);
-        });
       }
     } else {
+      // Handle existing odds history
       const lastOddsUpdate = oddsData[oddsData.length - 1];
       const newTimestamp = Number(lastOddsUpdate.timestamp) * 1000;
       if (isNaN(newTimestamp) || newTimestamp > Date.now()) {
@@ -507,19 +517,27 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
           });
         }
       }
-      // Ensure history starts with flatline odds
-      if (updatedOddsHistory.timestamps.length > 0) {
-        const hasFlatlineStart = teamIds.every(
-          teamId => updatedOddsHistory.teamOdds[teamId][0] === FLATLINE_ODDS
+
+      // Ensure history starts with three flatline points
+      const hasThreeFlatlinePoints = updatedOddsHistory.timestamps.length >= 3 &&
+        teamIds.every(teamId =>
+          updatedOddsHistory.teamOdds[teamId][0] === FLATLINE_ODDS &&
+          updatedOddsHistory.teamOdds[teamId][1] === FLATLINE_ODDS &&
+          updatedOddsHistory.teamOdds[teamId][2] === FLATLINE_ODDS
         );
-        if (!hasFlatlineStart) {
-          const firstTimestamp = updatedOddsHistory.timestamps[0];
-          const flatTimestamp = firstTimestamp - WEEK_MS;
-          updatedOddsHistory.timestamps.unshift(flatTimestamp);
+      if (!hasThreeFlatlinePoints) {
+        const firstTimestamp = updatedOddsHistory.timestamps[0];
+        const flatTimestamps = [
+          firstTimestamp - WEEK_MS,
+          firstTimestamp - WEEK_MS + 60000,
+          firstTimestamp - WEEK_MS + 120000,
+        ];
+        flatTimestamps.reverse().forEach(ts => {
+          updatedOddsHistory.timestamps.unshift(ts);
           teamIds.forEach(teamId => {
             updatedOddsHistory.teamOdds[teamId].unshift(FLATLINE_ODDS);
           });
-        }
+        });
       }
     }
 
