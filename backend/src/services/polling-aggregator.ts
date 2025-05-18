@@ -396,13 +396,8 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
       console.warn(`[refreshTournamentSubgraphData] No tournament market or teamIds for tournamentId=${tournamentId}`);
       return;
     }
-    const teamIdMapping: Record<string, number> = {
-      "42": 42, // Arsenal
-      "85": 85, // PSG
-      "529": 529, // Barcelona
-      "505": 505 // Inter
-    };
-    const teamIds = tournamentMarket.teamIds.map(id => teamIdMapping[id] || Number(id));
+
+    const teamIds = tournamentMarket.teamIds.map(id => Number(id));
 
     let updatedOddsHistory = currentTournament.oddsHistory || {
       timestamps: [],
@@ -419,6 +414,7 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
     // Calculate dynamic default probability and flatline odds
     const DEFAULT_PROB = 1 / teamIds.length; // e.g., 1/4 = 0.25 for 4 teams
     const FLATLINE_ODDS = decimalProbabilityToOdds(DEFAULT_PROB); // e.g., 1/0.25 = 4
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
     if (oddsData.length === 0) {
       if (updatedOddsHistory.timestamps.length === 0) {
@@ -443,16 +439,12 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
     }
 
     if (updatedOddsHistory.timestamps.length === 0) {
-      const now = Date.now();
-      const flatTimestamps = [now - WEEK_MS, now - WEEK_MS + 60000, now];
-      flatTimestamps.forEach(ts => {
-        updatedOddsHistory.timestamps.push(ts);
-        teamIds.forEach(teamId => {
-          updatedOddsHistory.teamOdds[teamId].push(FLATLINE_ODDS);
-        });
-      });
       oddsData.forEach(oddsItem => {
         const ts = Number(oddsItem.timestamp) * 1000;
+        if (isNaN(ts) || ts > Date.now()) {
+          console.warn(`[refreshTournamentSubgraphData] Invalid timestamp ${oddsItem.timestamp} for tournamentId=${tournamentId}`);
+          return;
+        }
         updatedOddsHistory.timestamps.push(ts);
         oddsItem.prices.forEach((price, index) => {
           if (index >= teamIds.length) {
@@ -464,9 +456,31 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
           updatedOddsHistory.teamOdds[teamId].push(decimalProbabilityToOdds(prob));
         });
       });
+      const currentLength = updatedOddsHistory.timestamps.length;
+      if (currentLength === 0) {
+        const now = Date.now();
+        const flatTimestamps = [now - WEEK_MS, now - WEEK_MS + 60000, now];
+        flatTimestamps.forEach(ts => {
+          updatedOddsHistory.timestamps.push(ts);
+          teamIds.forEach(teamId => {
+            updatedOddsHistory.teamOdds[teamId].push(FLATLINE_ODDS);
+          });
+        });
+      } else if (currentLength === 1) {
+        const firstTimestamp = updatedOddsHistory.timestamps[0];
+        const flatTimestamp = firstTimestamp - WEEK_MS;
+        updatedOddsHistory.timestamps.unshift(flatTimestamp);
+        teamIds.forEach(teamId => {
+          updatedOddsHistory.teamOdds[teamId].unshift(FLATLINE_ODDS);
+        });
+      }
     } else {
       const lastOddsUpdate = oddsData[oddsData.length - 1];
       const newTimestamp = Number(lastOddsUpdate.timestamp) * 1000;
+      if (isNaN(newTimestamp) || newTimestamp > Date.now()) {
+        console.warn(`[refreshTournamentSubgraphData] Invalid last timestamp ${lastOddsUpdate.timestamp} for tournamentId=${tournamentId}`);
+        return;
+      }
       const lastIndex = updatedOddsHistory.timestamps.length - 1;
       if (updatedOddsHistory.timestamps[lastIndex] !== newTimestamp) {
         const lastProbs: Record<number, number> = {};
@@ -493,6 +507,35 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
           });
         }
       }
+      // Ensure history starts with flatline odds
+      if (updatedOddsHistory.timestamps.length > 0) {
+        const hasFlatlineStart = teamIds.every(
+          teamId => updatedOddsHistory.teamOdds[teamId][0] === FLATLINE_ODDS
+        );
+        if (!hasFlatlineStart) {
+          const firstTimestamp = updatedOddsHistory.timestamps[0];
+          const flatTimestamp = firstTimestamp - WEEK_MS;
+          updatedOddsHistory.timestamps.unshift(flatTimestamp);
+          teamIds.forEach(teamId => {
+            updatedOddsHistory.teamOdds[teamId].unshift(FLATLINE_ODDS);
+          });
+        }
+      }
+    }
+
+    // Sort timestamps to ensure chronological order
+    if (updatedOddsHistory.timestamps.length > 1) {
+      const sortedIndices = updatedOddsHistory.timestamps
+        .map((ts, index) => ({ ts, index }))
+        .sort((a, b) => a.ts - b.ts)
+        .map(item => item.index);
+      const sortedTimestamps = sortedIndices.map(i => updatedOddsHistory.timestamps[i]);
+      const sortedTeamOdds: Record<number, number[]> = {};
+      teamIds.forEach(teamId => {
+        sortedTeamOdds[teamId] = sortedIndices.map(i => updatedOddsHistory.teamOdds[teamId][i]);
+      });
+      updatedOddsHistory.timestamps = sortedTimestamps;
+      updatedOddsHistory.teamOdds = sortedTeamOdds;
     }
 
     const lastOddsItem = oddsData[oddsData.length - 1] || {};
