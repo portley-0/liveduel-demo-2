@@ -52,7 +52,7 @@ async function main() {
   const app = express();
   app.use(cors({
     origin: [
-      "http://172.31.240.206:5173",
+      "http://185.134.147.53:5173",
       "http://localhost:4001",
       "https://liveduel-demo-2.app",
       "https://www.liveduel-demo-2.app",
@@ -65,7 +65,7 @@ async function main() {
   const io = new SocketIOServer(server, {
     cors: {
       origin: [
-        "http://localhost:5173",
+        "http://185.134.147.53:5173",
         "http://localhost:4001",
         "https://liveduel-demo-2.app",
         "https://www.liveduel-demo-2.app",
