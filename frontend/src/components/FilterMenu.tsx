@@ -41,6 +41,8 @@ const FilterMenu: React.FC = () => {
     setDeployedOnly,
     addDefaultSelection,
     defaultSelections,
+    viewMode,
+    setViewMode,
   } = useFilter();
 
   const categoryRef = useRef<HTMLSpanElement>(null);
@@ -173,15 +175,15 @@ const FilterMenu: React.FC = () => {
         </div>
 
         <div className="flex space-x-2 -mr-3">
-          <button
+        <button
             className="btn btn-sm btn-ghost bg-greyblue hover:bg-hovergreyblue active:scale-95 focus:ring-2 focus:ring-blue-500 text-white font-bold"
-            onClick={() => console.log("Games clicked")}
+            onClick={() => setViewMode("games")}
           >
             Games
           </button>
           <button
             className="btn btn-sm btn-ghost bg-greyblue hover:bg-hovergreyblue active:scale-95 focus:ring-2 focus:ring-blue-500 text-white font-bold"
-            onClick={() => console.log("Futures clicked")}
+            onClick={() => setViewMode("futures")}
           >
             Futures
           </button>

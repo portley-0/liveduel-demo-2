@@ -14,6 +14,7 @@ export interface FilterState {
   deployedOnly: boolean;
   selectedOnly: boolean;
   defaultSelections: DefaultSelection[];
+  viewMode: "games" | "futures";
 }
 
 export interface FilterContextType extends FilterState {
@@ -24,6 +25,7 @@ export interface FilterContextType extends FilterState {
   setSelectedOnly: (selected: boolean) => void;
   addDefaultSelection: (selection: DefaultSelection) => void;
   removeDefaultSelection: (id: string | number) => void;
+  setViewMode: (mode: "games" | "futures") => void;
 }
 
 const UEFA_LEAGUES = [
@@ -42,6 +44,7 @@ export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [deployedOnly, setDeployedOnlyState] = useState<boolean>(false);
   const [selectedOnly, setSelectedOnlyState] = useState<boolean>(false);
   const [defaultSelections, setDefaultSelections] = useState<DefaultSelection[]>([]);
+  const [viewMode, setViewMode] = useState<"games" | "futures">("games");
 
   const setSelectedLeague = (league: number | "uefa" | null) => {
     setSelectedLeagueState(league);
@@ -145,6 +148,8 @@ export const FilterProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setSelectedOnly,
         addDefaultSelection,
         removeDefaultSelection,
+        viewMode,
+        setViewMode,
       }}
     >
       {children}

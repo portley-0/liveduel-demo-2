@@ -52,7 +52,7 @@ async function main() {
   const app = express();
   app.use(cors({
     origin: [
-      "http://localhost:5173",
+      "http://172.31.240.206:5173",
       "http://localhost:4001",
       "https://liveduel-demo-2.app",
       "https://www.liveduel-demo-2.app",
