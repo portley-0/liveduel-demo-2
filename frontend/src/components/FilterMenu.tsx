@@ -176,13 +176,21 @@ const FilterMenu: React.FC = () => {
 
         <div className="flex space-x-2 -mr-3">
         <button
-            className="btn btn-sm btn-ghost bg-greyblue hover:bg-hovergreyblue active:scale-95 focus:ring-2 focus:ring-blue-500 text-white font-bold"
+            className={`btn btn-sm btn-ghost font-bold text-white ${
+              viewMode === "games"
+                ? "bg-blue-500 hover:bg-blue-600"
+                : "bg-greyblue hover:bg-hovergreyblue"
+            } active:scale-95 `}
             onClick={() => setViewMode("games")}
           >
             Games
           </button>
           <button
-            className="btn btn-sm btn-ghost bg-greyblue hover:bg-hovergreyblue active:scale-95 focus:ring-2 focus:ring-blue-500 text-white font-bold"
+            className={`btn btn-sm btn-ghost font-bold text-white ${
+              viewMode === "futures"
+                ? "bg-blue-500 hover:bg-blue-600"
+                : "bg-greyblue hover:bg-hovergreyblue"
+            } active:scale-95 `}
             onClick={() => setViewMode("futures")}
           >
             Futures

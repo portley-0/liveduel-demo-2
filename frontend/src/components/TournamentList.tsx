@@ -30,6 +30,16 @@ const areOddsRecordsEqual = (a?: Record<number, number[]>, b?: Record<number, nu
   return aKeys.every((key) => areArraysEqual(a[key], b[key]));
 };
 
+// Shared color palette for chart and team percentages (6 colors)
+const TEAM_COLORS = [
+  "rgba(34, 197, 94, 1)", // Green (~green-500, #22c55e)
+  "rgba(168, 85, 247, 1)", // Purple (~purple-500, #a855f7)
+  "rgba(96, 165, 250, 1)", // Blue (text-blue-400, #60a5fa)
+  "rgb(225, 29, 72)", // Red (~redmagenta)
+  "rgba(147, 197, 253, 1)", // Light Blue (~blue-300, #93c5fd)
+  "rgba(249, 115, 22, 1)", // Orange-Red (~orange-500, #f97316)
+];
+
 const TournamentChart: React.FC<{ oddsHistory: OddsHistory }> = React.memo(
   ({ oddsHistory }) => {
     // Get all team IDs
@@ -68,18 +78,6 @@ const TournamentChart: React.FC<{ oddsHistory: OddsHistory }> = React.memo(
       return Array.from(new Set(latestPcts)).sort((a, b) => a - b);
     }, [data, teamIds]);
 
-    // New color palette including purple and green
-    const colors = [
-      "rgba(128, 0, 128, 1)", // Purple
-      "rgba(0, 128, 0, 1)", // Green
-      "rgba(0, 123, 255, 1)", // Blue
-      "rgba(255, 165, 0, 1)", // Orange
-      "rgb(225, 29, 72)", // Red
-      "rgba(128, 128, 128, 1)", // Grey
-      "rgba(255, 255, 0, 1)", // Yellow
-      "rgba(0, 255, 255, 1)", // Cyan
-    ];
-
     return (
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ left: 0, right: 11, top: 5, bottom: 10 }}>
@@ -102,7 +100,7 @@ const TournamentChart: React.FC<{ oddsHistory: OddsHistory }> = React.memo(
               key={teamId}
               type="linear"
               dataKey={`team${teamId}`}
-              stroke={colors[index % colors.length]}
+              stroke={TEAM_COLORS[index % TEAM_COLORS.length]}
               strokeWidth={2}
               dot={false}
               isAnimationActive={false}
@@ -169,20 +167,31 @@ const TournamentList: React.FC = () => {
   }
 
   const TournamentItem: React.FC<{ tournament: TournamentData }> = ({ tournament }) => {
-    // Get top 3 teams by latest odds for bottom section
+    // Get all team IDs from oddsHistory to match chart order
+    const teamIds = React.useMemo(() => {
+      if (!tournament.oddsHistory?.teamOdds) return [];
+      return Object.keys(tournament.oddsHistory.teamOdds).map(Number);
+    }, [tournament.oddsHistory]);
+
+    // Get top 8 teams by latest odds, maintaining teamIds order
     const topTeams = React.useMemo(() => {
-      if (!tournament.latestOdds) return [];
-      return Object.entries(tournament.latestOdds)
-        .map(([teamId, odds]) => ({
-          teamId: Number(teamId),
-          odds,
-          name: tournament.standings?.league.standings
-            .flat()
-            .find((s) => s.team.id === Number(teamId))?.team.name || `Team ${teamId}`,
-        }))
-        .sort((a, b) => a.odds - b.odds)
-        .slice(0, 3);
-    }, [tournament.latestOdds, tournament.standings]);
+      if (!tournament.latestOdds || !teamIds.length) return [];
+      return teamIds
+        .map((teamId, index) => {
+          const odds = (tournament.latestOdds?.[teamId] ?? 0);
+          return {
+            teamId,
+            odds,
+            name: tournament.standings?.league.standings
+              .flat()
+              .find((s) => s.team.id === teamId)?.team.name || `Team ${teamId}`,
+            color: TEAM_COLORS[index % TEAM_COLORS.length], // Assign color based on teamIds order
+          };
+        })
+        .filter((team) => team.odds > 0) // Only include teams with valid odds
+        .sort((a, b) => b.odds - a.odds) // Sort by descending probability
+        .slice(0, Math.min(8, teamIds.length));
+    }, [tournament.latestOdds, tournament.standings, teamIds]);
 
     return (
       <Link
@@ -194,20 +203,15 @@ const TournamentList: React.FC = () => {
           className="relative group bg-greyblue text-white rounded-xl shadow-md w-full h-full flex flex-col focus:outline-none focus:ring-2 focus:ring-blue-500 active:scale-95 hover:bg-hovergreyblue"
         >
           <div className="p-5 xs:p-6 flex flex-col h-full w-full">
-            <div className="relative w-full flex items-center justify-center mb-3">
-              <div className="flex flex-col items-center">
-                <img
-                  src={tournament.logo || "/placeholder-logo.png"}
-                  alt={tournament.name}
-                  className="object-contain w-16 h-16 xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] lg:w-14 lg:h-14"
-                />
-                <span className="text-sm xs:text-lg sm:text-lg lg:text-sm font-[Lato-Bold] mt-1 mb-1 truncate max-w-[140px]">
-                  {tournament.name || "Unknown Tournament"}
-                </span>
-              </div>
-            </div>
-            <div className="flex justify-center mb-2">
-              <span className="text-xl xs:text-2xl font-bold text-white">Winner</span>
+            <div className="relative w-full flex items-center mb-8 mt-2">
+              <img
+                src={tournament.standings?.league.logo || "/placeholder-logo.png"}
+                alt={tournament.name}
+                className="object-contain w-16 h-16 xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] lg:w-14 lg:h-14"
+              />
+              <span className="text-lg xs:text-lg sm:text-lg lg:text-md font-[Lato-Bold] ml-2">
+                {tournament.standings?.league.name ? `${tournament.standings.league.name} Winner` : "Unknown Tournament Winner"}
+              </span>
             </div>
             <div className="bg-lightgreyblue flex-1 min-h-0">
               <TournamentChart
@@ -226,20 +230,15 @@ const TournamentList: React.FC = () => {
                     : "0.00"}
                 </div>
               </div>
-              <div className="flex space-x-4 text-xs font-[Quicksand Bold]">
-                {topTeams.map((team, index) => {
-                  const pct = team.odds > 0 ? (100 / team.odds).toFixed(0) : "0";
-                  const colors = [
-                    "text-purple-400", // Purple
-                    "text-green-400", // Green
-                    "text-blue-400", // Blue
-                  ];
+              <div className="flex space-x-2 text-xs font-[Quicksand Bold]">
+                {topTeams.map((team) => {
+                  const pct = team.odds > 0 ? (team.odds * 100).toFixed(0) : "0";
                   return (
                     <div key={team.teamId} className="flex flex-col items-center">
-                      <span className={`${colors[index % colors.length]} font-semibold`}>
-                        ${team.name.slice(0, 5).toUpperCase()}
+                      <span style={{ color: team.color }} className="font-semibold">
+                        {team.name.slice(0, 5).toUpperCase()}
                       </span>
-                      <span className={`${colors[index % colors.length]} font-semibold`}>
+                      <span style={{ color: team.color }} className="font-semibold">
                         {pct}%
                       </span>
                     </div>

@@ -577,7 +577,8 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
         });
       }
 
-      if (!currentTournament.contract) {
+      if (!currentTournament.contract || currentTournament.contract !== tournamentMarket.id) {
+        console.log(`[refreshTournamentSubgraphData] Updating contract for tournament ${tournamentId} to ${tournamentMarket.id}`);
         updateTournamentData(tournamentId, { contract: tournamentMarket.id });
       }
 
