@@ -568,6 +568,8 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
       latestOdds,
     });
 
+    console.log(currentTournament);
+
     // Update contract, resolution, fixtures, and betting volume
     if (tournamentMarket) {
       if (tournamentMarket.isResolved) {
