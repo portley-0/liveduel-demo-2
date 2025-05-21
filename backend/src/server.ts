@@ -53,7 +53,9 @@ async function main() {
   app.use(cors({
     origin: [
       "http://185.134.147.53:5173",
+      "http://16.16.142.192:4001",
       "http://localhost:4001",
+      "http://localhost:5173",
       "https://liveduel-demo-2.app",
       "https://www.liveduel-demo-2.app",
       "https://api.liveduel-demo-2.app"
@@ -66,7 +68,9 @@ async function main() {
     cors: {
       origin: [
         "http://185.134.147.53:5173",
+        "http://16.16.142.192:4001",
         "http://localhost:4001",
+        "http://localhost:5173",
         "https://liveduel-demo-2.app",
         "https://www.liveduel-demo-2.app",
         "https://api.liveduel-demo-2.app"
@@ -79,7 +83,7 @@ async function main() {
   app.use((req, res, next) => {
     res.setHeader(
       "Content-Security-Policy",
-      "default-src 'self'; connect-src 'self' https://api.liveduel-demo-2.app wss://api.liveduel-demo-2.app ws://localhost:3000; img-src * data: blob:; script-src 'self';"
+      "default-src 'self'; connect-src 'self' https://api.liveduel-demo-2.app http://16.16.142.192:4001 wss://api.liveduel-demo-2.app ws://localhost:3000; img-src * data: blob:; script-src 'self';"
     );
     next();
   });
