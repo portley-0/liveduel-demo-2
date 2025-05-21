@@ -19,6 +19,7 @@ import {
 } from './subgraph-service';
 
 import { getFixtures, getTournamentDetails, getTeamNameById } from './football-service';
+import { getTournamentData } from '../cache';
 
 export interface UserPrediction {
   marketAddress: string;
@@ -36,8 +37,10 @@ export interface UserPrediction {
   awayTeamName?: string;
   awayTeamLogo?: string;
   selectedTeamName?: string;
+  selectedTeamLogo?: string; // Added for tournament winner team logo
   leagueId?: number;
   leagueName?: string;
+  leagueLogo?: string; // Added for league/tournament logo
 }
 
 export async function getUserPredictions(userAddress: string): Promise<UserPrediction[]> {
@@ -200,21 +203,34 @@ export async function getUserPredictions(userAddress: string): Promise<UserPredi
         // Fetch tournament details and team name
         let leagueId: number | undefined;
         let leagueName: string | undefined;
+        let leagueLogo: string | undefined;
         let selectedTeamName: string | undefined;
+        let selectedTeamLogo: string | undefined;
 
         const { teamIds, details: tournament } = await getCachedTournamentData(tournamentId);
+        const tournamentData = getTournamentData(tournamentId);
+
         if (tournament) {
           leagueId = tournament.id;
           leagueName = tournament.name;
           if (info.outcome < teamIds.length) {
             const teamId = Number(teamIds[info.outcome]);
-            const teamIdMapping: Record<string, number> = {
-            };
+            const teamIdMapping: Record<string, number> = {};
             const apiTeamId = teamIdMapping[teamId.toString()] || teamId;
             const teamName = await getCachedTeamNameById(apiTeamId, tournament.id, tournament.season);
             selectedTeamName = teamName ? `${teamName} To Win` : undefined;
             if (!teamName) {
               console.warn(`[getUserPredictions] Team name not found for teamId ${teamId} (API teamId ${apiTeamId}) in league ${tournament.id}`);
+            }
+
+            // Get selectedTeamLogo from standings
+            if (tournamentData?.standings?.league?.standings) {
+              const standings = tournamentData.standings.league.standings.flat();
+              const team = standings.find((s) => s.team.id === apiTeamId);
+              selectedTeamLogo = team?.team.logo || '';
+              if (!selectedTeamLogo) {
+                console.warn(`[getUserPredictions] Team logo not found for teamId ${apiTeamId} in standings`);
+              }
             }
           } else {
             console.warn(`[getUserPredictions] Outcome ${info.outcome} exceeds teamIds length for tournamentId ${tournamentId}`);
@@ -222,6 +238,9 @@ export async function getUserPredictions(userAddress: string): Promise<UserPredi
         } else {
           console.warn(`[getUserPredictions] No tournament details found for tournamentId ${tournamentId}`);
         }
+
+        // Get leagueLogo from tournamentData
+        leagueLogo = tournamentData?.logo || '';
 
         prediction = {
           marketAddress: info.market,
@@ -233,8 +252,10 @@ export async function getUserPredictions(userAddress: string): Promise<UserPredi
           resolvedOutcome,
           hasRedeemed,
           selectedTeamName,
+          selectedTeamLogo,
           leagueId,
           leagueName,
+          leagueLogo,
         };
       } else {
         // Handle match predictions
