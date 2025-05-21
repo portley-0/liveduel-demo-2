@@ -577,7 +577,7 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
       latestOdds,
     });
 
-    console.log(`[refreshTournamentSubgraphData] Tournament ${tournamentId} after odds update:`, getTournamentData(tournamentId));
+    console.log(`[refreshTournamentSubgraphData] Tournament ${tournamentId} `);
 
     if (tournamentMarket) {
       if (tournamentMarket.isResolved) {
@@ -607,7 +607,7 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
       updateTournamentData(tournamentId, { bettingVolume: totalVolume });
     }
 
-    console.log(`[refreshTournamentSubgraphData] Tournament ${tournamentId} final state:`, getTournamentData(tournamentId));
+    console.log(`[refreshTournamentSubgraphData] Tournament ${tournamentId}`);
   } catch (error) {
     console.error(`[refreshTournamentSubgraphData] Error for tournamentId=${tournamentId}:`, error);
   }
