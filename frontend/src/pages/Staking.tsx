@@ -11,8 +11,8 @@ import { useWalletClient, useAccount } from "wagmi";
 import { Dialog } from "@headlessui/react";
 import LiquidityPoolABI from "@/abis/LiquidityPool.json" with { type: "json" };
 
-const DUEL_TOKEN_ADDRESS = "0x32471F026D2AC67a2709cCCF4D5485499E9Aa2Cb";
-const LIQUIDITY_POOL_ADDRESS = "0x56c1398dc20998054786fd3bCA97227ce936Bf55";
+const DUEL_TOKEN_ADDRESS = "0xE0A5DC15C91e4068df135C71E3B066D9d7410fEa";
+const LIQUIDITY_POOL_ADDRESS = "0x259B17df2F54b36A2e8E9545F37355dEFed935c1";
 const AVALANCHE_FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
 
 const ERC20_ABI = [
