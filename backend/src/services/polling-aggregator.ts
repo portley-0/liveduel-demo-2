@@ -394,10 +394,7 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
       return;
     }
 
-    console.log(`[refreshTournamentSubgraphData] Tournament ${tournamentId} currentTournament:`, currentTournament);
-
     const tournamentMarket = await getTournamentMarketByTournamentId(tournamentId);
-    console.log(`[refreshTournamentSubgraphData] Tournament ${tournamentId} market:`, tournamentMarket);
     if (!tournamentMarket || !tournamentMarket.teamIds) {
       console.warn(`[refreshTournamentSubgraphData] No tournament market or teamIds for tournamentId=${tournamentId}`);
       return;
@@ -427,8 +424,6 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
     const DEFAULT_PROB = teamIds.length > 0 ? 1 / teamIds.length : 0.25; // Avoid division-by-zero
     const FLATLINE_ODDS = decimalProbabilityToOdds(DEFAULT_PROB);
     const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
-    console.log(`[refreshTournamentSubgraphData] Tournament ${tournamentId} oddsData:`, oddsData);
 
     if (oddsData.length === 0) {
       if (updatedOddsHistory.timestamps.length === 0) {
@@ -576,8 +571,6 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
       oddsHistory: updatedOddsHistory,
       latestOdds,
     });
-
-    console.log(`[refreshTournamentSubgraphData] Tournament ${tournamentId} `);
 
     if (tournamentMarket) {
       if (tournamentMarket.isResolved) {
