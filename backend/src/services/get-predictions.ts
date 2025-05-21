@@ -37,10 +37,10 @@ export interface UserPrediction {
   awayTeamName?: string;
   awayTeamLogo?: string;
   selectedTeamName?: string;
-  selectedTeamLogo?: string; // Added for tournament winner team logo
+  selectedTeamLogo?: string;
   leagueId?: number;
   leagueName?: string;
-  leagueLogo?: string; // Added for league/tournament logo
+  leagueLogo?: string;
 }
 
 export async function getUserPredictions(userAddress: string): Promise<UserPrediction[]> {
@@ -239,8 +239,11 @@ export async function getUserPredictions(userAddress: string): Promise<UserPredi
           console.warn(`[getUserPredictions] No tournament details found for tournamentId ${tournamentId}`);
         }
 
-        // Get leagueLogo from tournamentData
-        leagueLogo = tournamentData?.logo || '';
+        // Get leagueLogo from tournamentData, fallback to standings.league.logo
+        leagueLogo = tournamentData?.logo || tournamentData?.standings?.league?.logo || '';
+        if (!leagueLogo) {
+          console.warn(`[getUserPredictions] League logo not found for tournamentId ${tournamentId}`);
+        }
 
         prediction = {
           marketAddress: info.market,
