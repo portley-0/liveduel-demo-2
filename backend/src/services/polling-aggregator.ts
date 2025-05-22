@@ -794,7 +794,6 @@ function cleanupOldMatches() {
 async function cleanupOldTournaments() {
   const now = Date.now();
   const TWO_MONTHS_MS = 60 * 24 * 60 * 60 * 1000; // 2 months
-  const ONE_DAY_MS = 24 * 60 * 60 * 1000; // 1 day
 
   const allTournaments = getAllTournaments();
 
@@ -802,18 +801,6 @@ async function cleanupOldTournaments() {
     if (!tournament.resolvedAt) continue;
 
     const resolvedTimeElapsed = now - tournament.resolvedAt;
-
-    // Clear detailed data after 1 day
-    if (resolvedTimeElapsed > ONE_DAY_MS) {
-      console.log(`[Cleanup] Removing detailed data for resolved tournament ${tournament.tournamentId}`);
-      updateTournamentData(tournament.tournamentId, {
-        standings: undefined,
-        nextRoundFixtures: undefined,
-        oddsHistory: undefined,
-        latestOdds: undefined,
-        bettingVolume: undefined,
-      });
-    }
 
     // Remove fully resolved tournaments after 2 months
     if (resolvedTimeElapsed > TWO_MONTHS_MS) {

@@ -96,9 +96,9 @@ export async function getTournamentDetails(params: TournamentQueryParams): Promi
 
     const leagues = response.data?.response ?? [];
     return leagues.map((league: any) => ({
-      id: league.id,
-      name: league.name,
-      logo: league.logo,
+      id: league.league.id,
+      name: league.league.name,
+      logo: league.league.logo,
     }));
   } catch (error) {
     console.error(

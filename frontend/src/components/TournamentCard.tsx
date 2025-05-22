@@ -75,14 +75,14 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
       {/* Top Section: Tournament Logo and Name */}
       <div className="flex items-center mb-4">
         <img
-          src={tournament.logo || "/default-tournament-logo.png"}
-          alt={tournament.name || "Tournament"}
+          src={tournament?.standings?.league?.logo || "/default-tournament-logo.png"}
+          alt={tournament?.standings?.league?.name || "Tournament"}
           className="object-contain 2xl:w-[140px] 2xl:h-[140px] lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] xxs:w-[75px] xxs:h-[75px]"
         />
         <span className="2xl:text-2xl lg:text-xl text-white font-[Lato-Bold] ml-4 truncate max-w-[300px]">
           {tournament.name ? `${tournament.name} Winner` : "Tournament Winner"}
         </span>
-      </div>
+      </div>  
 
       {/* Middle Section: TradingView Chart */}
       <div className="bg-lightgreyblue 2xl:h-[200px] lg:h-[160px] sm:h-[100px] xs:h-[100px] xxs:h-[100px] min-w-[200px]">
