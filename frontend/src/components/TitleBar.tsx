@@ -29,16 +29,13 @@ const TitleBar = () => {
   const [processingUSDC, setProcessingUSDC] = useState(false);
   const [hasClaimed, setHasClaimed] = useState(false);
 
-
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
-
     let timeoutId: NodeJS.Timeout;
     const debouncedResize = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(handleResize, 100);
     };
-
     handleResize();
     window.addEventListener("resize", debouncedResize);
     return () => window.removeEventListener("resize", debouncedResize);
@@ -76,14 +73,11 @@ const TitleBar = () => {
       setProcessingUSDC(false);
     }
   };
-  
 
   const navItems = [
-    { path: "/dashboard/markets", label: "Markets", icon: FaChartLine },
+    { path: "/dashboard/matches", label: "Markets", icon: FaChartLine, activePaths: ["/dashboard/matches", "/dashboard/tournaments"] },
     { path: "/dashboard/predictions", label: "Predictions", icon: FaFutbol },
     { path: "/dashboard/get-funds", label: "Get Funds", icon: FaRegMoneyBillAlt },
-    //{ path: "/dashboard/buy", label: "Buy $Duel", icon: FaCreditCard },
-    //{ path: "/dashboard/stake", label: "Staking", icon: FaCoins },
   ];
 
   const { data: balance, isError, isLoading, refetch } = useReadContract({
@@ -97,7 +91,7 @@ const TitleBar = () => {
     if (!address) return;
     const intervalId = setInterval(() => {
       refetch();
-    }, 15000); 
+    }, 15000);
     return () => clearInterval(intervalId);
   }, [address, refetch]);
 
@@ -134,15 +128,17 @@ const TitleBar = () => {
             </div>
 
             <div className="flex items-center space-x-4 lg:space-x-6">
-            {!isMobile && (
+              {!isMobile && (
                 <div className="flex items-center gap-4 select-none">
-                  {navItems.map(({ path, label, icon: Icon }) => (
+                  {navItems.map(({ path, label, icon: Icon, activePaths }) => (
                     <NavLink
                       key={path}
                       to={path}
                       className={({ isActive }) =>
                         `group btn flex flex-col items-center bg-darkblue border-none hover:bg-transparent ${
-                          isActive ? "!text-redmagenta" : "text-white"
+                          isActive || (activePaths && activePaths.some(p => window.location.pathname.startsWith(p)))
+                            ? "!text-redmagenta"
+                            : "text-white"
                         }`
                       }
                     >
@@ -150,14 +146,14 @@ const TitleBar = () => {
                         <>
                           <Icon
                             className={`text-lg lg:text-xl ${
-                              isActive
+                              isActive || (activePaths && activePaths.some(p => window.location.pathname.startsWith(p)))
                                 ? "text-redmagenta group-hover:opacity-80"
                                 : "text-white group-hover:text-gray-200/80"
                             }`}
                           />
                           <span
                             className={`text-xs lg:text-sm capitalize ${
-                              isActive
+                              isActive || (activePaths && activePaths.some(p => window.location.pathname.startsWith(p)))
                                 ? "text-redmagenta group-hover:opacity-80"
                                 : "text-white group-hover:text-gray-200/80"
                             }`}
@@ -172,7 +168,7 @@ const TitleBar = () => {
               )}
 
               <ConnectButton.Custom>
-              {({
+                {({
                   account,
                   openConnectModal,
                   openAccountModal,
@@ -190,7 +186,7 @@ const TitleBar = () => {
 
                   return (
                     <button
-                      onClick={connected ? openAccountModal : openConnectModal}        
+                      onClick={connected ? openAccountModal : openConnectModal}
                       className={`
                         btn text-white w-auto
                         px-3 h-[28px] sm:px-3 sm:h-[28px]
@@ -213,11 +209,9 @@ const TitleBar = () => {
                               max-[350px]:text-sm
                             `}
                           />
-
                           <span className="hidden sm:inline">
                             {account.address.slice(0, 6)}…{account.address.slice(-4)}
                           </span>
-
                           <span
                             className="
                               sm:hidden hidden
@@ -227,7 +221,6 @@ const TitleBar = () => {
                           >
                             {account.address.slice(0, 3)}…
                           </span>
-
                           <span
                             className="
                               sm:hidden inline
@@ -237,7 +230,6 @@ const TitleBar = () => {
                           >
                             {account.address.slice(0, 4)}…
                           </span>
-
                           {connector?.icon && (
                             <img
                               src={connector.icon}
@@ -257,22 +249,20 @@ const TitleBar = () => {
                   );
                 }}
               </ConnectButton.Custom>
-
-             
-
-              
             </div>
           </header>
-          
+
           {isMobile && (
             <div className="fixed bottom-0 w-full bg-darkblue flex py-2 shadow-xl z-50">
-              {navItems.map(({ path, label, icon: Icon }) => (
+              {navItems.map(({ path, label, icon: Icon, activePaths }) => (
                 <NavLink
                   key={path}
                   to={path}
                   className={({ isActive }) =>
                     `group btn flex flex-col items-center justify-center w-1/3 p-0 m-0 bg-darkblue border-none hover:bg-transparent ${
-                      isActive ? "!text-redmagenta" : "text-white"
+                      isActive || (activePaths && activePaths.some(p => window.location.pathname.startsWith(p)))
+                        ? "!text-redmagenta"
+                        : "text-white"
                     }`
                   }
                 >
@@ -280,7 +270,7 @@ const TitleBar = () => {
                     <>
                       <Icon
                         className={`text-lg lg:text-xl ${
-                          isActive
+                          isActive || (activePaths && activePaths.some(p => window.location.pathname.startsWith(p)))
                             ? "text-redmagenta group-hover:opacity-80"
                             : "text-white group-hover:text-gray-300"
                         }`}
@@ -296,9 +286,6 @@ const TitleBar = () => {
               ))}
             </div>
           )}
-
-
-
         </div>
 
         <div className="drawer-side z-50">
@@ -330,29 +317,29 @@ const TitleBar = () => {
                     }}
                   >
                     <p className="font-[Lato-Bold] text-lg text-white">
-                      Balance: ${displayBalance} mUSDC 
+                      Balance: ${displayBalance} mUSDC
                     </p>
                   </li>
                 );
               }}
             </ConnectButton.Custom>
             <hr className="border-gray-700 my-2" />
-            {navItems.map(({ path, label }) => (
-                <li key={path}>
-                    <NavLink
-                      to={path}
-                      onClick={closeDrawer}
-                      className={({ isActive }) =>
-                        `font-[Lato-Bold] text-lg text-white mb-4 ${
-                          isActive
-                            ? "!text-redmagenta"
-                            : "text-white hover:text-gray-300"
-                        }`
-                      }
-                    >
-                      {label}
-                    </NavLink>
-                </li>
+            {navItems.map(({ path, label, activePaths }) => (
+              <li key={path}>
+                <NavLink
+                  to={path}
+                  onClick={closeDrawer}
+                  className={({ isActive }) =>
+                    `font-[Lato-Bold] text-lg text-white mb-4 ${
+                      isActive || (activePaths && activePaths.some(p => window.location.pathname.startsWith(p)))
+                        ? "!text-redmagenta"
+                        : "text-white hover:text-gray-300"
+                    }`
+                  }
+                >
+                  {label}
+                </NavLink>
+              </li>
             ))}
           </ul>
         </div>

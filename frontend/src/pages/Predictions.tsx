@@ -12,7 +12,8 @@ const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 
 interface UserPrediction {
   marketAddress: string;
-  matchId: number;
+  matchId?: number;
+  tournamentId?: number;
   timestamp?: number | null;
   outcome: number;
   netShares: number;
@@ -24,6 +25,11 @@ interface UserPrediction {
   homeTeamLogo?: string;
   awayTeamName?: string;
   awayTeamLogo?: string;
+  selectedTeamName?: string;
+  selectedTeamLogo?: string;
+  leagueId?: number;
+  leagueName?: string;
+  leagueLogo?: string;
 }
 
 const truncateText = (text: string | undefined, maxLength: number = 6) => {
@@ -104,7 +110,7 @@ const Predictions: React.FC = () => {
       const redeemedAmount = (prediction.netShares / 1e6).toFixed(2);
       setRedeemModalData({
         shares: redeemedAmount,
-        cost: prediction.netCost / 1e6, 
+        cost: prediction.netCost / 1e6,
       });
       setIsRedeemModalOpen(true);
     } catch (error) {
@@ -129,7 +135,7 @@ const Predictions: React.FC = () => {
       </div>
     );
   }
-  
+
   return (
     <>
       <div className="text-white px-4 pt-4 pb-20">
@@ -145,30 +151,51 @@ const Predictions: React.FC = () => {
               const finalButtonProps = isRedeeming
                 ? { label: "Redeeming", colorClasses: redeemProps.colorClasses, disabled: true }
                 : redeemProps;
+              const isTournament = !!p.tournamentId;
               return (
                 <div
                   key={`${p.marketAddress}-${p.outcome}`}
                   className="bg-greyblue p-4 rounded-xl shadow-md cursor-pointer hover:bg-hovergreyblue relative"
-                  onClick={() => navigate(`/dashboard/markets/${p.matchId}`)}
+                  onClick={() =>
+                    navigate(
+                      isTournament
+                        ? `/dashboard/tournaments/${p.tournamentId}`
+                        : `/dashboard/markets/${p.matchId}`
+                    )
+                  }
                 >
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      {p.outcome === 0 && p.homeTeamLogo && (
-                        <img
-                          src={p.homeTeamLogo}
-                          alt="Home"
-                          className="h-10 w-10 object-contain"
-                        />
-                      )}
-                      {p.outcome === 1 && (
-                        <TbCircleLetterDFilled className="text-gray-300 h-10 w-10" />
-                      )}
-                      {p.outcome === 2 && p.awayTeamLogo && (
-                        <img
-                          src={p.awayTeamLogo}
-                          alt="Away"
-                          className="h-10 w-10 object-contain"
-                        />
+                      {isTournament ? (
+                        p.selectedTeamLogo ? (
+                          <img
+                            src={p.selectedTeamLogo}
+                            alt="Selected Team"
+                            className="h-10 w-10 object-contain"
+                          />
+                        ) : (
+                          <TbCircleLetterDFilled className="text-gray-300 h-10 w-10" />
+                        )
+                      ) : (
+                        <>
+                          {p.outcome === 0 && p.homeTeamLogo && (
+                            <img
+                              src={p.homeTeamLogo}
+                              alt="Home"
+                              className="h-10 w-10 object-contain"
+                            />
+                          )}
+                          {p.outcome === 1 && (
+                            <TbCircleLetterDFilled className="text-gray-300 h-10 w-10" />
+                          )}
+                          {p.outcome === 2 && p.awayTeamLogo && (
+                            <img
+                              src={p.awayTeamLogo}
+                              alt="Away"
+                              className="h-10 w-10 object-contain"
+                            />
+                          )}
+                        </>
                       )}
                     </div>
                     <div className="ml-2 text-lg font-semibold text-gray-300">
@@ -178,28 +205,56 @@ const Predictions: React.FC = () => {
 
                   <div className="flex items-center justify-between mt-2">
                     <div className="ml-2 flex-1 overflow-hidden whitespace-nowrap overflow-ellipsis">
-                      {p.homeTeamLogo && (
-                        <img
-                          src={p.homeTeamLogo}
-                          alt="Home"
-                          className="h-7 w-auto object-contain inline-block"
-                        />
-                      )}
-                      <span className="text-sm text-gray-300 inline-block ml-1">
-                        <span className="block sm:hidden">{truncateText(p.homeTeamName)}</span>
-                        <span className="hidden sm:inline">{p.homeTeamName}</span>
-                      </span>
-                      <span className="text-sm text-gray-400 inline-block mx-1">vs</span>
-                      <span className="text-sm text-gray-300 inline-block">
-                        <span className="block sm:hidden">{truncateText(p.awayTeamName)}</span>
-                        <span className="hidden sm:inline">{p.awayTeamName}</span>
-                      </span>
-                      {p.awayTeamLogo && (
-                        <img
-                          src={p.awayTeamLogo}
-                          alt="Away"
-                          className="h-7 w-auto object-contain inline-block ml-1 mr-2"
-                        />
+                      {isTournament ? (
+                        <>
+                          {p.leagueLogo && (
+                            <img
+                              src={p.leagueLogo}
+                              alt="League"
+                              className="h-7 w-auto object-contain inline-block"
+                            />
+                          )}
+                          <span className="text-sm text-gray-300 inline-block ml-1">
+                            <span className="block sm:hidden">{truncateText(p.leagueName)}</span>
+                            <span className="hidden sm:inline">{p.leagueName}</span>
+                          </span>
+                          <span className="text-sm text-gray-300 inline-block ml-1">
+                            {p.selectedTeamName && (
+                              <>
+                                <span className="block sm:hidden">
+                                  {truncateText(p.selectedTeamName)}
+                                </span>
+                                <span className="hidden sm:inline">{p.selectedTeamName}</span>
+                              </>
+                            )}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          {p.homeTeamLogo && (
+                            <img
+                              src={p.homeTeamLogo}
+                              alt="Home"
+                              className="h-7 w-auto object-contain inline-block"
+                            />
+                          )}
+                          <span className="text-sm text-gray-300 inline-block ml-1">
+                            <span className="block sm:hidden">{truncateText(p.homeTeamName)}</span>
+                            <span className="hidden sm:inline">{p.homeTeamName}</span>
+                          </span>
+                          <span className="text-sm text-gray-400 inline-block mx-1">vs</span>
+                          <span className="text-sm text-gray-300 inline-block">
+                            <span className="block sm:hidden">{truncateText(p.awayTeamName)}</span>
+                            <span className="hidden sm:inline">{p.awayTeamName}</span>
+                          </span>
+                          {p.awayTeamLogo && (
+                            <img
+                              src={p.awayTeamLogo}
+                              alt="Away"
+                              className="h-7 w-auto object-contain inline-block ml-1 mr-2"
+                            />
+                          )}
+                        </>
                       )}
                     </div>
                     <div className="ml-2 flex-shrink-0">

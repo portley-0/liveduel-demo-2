@@ -241,7 +241,7 @@ const MatchList: React.FC = () => {
     return (
       <Link
         key={match.matchId}
-        to={`/dashboard/markets/${match.matchId}`}
+        to={`/dashboard/matches/${match.matchId}`}
         className="w-full h-auto aspect-[6/5] block"
       >
         <button

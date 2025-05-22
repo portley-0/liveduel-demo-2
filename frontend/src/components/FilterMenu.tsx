@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useFilter } from "@/context/FilterContext.tsx";
 import { LuCirclePlus, LuCircleCheck } from "react-icons/lu";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const LEAGUES = [
   { id: null, name: "All Leagues" },
@@ -41,9 +42,10 @@ const FilterMenu: React.FC = () => {
     setDeployedOnly,
     addDefaultSelection,
     defaultSelections,
-    viewMode,
-    setViewMode,
   } = useFilter();
+
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const categoryRef = useRef<HTMLSpanElement>(null);
   const sortRef = useRef<HTMLSpanElement>(null);
@@ -177,21 +179,21 @@ const FilterMenu: React.FC = () => {
         <div className="flex space-x-2 -mr-3">
         <button
             className={`btn btn-sm btn-ghost font-bold text-white ${
-              viewMode === "games"
+              location.pathname.includes("/matches")
                 ? "bg-blue-500 hover:bg-blue-600"
                 : "bg-greyblue hover:bg-hovergreyblue"
             } active:scale-95 `}
-            onClick={() => setViewMode("games")}
+            onClick={() => navigate("/dashboard/matches")}
           >
             Games
           </button>
           <button
             className={`btn btn-sm btn-ghost font-bold text-white ${
-              viewMode === "futures"
+              location.pathname.includes("/tournaments")
                 ? "bg-blue-500 hover:bg-blue-600"
                 : "bg-greyblue hover:bg-hovergreyblue"
             } active:scale-95 `}
-            onClick={() => setViewMode("futures")}
+            onClick={() => navigate("/dashboard/tournaments")}
           >
             Futures
           </button>

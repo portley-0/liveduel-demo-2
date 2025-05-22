@@ -3,8 +3,10 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import TitleBar from "@/components/TitleBar.tsx";
 import { lazy, Suspense } from "react";
 
-const Markets = lazy(() => import("@/pages/Markets.tsx"));
-const Market = lazy(() => import("@/pages/Match.tsx"));
+const Matches = lazy(() => import("@/pages/Matches.tsx"));
+const Tournaments = lazy(() => import("@/pages/Tournaments.tsx"));
+const Match = lazy(() => import("@/pages/Match.tsx"));
+const Tournament = lazy(() => import("@/pages/Tournament.tsx"));
 const Predictions = lazy(() => import("@/pages/Predictions.tsx"));
 const GetFunds = lazy(() => import("@/pages/GetFunds.tsx"));
 const BuyDuel = lazy(() => import("@/pages/BuyDuel.tsx"));
@@ -13,8 +15,10 @@ const Staking = lazy(() => import("@/pages/Staking.tsx"));
 const App: React.FC = () => {
   useEffect(() => {
     const routesToPrefetch = [
-      () => import("@/pages/Markets.tsx"),
+      () => import("@/pages/Matches.tsx"),
+      () => import("@/pages/Tournaments.tsx"),
       () => import("@/pages/Match.tsx"), 
+      () => import("@/pages/Tournament.tsx"),
       () => import("@/pages/Predictions.tsx"),
       () => import("@/pages/GetFunds.tsx"),
       () => import("@/pages/BuyDuel.tsx"),
@@ -39,14 +43,16 @@ const App: React.FC = () => {
             <span className="loading loading-spinner text-blue-700 h-10 w-10"></span>
           </div>}>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard/markets" />} />
-            <Route path="/dashboard/markets" element={<Markets />} />
-            <Route path="/dashboard/markets/:matchId" element={<Market />} /> 
+            <Route path="/" element={<Navigate to="/dashboard/matches" />} />
+            <Route path="/dashboard/matches" element={<Matches />} />
+            <Route path="/dashboard/tournaments" element={<Tournaments />} />
+            <Route path="/dashboard/matches/:matchId" element={<Match />} /> 
+            <Route path="/dashboard/tournaments/:tournamentId" element={<Tournament />} />
             <Route path="/dashboard/predictions" element={<Predictions />} />
             <Route path="/dashboard/get-funds" element={<GetFunds />} />
             <Route path="/dashboard/buy" element={<BuyDuel />} />
             <Route path="/dashboard/stake" element={<Staking />} />
-            <Route path="*" element={<Navigate to="/dashboard/markets" />} />
+            <Route path="*" element={<Navigate to="/dashboard/matches" />} />
           </Routes>
         </Suspense>
       </div>

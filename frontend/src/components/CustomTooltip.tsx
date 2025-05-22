@@ -1,18 +1,26 @@
 import React from "react";
 import { TbCircleLetterDFilled } from "react-icons/tb";
 import { MatchData } from "@/types/MatchData.ts";
+import { TournamentData, TeamStanding } from "@/types/TournamentData.ts";
 
 type Format = "decimal" | "percent" | "fraction";
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: { dataKey: string; value?: number }[];
+  label?: number;
+  matchData?: MatchData;
+  tournament?: TournamentData;
+  format: Format;
+}
 
 const decimalToFraction = (decimal: number): string => {
   const frac = decimal - 1;
   if (frac <= 0) return "0/1";
-
   const maxDenominator = 20;
   let bestNumer = 1;
   let bestDenom = 1;
   let minError = Math.abs(frac - bestNumer / bestDenom);
-
   for (let denom = 1; denom <= maxDenominator; denom++) {
     const numer = Math.round(frac * denom);
     const approx = numer / denom;
@@ -23,34 +31,20 @@ const decimalToFraction = (decimal: number): string => {
       bestDenom = denom;
     }
   }
-
   return `${bestNumer}/${bestDenom}`;
 };
-
-
-interface CustomTooltipProps {
-  active?: boolean;
-  // now allow undefined values
-  payload?: { dataKey: string; value?: number }[];
-  label?: number;
-  matchData: MatchData;
-  format: Format;
-}
 
 const CustomTooltip: React.FC<CustomTooltipProps> = ({
   active,
   payload = [],
   label,
   matchData,
+  tournament,
   format,
 }) => {
   if (!active || !label || payload.length === 0) {
     return null;
   }
-
-  const homeVal = payload.find((p) => p.dataKey === "home")?.value;
-  const drawVal = payload.find((p) => p.dataKey === "draw")?.value;
-  const awayVal = payload.find((p) => p.dataKey === "away")?.value;
 
   const formatValue = (v?: number): string => {
     if (v == null) return "N/A";
@@ -68,40 +62,89 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
 
   const formattedLabel = new Date(label).toLocaleString();
 
+  // Determine if we're in match or tournament mode
+  const isMatchMode = !!matchData;
+
+  // For tournament mode, extract team data from standings
+  const getTeamData = (teamId: string) => {
+    if (!tournament?.standings?.league.standings) {
+      return { name: `Team ${teamId}`, logo: "/default-team-logo.png" };
+    }
+    const standings = tournament.standings.league.standings;
+    const flatStandings = Array.isArray(standings[0])
+      ? (standings as TeamStanding[][]).flat()
+      : (standings as TeamStanding[]);
+    const team = flatStandings.find((t) => t.team.id.toString() === teamId);
+    return team
+      ? { name: team.team.name, logo: team.team.logo }
+      : { name: `Team ${teamId}`, logo: "/default-team-logo.png" };
+  };
+
   return (
     <div className="bg-gray-900 p-2.5 border border-gray-300 rounded whitespace-nowrap">
-      <div className="text-xs font-semibold text-white mb-1">
-        {formattedLabel}
-      </div>
+      <div className="text-xs font-semibold text-white mb-1">{formattedLabel}</div>
 
-      <div className="flex items-center mb-1">
-        <img
-          src={matchData.homeTeamLogo}
-          alt={matchData.homeTeamName}
-          className="w-5 h-5 mr-1.5"
-        />
-        <span className="text-xs font-semibold text-blue-500 whitespace-nowrap">
-          HOME: {formatValue(homeVal)}
-        </span>
-      </div>
+      {payload.map((item, index) => {
+        const { dataKey, value } = item;
 
-      <div className="flex items-center mb-1">
-        <TbCircleLetterDFilled className="text-xl text-gray-500 mr-1.5" />
-        <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">
-          DRAW: {formatValue(drawVal)}
-        </span>
-      </div>
+        // Match mode: Handle home, draw, away specifically
+        if (isMatchMode) {
+          if (dataKey === "home") {
+            return (
+              <div key={dataKey} className="flex items-center mb-1">
+                <img
+                  src={matchData!.homeTeamLogo}
+                  alt={matchData!.homeTeamName}
+                  className="w-5 h-5 mr-1.5"
+                />
+                <span className="text-xs font-semibold text-blue-500 whitespace-nowrap">
+                  HOME: {formatValue(value)}
+                </span>
+              </div>
+            );
+          }
+          if (dataKey === "draw") {
+            return (
+              <div key={dataKey} className="flex items-center mb-1">
+                <TbCircleLetterDFilled className="text-xl text-gray-500 mr-1.5" />
+                <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">
+                  DRAW: {formatValue(value)}
+                </span>
+              </div>
+            );
+          }
+          if (dataKey === "away") {
+            return (
+              <div key={dataKey} className="flex items-center">
+                <img
+                  src={matchData!.awayTeamLogo}
+                  alt={matchData!.awayTeamName}
+                  className="w-5 h-5 mr-1.5"
+                />
+                <span className="text-xs font-semibold text-red-500 whitespace-nowrap">
+                  AWAY: {formatValue(value)}
+                </span>
+              </div>
+            );
+          }
+          return null;
+        }
 
-      <div className="flex items-center">
-        <img
-          src={matchData.awayTeamLogo}
-          alt={matchData.awayTeamName}
-          className="w-5 h-5 mr-1.5"
-        />
-        <span className="text-xs font-semibold text-red-500 whitespace-nowrap">
-          AWAY: {formatValue(awayVal)}
-        </span>
-      </div>
+        // Tournament mode: Use team data from standings
+        const team = getTeamData(dataKey);
+        return (
+          <div key={dataKey} className="flex items-center mb-1">
+            <img src={team.logo} alt={team.name} className="w-5 h-5 mr-1.5" />
+            <span
+              className={`text-xs font-semibold whitespace-nowrap ${
+                index % 3 === 0 ? "text-blue-500" : index % 3 === 1 ? "text-red-500" : "text-gray-500"
+              }`}
+            >
+              {team.name}: {formatValue(value)}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 };

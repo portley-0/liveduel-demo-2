@@ -196,7 +196,7 @@ const TournamentList: React.FC = () => {
     return (
       <Link
         key={tournament.tournamentId}
-        to={`/dashboard/markets/Tournament/${tournament.tournamentId}`}
+        to={`/dashboard/tournaments/${tournament.tournamentId}`}
         className="w-full h-auto aspect-[6/5] block"
       >
         <button

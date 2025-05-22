@@ -273,7 +273,7 @@ async function addUpcomingTournamentsToCache() {
 
       updateTournamentData(tournamentId, {
         tournamentId,
-        season: tournamentDetails.season || SEASONS[0],
+        season: SEASONS[0],
         name: tournamentDetails.name,
         logo: tournamentDetails.logo
       });
