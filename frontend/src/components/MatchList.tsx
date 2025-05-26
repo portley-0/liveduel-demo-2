@@ -115,6 +115,7 @@ const MatchChart: React.FC<{ oddsHistory: OddsHistory }> = React.memo(
   }
 );
 
+console.log(window.innerWidth);
 
 
 const MatchList: React.FC = () => {
