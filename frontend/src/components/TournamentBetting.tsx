@@ -484,7 +484,7 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1 mb-1">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-1 mb-1">
         {sortedTeams.map((team) => {
           const price = teamPrices[team.team.id] ?? DEFAULT_PROB;
           const isSelected = selectedBet === team.team.id;
