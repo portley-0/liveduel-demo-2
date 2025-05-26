@@ -197,7 +197,7 @@ const TournamentList: React.FC = () => {
           className="relative group bg-greyblue text-white rounded-xl shadow-md w-full h-full flex flex-col focus:outline-none focus:ring-2 focus:ring-blue-500 active:scale-95 hover:bg-hovergreyblue"
         >
           <div className="p-5 xs:p-6 flex flex-col h-full w-full">
-            <div className="relative w-full flex items-center mb-5 lg:mb-4 sm:mb-7 ">
+            <div className="relative w-full flex items-center mb-7 lg:mb-4 sm:mb-7 ">
               <div className="bg-white flex items-center justify-center w-[90px] h-[90px] sm:w-[90px] sm:h-[90px] lg:w-[70px] lg:h-[70px] 2xl:w-[70px] 2xl:h-[70px] aspect-square shrink-0 ">
                 <img
                   src={tournament.standings?.league.logo || "/placeholder-logo.png"}
