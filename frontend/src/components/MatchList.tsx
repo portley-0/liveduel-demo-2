@@ -343,7 +343,7 @@ const MatchList: React.FC = () => {
                 </span>
               </div>
             </div>
-            <div className="bg-lightgreyblue flex-1 min-h-0">
+            <div className="bg-lightgreyblue flex-1 min-h-0 max-h-[7.5rem]">
               <MatchChart
               oddsHistory={match.oddsHistory || { timestamps: [], homeOdds: [], drawOdds: [], awayOdds: [] }} />
             </div>
