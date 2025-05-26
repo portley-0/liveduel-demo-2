@@ -19,7 +19,11 @@ export function useTournamentNetCost(
     },
   });
 
-  const netCost = result.data ? BigInt(result.data.toString()) : null;
+  const netCost = result.data
+    ? tradeType === "sell"
+      ? BigInt(result.data.toString()) * -1n 
+      : BigInt(result.data.toString())
+    : null;
 
   return {
     data: netCost,

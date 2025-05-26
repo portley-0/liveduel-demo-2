@@ -37,6 +37,13 @@ const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 const AVALANCHE_FUJI_RPC = 'https://api.avax-test.network/ext/bc/C/rpc';
 const SHARE_SCALE = 1000000n;
 
+const TEAM_COLORS = [
+  "rgba(0, 123, 255, 1)", // Blue
+  "rgba(255, 193, 7, 1)", // Yellow
+  "rgb(169, 169, 169)", // Gray
+  "rgb(225, 29, 72)", // Red
+];
+
 const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournament }) => {
   const [selectedBet, setSelectedBet] = useState<number | null>(null);
   const [betAmount, setBetAmount] = useState<string>("");
@@ -551,8 +558,19 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
                     ) : outcomeBalance !== null ? (
                       <>
                         <span className="font-semibold">{outcomeBalance}</span>{" "}
-                        <span className="text-blue-500 font-semibold">
-                          ${sortedTeams.find((t) => t.team.id === selectedBet)?.team.name.toUpperCase() || "TEAM"}
+                        <span
+                          style={{
+                            color:
+                              selectedBet !== null
+                                ? TEAM_COLORS[teamIndexMap[selectedBet] % TEAM_COLORS.length]
+                                : "text-gray-500",
+                            fontWeight: "600",
+                          }}
+                        >
+                          ${sortedTeams
+                            .find((t) => t.team.id === selectedBet)
+                            ?.team.name.split(" ")[0]
+                            .toUpperCase() || "TEAM"}
                         </span>
                       </>
                     ) : (
@@ -654,7 +672,7 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
       )}
       <Dialog open={isModalOpen} onClose={closeModal} className="fixed inset-0 flex items-center justify-center z-50">
         <div className="fixed inset-0 bg-black opacity-50"></div>
-        <div className="bg-greyblue p-6 rounded-lg shadow-lg w-auto max-w-md sm:max-w-xs mx-auto text-center relative z-50">
+        <div className="bg-greyblue p-6 rounded-lg shadow-lg w-80 max-w-md sm:max-w-xs mx-auto text-center relative z-50">
           <h2 className="text-white text-2xl sm:text-xl font-semibold mb-3">Success</h2>
           <p className="text-gray-300 text-lg sm:text-base">
             {tradeType === "buy" ? "You purchased" : "You sold"}{" "}

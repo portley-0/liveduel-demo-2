@@ -37,7 +37,7 @@ interface TooltipState {
 const TEAM_COLORS = [
   "rgba(0, 123, 255, 1)", // Blue
   "rgba(255, 193, 7, 1)", // Yellow
-  "rgb(169, 169, 169)", // Gray 
+  "rgb(169, 169, 169)", // Gray
   "rgb(225, 29, 72)", // Red
 ];
 
@@ -83,20 +83,8 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
     position: { left: 0, top: 0 },
   });
 
-  // Use teamIds from contract, fallback to oddsHistory.teamOdds
-  const teamIds = tournament.teamIds?.length
-    ? tournament.teamIds.map(String)
-    : Object.keys(oddsHistory.teamOdds || {}).map(String);
-  const teamCount = teamIds.length || 4;
+  const teamCount = tournament.teamIds?.length || Object.keys(oddsHistory.teamOdds || {}).length || 4;
   const DEFAULT_ODD = getDefaultOdd(teamCount);
-
-  useEffect(() => {
-    console.log("Chart Team Order:", {
-      teamIds,
-      contractTeamIds: tournament.teamIds,
-      oddsHistoryTeams: Object.keys(oddsHistory.teamOdds || {}),
-    });
-  }, [teamIds, tournament.teamIds]);
 
   const getTimeRangeStart = (): number => {
     const now = Date.now();
@@ -104,7 +92,7 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
       "1h": now - 60 * 60 * 1000,
       "2h": now - 2 * 60 * 60 * 1000,
       "1d": now - 24 * 60 * 60 * 1000,
-      "1w": now - 7 * 24 * 60 * 1000,
+      "1w": now - 7 * 24 * 60 * 60 * 1000,
     };
     return timeRange === "default" ? now - 60 * 60 * 1000 : ranges[timeRange];
   };
@@ -144,7 +132,7 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
     const realData = ts
       .reduce<{ t: number; odds: Record<number, number | undefined> }[]>((acc, t, i) => {
         const entry: { t: number; odds: Record<number, number | undefined> } = { t, odds: {} };
-        teamIds.forEach((teamId) => {
+        (tournament.teamIds || Object.keys(teamOdds)).forEach((teamId) => {
           entry.odds[Number(teamId)] = teamOdds[Number(teamId)]?.[i + startIndex];
         });
         acc.push(entry);
@@ -174,11 +162,11 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
 
     if (realData.length > 0) {
       const priorPoint = realData.filter((p) => p.t < rangeStart).slice(-1)[0];
-      teamIds.forEach((teamId) => {
+      (tournament.teamIds || Object.keys(teamOdds)).forEach((teamId) => {
         flatlineOdds[Number(teamId)] = priorPoint?.odds[Number(teamId)] ?? DEFAULT_ODD;
       });
     } else {
-      teamIds.forEach((teamId) => {
+      (tournament.teamIds || Object.keys(teamOdds)).forEach((teamId) => {
         flatlineOdds[Number(teamId)] = DEFAULT_ODD;
       });
     }
@@ -199,7 +187,8 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
       .sort((a, b) => a.t - b.t)
       .filter((item, index, arr) => index === 0 || item.t > arr[index - 1].t);
 
-    teamIds.forEach((teamId, index) => {
+    // Update or create series for each team in teamIds order
+    (tournament.teamIds || Object.keys(teamOdds)).forEach((teamId, index) => {
       const tid = Number(teamId);
       if (!seriesRefs.current[tid]) {
         seriesRefs.current[tid] = chartRef.current!.addSeries(LineSeries, {
@@ -217,6 +206,7 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
       seriesRefs.current[tid].applyOptions({ priceFormat: getPriceFormat(), pointMarkersVisible: false });
     });
 
+    // Set visible range
     if (timeRange === "default" && displayData.length > 0) {
       const firstTime = displayData[0].t / 1000;
       const lastTime = displayData[displayData.length - 1].t / 1000;
@@ -320,9 +310,9 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
         return;
       }
 
-      const payload = teamIds.map((teamId) => {
+      const payload = (tournament.teamIds || Object.keys(oddsHistory.teamOdds || {})).map((teamId) => {
         const data = param.seriesData.get(seriesRefs.current[Number(teamId)]!) as SingleValueData;
-        return { dataKey: teamId, value: data?.value };
+        return { dataKey: teamId.toString(), value: data?.value };
       });
 
       const OFFSET = 15;
@@ -344,13 +334,14 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
     }, 0);
 
     return () => chartRef.current?.remove();
-  }, [timeRange, teamIds]);
+  }, [timeRange]);
 
   useEffect(() => {
     updateSeriesAndFormat();
-  }, [oddsHistory, format, timeRange, teamIds]);
+  }, [oddsHistory, format, timeRange, tournament.teamIds]);
 
   const isMobile = typeof window !== "undefined" && window.innerWidth < 500;
+  const teamIds = (tournament.teamIds || Object.keys(oddsHistory.teamOdds || {})).map(String);
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
@@ -447,20 +438,30 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
 };
 
 export default React.memo(TournamentTradingViewChart, (prevProps, nextProps) => {
-  const eq = (a?: number[], b?: number[]) => {
+  const eq = (a?: number[], b?: number[]): boolean => {
     if (a === b) return true;
     if (!a || !b || a.length !== b.length) return false;
     return a.every((v, i) => v === b[i]);
   };
-  return (
-    prevProps.format === nextProps.format &&
-    eq(prevProps.oddsHistory.timestamps, nextProps.oddsHistory.timestamps) &&
-    Object.keys(prevProps.oddsHistory.teamOdds).every((teamId) =>
-      eq(
-        prevProps.oddsHistory.teamOdds[Number(teamId)],
-        nextProps.oddsHistory.teamOdds[Number(teamId)]
-      )
-    ) &&
-    JSON.stringify(prevProps.tournament) === JSON.stringify(nextProps.tournament)
+
+  // Compare format
+  if (prevProps.format !== nextProps.format) return false;
+
+  // Compare oddsHistory.timestamps
+  if (!eq(prevProps.oddsHistory.timestamps, nextProps.oddsHistory.timestamps)) return false;
+
+  // Determine teamIds to compare (use tournament.teamIds or fallback to oddsHistory.teamOdds keys)
+  const prevTeamIds = prevProps.tournament.teamIds || Object.keys(prevProps.oddsHistory.teamOdds).map(Number);
+  const nextTeamIds = nextProps.tournament.teamIds || Object.keys(nextProps.oddsHistory.teamOdds).map(Number);
+
+  // Compare teamIds
+  if (!eq(prevTeamIds, nextTeamIds)) return false;
+
+  // Compare teamOdds for each teamId
+  return prevTeamIds.every((teamId) =>
+    eq(
+      prevProps.oddsHistory.teamOdds[teamId],
+      nextProps.oddsHistory.teamOdds[teamId]
+    )
   );
 });

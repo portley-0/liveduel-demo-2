@@ -38,14 +38,8 @@ const TEAM_COLORS = [
   "rgb(225, 29, 72)", // Red
 ];
 
-const TournamentChart: React.FC<{ oddsHistory: OddsHistory }> = React.memo(
-  ({ oddsHistory }) => {
-    // Get all team IDs
-    const teamIds = React.useMemo(() => {
-      if (!oddsHistory?.teamOdds || !oddsHistory.timestamps?.length) return [];
-      return Object.keys(oddsHistory.teamOdds).map(Number);
-    }, [oddsHistory]);
-
+const TournamentChart: React.FC<{ oddsHistory: OddsHistory; teamIds: number[] }> = React.memo(
+  ({ oddsHistory, teamIds }) => {
     const data = React.useMemo(() => {
       return (oddsHistory?.timestamps || []).map((timestamp, idx) => {
         const result: { timestamp: number; [key: string]: number | undefined } = { timestamp };
@@ -111,7 +105,11 @@ const TournamentChart: React.FC<{ oddsHistory: OddsHistory }> = React.memo(
   (prevProps, nextProps) => {
     const p = prevProps.oddsHistory,
       n = nextProps.oddsHistory;
-    return areArraysEqual(p.timestamps, n.timestamps) && areOddsRecordsEqual(p.teamOdds, n.teamOdds);
+    return (
+      areArraysEqual(p.timestamps, n.timestamps) &&
+      areOddsRecordsEqual(p.teamOdds, n.teamOdds) &&
+      areArraysEqual(prevProps.teamIds, nextProps.teamIds)
+    );
   }
 );
 
@@ -165,18 +163,17 @@ const TournamentList: React.FC = () => {
   }
 
   const TournamentItem: React.FC<{ tournament: TournamentData }> = ({ tournament }) => {
-    // Get all team IDs from oddsHistory to match chart order
+    // Use tournament.teamIds or fallback to oddsHistory.teamOdds keys
     const teamIds = React.useMemo(() => {
-      if (!tournament.oddsHistory?.teamOdds) return [];
-      return Object.keys(tournament.oddsHistory.teamOdds).map(Number);
-    }, [tournament.oddsHistory]);
+      return tournament.teamIds || (tournament.oddsHistory?.teamOdds ? Object.keys(tournament.oddsHistory.teamOdds).map(Number) : []);
+    }, [tournament.teamIds, tournament.oddsHistory]);
 
-    // Get top 8 teams by latest odds, maintaining teamIds order
+    // Get top 8 teams by latest odds, ordered by teamIds
     const topTeams = React.useMemo(() => {
       if (!tournament.latestOdds || !teamIds.length) return [];
       return teamIds
         .map((teamId, index) => {
-          const odds = (tournament.latestOdds?.[teamId] ?? 0);
+          const odds = tournament.latestOdds?.[teamId] ?? 0;
           return {
             teamId,
             odds,
@@ -187,7 +184,6 @@ const TournamentList: React.FC = () => {
           };
         })
         .filter((team) => team.odds > 0) // Only include teams with valid odds
-        .sort((a, b) => b.odds - a.odds) // Sort by descending probability
         .slice(0, Math.min(8, teamIds.length));
     }, [tournament.latestOdds, tournament.standings, teamIds]);
 
@@ -218,6 +214,7 @@ const TournamentList: React.FC = () => {
                 oddsHistory={
                   tournament.oddsHistory || { timestamps: [], teamOdds: {} }
                 }
+                teamIds={teamIds}
               />
             </div>
             <div className="flex justify-between items-end mt-2">

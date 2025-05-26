@@ -19,7 +19,7 @@ const TEAM_COLORS = [
   "rgba(0, 123, 255, 1)", // Blue
   "rgba(255, 193, 7, 1)", // Yellow
   "rgb(169, 169, 169)", // Gray
-  "rgb(225, 29, 72)", // Red
+  "rgb(225,29,72)", // Red
 ];
 
 const decimalToFraction = (decimal: number): string => {
@@ -134,26 +134,23 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
             }
             return null;
           })
-        : teamIds
-            .map((teamId) => payload.find((item) => item.dataKey === teamId))
-            .filter((item): item is NonNullable<typeof item> => !!item)
-            .map((item, index) => {
-              const { dataKey, value } = item;
-              const team = getTeamData(dataKey);
-              const color = TEAM_COLORS[index % TEAM_COLORS.length];
+        : teamIds.map((teamId, index) => {
+            const item = payload.find((p) => p.dataKey === teamId);
+            const team = getTeamData(teamId);
+            const color = TEAM_COLORS[index % TEAM_COLORS.length];
 
-              return (
-                <div key={dataKey} className="flex items-center mb-1">
-                  <img src={team.logo} alt={team.name} className="w-5 h-5 mr-1.5" />
-                  <span
-                    className="text-xs font-semibold whitespace-nowrap"
-                    style={{ color }}
-                  >
-                    {team.name}: {formatValue(value)}
-                  </span>
-                </div>
-              );
-            })}
+            return (
+              <div key={teamId} className="flex items-center mb-1">
+                <img src={team.logo} alt={team.name} className="w-5 h-5 mr-1.5" />
+                <span
+                  className="text-xs font-semibold whitespace-nowrap"
+                  style={{ color }}
+                >
+                  {team.name}: {formatValue(item?.value)}
+                </span>
+              </div>
+            );
+          })}
     </div>
   );
 };

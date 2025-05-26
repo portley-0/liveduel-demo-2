@@ -763,10 +763,11 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
       <Dialog open={isModalOpen} onClose={closeModal} className="fixed inset-0 flex items-center justify-center z-50">
         <div className="fixed inset-0 bg-black opacity-50"></div>
-        <div className="bg-greyblue p-6 rounded-lg shadow-lg w-auto max-w-md sm:max-w-xs mx-auto text-center relative z-50">
+        <div className="bg-greyblue p-6 rounded-lg shadow-lg w-80 max-w-md sm:max-w-xs mx-auto text-center relative z-50">
           <h2 className="text-white text-2xl sm:text-xl font-semibold mb-3">Success</h2>
           <p className="text-gray-300 text-lg sm:text-base">
-            {tradeType === "buy" ? "You purchased" : "You sold"} <span className="text-white font-bold">{modalData.shares}</span> Tokens
+            {tradeType === "buy" ? "You purchased" : "You sold"}{" "}
+            <span className="text-white font-bold">{modalData.shares}</span> Tokens
           </p>
           <p className="text-gray-300 text-lg sm:text-base">
             for <span className="text-white font-bold">${modalData.cost.toFixed(2)}</span> USDC

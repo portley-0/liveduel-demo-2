@@ -32,7 +32,6 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
   };
 
   const formatOdds = (probability: number): string => {
-    // Convert probability to decimal odds (e.g., 0.2316 -> 1 / 0.2316 ≈ 4.32)
     const decimalOdds = probability > 0 ? 1 / probability : 1.0; // Fallback to 1.0 if invalid
     if (format === "percent") return `${(100 / decimalOdds).toFixed(2)}%`;
     if (format === "fraction") return decimalToFraction(decimalOdds);
@@ -57,20 +56,28 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
   // Get teams with odds for display
   const teamsWithOdds = React.useMemo(() => {
     if (!tournament.latestOdds) return [];
-    return Object.entries(tournament.latestOdds)
-      .map(([teamId, odds]) => {
-        const id = Number(teamId);
-        const team = getTeamData(id);
+    const teamIds = tournament.teamIds || Object.keys(tournament.latestOdds).map(Number);
+    return teamIds
+      .map((teamId) => {
+        const odds = tournament.latestOdds![teamId];
+        const team = getTeamData(teamId);
         return {
-          teamId: id,
+          teamId,
           odds,
           name: team.name,
           logo: team.logo,
         };
       })
       .filter((team) => team.logo && team.name !== `Team ${team.teamId}`)
-      .sort((a, b) => a.odds - b.odds); // Sort by odds (ascending)
-  }, [tournament.latestOdds, tournament.standings]);
+      .sort((a, b) => {
+        if (tournament.teamIds) {
+          const indexA = tournament.teamIds.indexOf(a.teamId);
+          const indexB = tournament.teamIds.indexOf(b.teamId);
+          return indexA - indexB;
+        }
+        return a.odds - b.odds; // Fallback to sorting by odds if teamIds is not provided
+      });
+  }, [tournament.latestOdds, tournament.standings, tournament.teamIds]);
 
   return (
     <div className="relative p-10 sm:px-7 xs:px-7 xxs:px-5 sm:pb-5 xs:pb-5 xxs:pb-5 lg:pr-4 flex flex-col w-full">
