@@ -10,7 +10,8 @@ import {
   LeagueStanding,
   FixtureLineups,
   FixtureEvent,
-  FixtureStatistics
+  FixtureStatistics,
+  TournamentData
 } from '../cache';
 
 import {
@@ -396,20 +397,28 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
 
     const tournamentMarket = await getTournamentMarketByTournamentId(tournamentId);
     if (!tournamentMarket || !tournamentMarket.teamIds) {
-      console.warn(`[refreshTournamentSubgraphData] No tournament market or teamIds for tournamentId=${tournamentId}`);
+      console.warn(`[refreshTournamentSubgraphData] No tournament market or teamIds for tournamentId=${tournamentId}`, {
+        tournamentMarket,
+        teamIds: tournamentMarket?.teamIds,
+      });
       return;
     }
 
-    // Update contract early
+    const teamIds = tournamentMarket.teamIds.map(id => Number(id));
+    console.log(`[refreshTournamentSubgraphData] Fetched teamIds for tournamentId=${tournamentId}:`, teamIds);
+
+    // Prepare update object
+    const updates: Partial<TournamentData> = {};
+
+    // Update contract
     if (!currentTournament.contract || currentTournament.contract !== tournamentMarket.id) {
       console.log(`[refreshTournamentSubgraphData] Updating contract for tournament ${tournamentId} to ${tournamentMarket.id}`);
-      updateTournamentData(tournamentId, { contract: tournamentMarket.id });
+      updates.contract = tournamentMarket.id;
     } else {
       console.log(`[refreshTournamentSubgraphData] Contract for tournament ${tournamentId} already set to ${currentTournament.contract}`);
     }
 
-    const teamIds = tournamentMarket.teamIds.map(id => Number(id));
-
+    // Initialize odds history
     let updatedOddsHistory = currentTournament.oddsHistory || {
       timestamps: [],
       teamOdds: {},
@@ -421,7 +430,7 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
       }
     });
 
-    const DEFAULT_PROB = teamIds.length > 0 ? 1 / teamIds.length : 0.25; // Avoid division-by-zero
+    const DEFAULT_PROB = teamIds.length > 0 ? 1 / teamIds.length : 0.25;
     const FLATLINE_ODDS = decimalProbabilityToOdds(DEFAULT_PROB);
     const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -439,11 +448,9 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
         teamIds.forEach(teamId => {
           flatLatestOdds[teamId] = DEFAULT_PROB;
         });
-        updateTournamentData(tournamentId, {
-          teamIds,
-          oddsHistory: updatedOddsHistory,
-          latestOdds: flatLatestOdds,
-        });
+        updates.teamIds = teamIds;
+        updates.oddsHistory = updatedOddsHistory;
+        updates.latestOdds = flatLatestOdds;
       }
     } else {
       if (updatedOddsHistory.timestamps.length === 0) {
@@ -545,47 +552,30 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
           });
         }
       }
-    }
 
-    if (updatedOddsHistory.timestamps.length > 1) {
-      const sortedIndices = updatedOddsHistory.timestamps
-        .map((ts, index) => ({ ts, index }))
-        .sort((a, b) => a.ts - b.ts)
-        .map(item => item.index);
-      const sortedTimestamps = sortedIndices.map(i => updatedOddsHistory.timestamps[i]);
-      const sortedTeamOdds: Record<number, number[]> = {};
-      teamIds.forEach(teamId => {
-        sortedTeamOdds[teamId] = sortedIndices.map(i => updatedOddsHistory.teamOdds[teamId][i]);
+      updates.teamIds = teamIds;
+      updates.oddsHistory = updatedOddsHistory;
+
+      const lastOddsItem = oddsData[oddsData.length - 1] || {};
+      const latestOdds: Record<number, number> = {};
+      teamIds.forEach((teamId, index) => {
+        const price = lastOddsItem.prices ? lastOddsItem.prices[index] : null;
+        latestOdds[teamId] = price ? convert192x64ToDecimal(Number(price)) : DEFAULT_PROB;
       });
-      updatedOddsHistory.timestamps = sortedTimestamps;
-      updatedOddsHistory.teamOdds = sortedTeamOdds;
+      updates.latestOdds = latestOdds;
     }
-
-    const lastOddsItem = oddsData[oddsData.length - 1] || {};
-    const latestOdds: Record<number, number> = {};
-    teamIds.forEach((teamId, index) => {
-      const price = lastOddsItem.prices ? lastOddsItem.prices[index] : null;
-      latestOdds[teamId] = price ? convert192x64ToDecimal(Number(price)) : DEFAULT_PROB;
-    });
-
-    updateTournamentData(tournamentId, {
-      oddsHistory: updatedOddsHistory,
-      latestOdds,
-    });
 
     if (tournamentMarket) {
       if (tournamentMarket.isResolved) {
-        updateTournamentData(tournamentId, {
-          resolvedAt: Date.now(),
-          outcome: tournamentMarket.resolvedOutcome ?? undefined,
-        });
+        updates.resolvedAt = Date.now();
+        updates.outcome = tournamentMarket.resolvedOutcome ?? undefined;
       }
 
       const fixtures = await getTournamentFixtures(tournamentId);
       const nextRoundFixtures = fixtures
         .filter((fixture) => !fixture.resolved)
         .map((fixture) => Number(fixture.matchId));
-      updateTournamentData(tournamentId, { nextRoundFixtures });
+      updates.nextRoundFixtures = nextRoundFixtures;
 
       const purchasedData = await getTournamentSharesPurchasedByMarket(tournamentMarket.id);
       const soldData = await getTournamentSharesSoldByMarket(tournamentMarket.id);
@@ -597,11 +587,16 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
       for (const saleItem of soldData) {
         totalVolume += Number(saleItem.actualGain);
       }
-
-      updateTournamentData(tournamentId, { bettingVolume: totalVolume });
+      updates.bettingVolume = totalVolume;
     }
 
-    console.log(`[refreshTournamentSubgraphData] Tournament ${tournamentId}`);
+    // Single update to avoid partial overwrites
+    if (Object.keys(updates).length > 0) {
+      updateTournamentData(tournamentId, updates);
+      console.log(`[refreshTournamentSubgraphData] Updated tournament ${tournamentId} with:`, updates);
+    } else {
+      console.log(`[refreshTournamentSubgraphData] No updates needed for tournament ${tournamentId}`);
+    }
   } catch (error) {
     console.error(`[refreshTournamentSubgraphData] Error for tournamentId=${tournamentId}:`, error);
   }
