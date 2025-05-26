@@ -243,7 +243,7 @@ const MatchList: React.FC = () => {
       <Link
         key={match.matchId}
         to={`/dashboard/matches/${match.matchId}`}
-        className="min-w-full aspect-[6/5]"
+        className="w-full h-auto aspect-[6/5] block"
       >
         <button
           className={`relative group bg-greyblue text-white rounded-xl shadow-md w-full h-full flex flex-col focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -386,7 +386,7 @@ const MatchList: React.FC = () => {
   };
 
   return (
-    <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-6 3xl:grid-cols-7 gap-4 p-4 pb-[80px]">
+    <div className="w-full grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-6 3xl:grid-cols-7 gap-4 p-4 pb-[80px]">
       {filteredMatches.map((match) => (
         <MatchItem key={match.matchId} match={match} />
       ))}
