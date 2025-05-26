@@ -51,7 +51,7 @@ const FilterMenu: React.FC = () => {
   const sortRef = useRef<HTMLSpanElement>(null);
 
   const [initialCategoryWidth, setInitialCategoryWidth] = useState<number | null>(null);
-  const [categoryWidth, setCategoryWidth] = useState(190);
+  const [categoryWidth, setCategoryWidth] = useState(100);
   const [sortWidth, setSortWidth] = useState(140);
 
   const smallLeagues = [61, 140, 135];
@@ -89,7 +89,7 @@ const FilterMenu: React.FC = () => {
       setCategoryWidth(initialCategoryWidth);
     } else {
       const raw = textW + padding + ARROW_WIDTH;
-      setCategoryWidth(Math.max(100, raw));
+      setCategoryWidth(Math.max(80, raw));
     }
   }, [selectedLeague, isSmallLeague, isMediumLeague, initialCategoryWidth]);
 

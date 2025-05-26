@@ -22,20 +22,21 @@ The Frontend Module provides the user interface for the decentralized soccer pre
 ### Main Sections
 The frontend is divided into 5 primary areas:
 
-- **Markets:**  
+- **Matches:**  
   Displays a high level match view of available soccer matches. Provides a menu to filter by soccer league, options for sorting by betting volume, Date ascending and descending, and live only. The high level match view displays the team names, logos, scoreboard, minutes elapsed, and the odds graph along with the current decimal odds for each outcome. 
 
+- **Futures:**
+  Currently displays a high level view of available tournament winner markets. 
+
 - **Match:**
-  When a user clicks on a match on the Markets page, a detailed match page is expanded. This provides a bigger view of the scoreboard, time elapsed, and odds graph etc, while also providing more detailed information such as match events, lineups, statistics, and league standings. It also provides a betting interface where the user can select an outcome token to bet on, and the amount of outcome tokens they want to purchase. It will display the total cost of the purchase, the LMSR net cost, plus the fee. 
+  When a user clicks on a match on the Matches page, a detailed match page is expanded. This provides a bigger view of the scoreboard, time elapsed, and odds graph etc, while also providing more detailed information such as match events, lineups, statistics, and league standings. It also provides a betting interface where the user can select an outcome token to bet on, and the amount of outcome tokens they want to purchase. It will display the total cost of the purchase, the LMSR net cost, plus the fee. 
+
+- **Tournament:**
+  Similarly when a user clicks on a tournament winner market on the Futures page, they are brought to a similar expanded details page where they can place bets on the tournament winner.
 
 - **Predictions:**  
   Displays the prediction history for the connected wallet, and provides a redeem button for collecting winnings.
 
-- **Buy $Duel:**  
-  Provides an interface for users to purchase the $Duel token. This ecosystem cryptocurrency can be staked to earn a percentage of the platforms accrued transaction fees. This functions acts as an incentive mechanism to attract liquidity provision.
-
-- **Staking:**  
-  Provides an interface for users to stake their purchased $Duel tokens into the platforms liquidity pool, and receive a share of the liquidity rewards. 
 
 
 ## Directory Structure
