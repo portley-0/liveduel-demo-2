@@ -6,10 +6,12 @@ The **Contracts Module** provides the core smart contracts for the decentralized
 
 - **MarketFactory**: Manages the deployment and resolution of **PredictionMarket** contracts.
 - **PredictionMarket**: Represents an individual market for a match, handling bets and payouts.
+- **TournamentMarket**: Represents a win competition market. 
 - **LiquidityPool**: Manages staking and liquidity used for market making and rewards.
 - **DuelToken**: The ecosystem token used for staking and rewards.
 - **MockUSDC**: A mock stablecoin used for testing.
 - **ResultsConsumer**: Uses **Chainlink Functions** to fetch match results.
+- **RoundConsumer**: Uses **Chainlink Functions** to fetch tournament rounds.
 - **Gnosis Contracts**: Adapted from Gnosis Conditional Tokens and Market Makers for Solidity 0.8.20.
 
 Gnosis source repositories (Solidity 0.5.1):
@@ -30,6 +32,8 @@ This module relies on:
 
 ```
 ├── contracts
+│   ├── faucet/
+│   │   ├── TestnetAVAXFaucet.sol
 │   ├── gnosis/
 │   │   ├── ConditionalTokens.sol
 │   │   ├── ConstructedCloneFactory.sol
@@ -42,17 +46,25 @@ This module relies on:
 │   ├── interfaces/
 │   │   ├── ILiquidityPool.sol
 │   │   ├── IResultsConsumer.sol
+│   │   ├── IMarketFactory.sol
 │   ├── MarketFactory.sol
 │   ├── PredictionMarket.sol
 │   ├── LiquidityPool.sol
 │   ├── DuelToken.sol
 │   ├── MockUSDC.sol
 │   ├── ResultsConsumer.sol
+│   ├── RoundConsumer.sol
+│   ├── TournamentMarket.sol
 ├── scripts
+│   ├── DeployFaucet.ts
 │   ├── DeployGnosisCTF.ts
 │   ├── DeployPredictionSystem.ts
 │   ├── DeployResultsConsumer.ts
-│   ├── TestChainlinkRequest.ts
+│   ├── DeployRoundConsumer.ts
+│   ├── DeployTournament.ts
+│   ├── LogTournamentState.ts
+│   ├── TestResultRequest.ts
+│   ├── TestRoundRequest.ts
 ├── tests
 │   ├── sanitycheck.test.ts
 │   ├── staking.test.ts
@@ -62,7 +74,8 @@ This module relies on:
 │   ├── redemption.test.ts
 ├── .env
 ├── .env-enc
-├── API-request.js
+├── result-request.js
+├── round-request.js
 ├── hardhat.config.ts
 ├── package.json
 ├── README.md
@@ -119,6 +132,8 @@ Required environment variables:
 pnpm run deploy:gnosis
 pnpm run deploy:resultsconsumer
 pnpm run deploy:system
+pnpm run deploy:roundconsumer
+pnpm run deploy:faucet
 ```
 
 ### Configure Chainlink Functions & Automation
@@ -140,7 +155,7 @@ After deploying:
 
 ### Run Tests
 
-> Note: factory.test.ts requires setting matchId and timestamp.
+> Note: factory.test.ts requires setting matchId and timestamp. 
 
 ```bash
 pnpm run test:chainlink

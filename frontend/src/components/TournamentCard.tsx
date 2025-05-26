@@ -82,7 +82,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
   return (
     <div className="relative p-10 sm:px-7 xs:px-7 xxs:px-5 sm:pb-5 xs:pb-5 xxs:pb-5 lg:pr-4 flex flex-col w-full">
       {/* Top Section: Tournament Logo, Name, and Volume */}
-      <div className="flex items-center sm:mb-6 lg:mb-8">
+      <div className="flex items-center xs:mb-6 sm:mb-6 md:mb-7 lg:mb-8">
         <div className="bg-white flex items-center justify-center 2xl:w-[140px] 2xl:h-[140px] lg:w-[100px] lg:h-[100px] sm:w-[80px] sm:h-[80px] xs:w-[75px] xs:h-[75px] xxs:w-[75px] xxs:h-[75px] aspect-square">
           <img
             src={tournament?.standings?.league?.logo || "/default-tournament-logo.png"}

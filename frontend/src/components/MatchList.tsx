@@ -348,7 +348,7 @@ const MatchList: React.FC = () => {
               oddsHistory={match.oddsHistory || { timestamps: [], homeOdds: [], drawOdds: [], awayOdds: [] }} />
             </div>
             <div className="flex justify-between items-end mt-2">
-              <div className="text-xs font-[Quicksand Bold]">
+              <div className="text-xs sm:text-lg lg:text-xs sm:mt-2 lg:mt-0 font-[Quicksand Bold]">
                 <span className="block font-semibold">Volume</span>
                 <div className="text-white font-semibold">
                   $
@@ -357,7 +357,7 @@ const MatchList: React.FC = () => {
                     : "0.00"}
                 </div>
               </div>
-              <div className="flex space-x-4 text-xs font-[Quicksand Bold]">
+              <div className="flex space-x-4 text-xs sm:text-lg lg:text-xs sm:mt-2 lg:mt-0  font-[Quicksand Bold]">
                 <div className="flex flex-col items-center">
                   <span className="text-blue-400 font-semibold">$HOME</span>
                   <span className="text-blue-400 font-semibold">

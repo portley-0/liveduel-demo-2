@@ -218,7 +218,7 @@ const TournamentList: React.FC = () => {
               />
             </div>
             <div className="flex justify-between items-end mt-2">
-              <div className="text-xs sm:text-sm xs:text-sm lg:text-xs font-[Quicksand Bold]">
+              <div className="text-xs sm:text-lg lg:text-xs sm:mt-2 lg:mt-0 font-[Quicksand Bold]">
                 <span className="block font-semibold">Volume</span>
                 <div className="text-white font-semibold">
                   $
@@ -227,7 +227,7 @@ const TournamentList: React.FC = () => {
                     : "0.00"}
                 </div>
               </div>
-              <div className="flex space-x-2 text-xs font-[Quicksand Bold]">
+              <div className="flex space-x-3 text-xs sm:text-lg lg:text-xs sm:mt-2 lg:mt-0  font-[Quicksand Bold]">
                 {topTeams.map((team) => {
                   const pct = team.odds > 0 ? (team.odds * 100).toFixed(0) : "0";
                   return (
