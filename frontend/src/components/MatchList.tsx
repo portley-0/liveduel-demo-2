@@ -243,7 +243,7 @@ const MatchList: React.FC = () => {
       <Link
         key={match.matchId}
         to={`/dashboard/matches/${match.matchId}`}
-        className="w-full flex-shrink-0 aspect-[6/5]"
+        className="min-w-full aspect-[6/5]"
       >
         <button
           className={`relative group bg-greyblue text-white rounded-xl shadow-md w-full h-full flex flex-col focus:outline-none focus:ring-2 focus:ring-blue-500 ${
