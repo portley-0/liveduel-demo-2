@@ -25,7 +25,9 @@ const MOBILE_BREAKPOINT = 768;
 
 const BASE_SELECT_CLASS =
   "select select-sm select-ghost text-white bg-darkblue font-bold text-sm " +
-  "transition-all duration-200 ease-in-out overflow-hidden whitespace-nowrap text-ellipsis";
+  "transition-all duration-200 ease-in-out";
+
+const CATEGORY_SELECT_CLASS = `${BASE_SELECT_CLASS} text-ellipsis md:text-clip md:overflow-visible md:whitespace-normal`;
 
 const FilterMenu: React.FC = () => {
   const {
@@ -43,6 +45,7 @@ const FilterMenu: React.FC = () => {
   const navigate = useNavigate();
 
   const categoryRef = useRef<HTMLSelectElement>(null);
+  const categoryTextRef = useRef<HTMLSpanElement>(null);
   const sortRef = useRef<HTMLSelectElement>(null);
 
   const [categoryWidth, setCategoryWidth] = useState<string>("100%");
@@ -50,13 +53,20 @@ const FilterMenu: React.FC = () => {
 
   const isMobileViewport = typeof window !== "undefined" && window.innerWidth < MOBILE_BREAKPOINT;
 
-  // Calculate widths for both dropdowns based on viewport
+  // Calculate widths for both dropdowns based on viewport and selected text
   useEffect(() => {
     const updateWidths = () => {
       const viewportWidth = window.innerWidth;
       if (viewportWidth >= MOBILE_BREAKPOINT) {
-        // Desktop: use content-based width
-        setCategoryWidth("auto");
+        // Desktop: size Category to selected text width, Sort by to auto
+        if (categoryTextRef.current) {
+          const textWidth = categoryTextRef.current.getBoundingClientRect().width;
+          const padding = 46; // Slightly increased padding for arrow and spacing
+          const calculatedWidth = Math.min(Math.max(textWidth + padding, 80), 300); // Min 80px, max 300px
+          setCategoryWidth(`${calculatedWidth}px`);
+        } else {
+          setCategoryWidth("auto");
+        }
         setSortWidth("auto");
       } else {
         // Mobile: calculate max width to avoid pushing buttons out
@@ -67,15 +77,14 @@ const FilterMenu: React.FC = () => {
 
         // Allocate 60% to category, 50% to sort, with caps
         setCategoryWidth(`${Math.min(availableWidth * 0.6, 200)}px`);
-        setSortWidth(`${Math.min(availableWidth * 0.5, 120)}px`); // Increased allocation and cap for sort
+        setSortWidth(`${Math.min(availableWidth * 0.5, 120)}px`);
       }
     };
 
     updateWidths();
     window.addEventListener("resize", updateWidths);
     return () => window.removeEventListener("resize", updateWidths);
-  }, []);
-
+  }, [selectedLeague]);
 
   return (
     <div className="sticky top-0 z-20 bg-darkblue py-1 px-4 flex flex-col space-y-2 shadow-xl">
@@ -84,9 +93,15 @@ const FilterMenu: React.FC = () => {
       <div className="flex items-center justify-between space-x-2 pb-1">
         <span className="text-sm font-bold text-white">Category:</span>
         <div className="relative flex-1 min-w-0">
+          <span
+            ref={categoryTextRef}
+            className="absolute opacity-0 pointer-events-none whitespace-nowrap text-sm font-bold"
+          >
+            {LEAGUES.find((l) => l.id === selectedLeague)?.name || "All Leagues"}
+          </span>
           <select
             ref={categoryRef}
-            className={BASE_SELECT_CLASS}
+            className={CATEGORY_SELECT_CLASS}
             style={{
               width: categoryWidth,
               maxWidth: isMobileViewport ? categoryWidth : "none",
