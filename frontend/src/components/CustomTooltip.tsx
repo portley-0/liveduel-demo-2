@@ -12,7 +12,15 @@ interface CustomTooltipProps {
   matchData?: MatchData;
   tournament?: TournamentData;
   format: Format;
+  teamIds?: string[];
 }
+
+const TEAM_COLORS = [
+  "rgba(0, 123, 255, 1)", // Blue
+  "rgba(255, 193, 7, 1)", // Yellow
+  "rgb(169, 169, 169)", // Gray
+  "rgb(225, 29, 72)", // Red
+];
 
 const decimalToFraction = (decimal: number): string => {
   const frac = decimal - 1;
@@ -41,6 +49,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
   matchData,
   tournament,
   format,
+  teamIds = [],
 }) => {
   if (!active || !label || payload.length === 0) {
     return null;
@@ -62,10 +71,8 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
 
   const formattedLabel = new Date(label).toLocaleString();
 
-  // Determine if we're in match or tournament mode
   const isMatchMode = !!matchData;
 
-  // For tournament mode, extract team data from standings
   const getTeamData = (teamId: string) => {
     if (!tournament?.standings?.league.standings) {
       return { name: `Team ${teamId}`, logo: "/default-team-logo.png" };
@@ -84,67 +91,69 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
     <div className="bg-gray-900 p-2.5 border border-gray-300 rounded whitespace-nowrap">
       <div className="text-xs font-semibold text-white mb-1">{formattedLabel}</div>
 
-      {payload.map((item, index) => {
-        const { dataKey, value } = item;
+      {isMatchMode
+        ? payload.map((item) => {
+            const { dataKey, value } = item;
+            if (dataKey === "home") {
+              return (
+                <div key={dataKey} className="flex items-center mb-1">
+                  <img
+                    src={matchData!.homeTeamLogo}
+                    alt={matchData!.homeTeamName}
+                    className="w-5 h-5 mr-1.5"
+                  />
+                  <span className="text-xs font-semibold text-blue-500 whitespace-nowrap">
+                    HOME: {formatValue(value)}
+                  </span>
+                </div>
+              );
+            }
+            if (dataKey === "draw") {
+              return (
+                <div key={dataKey} className="flex items-center mb-1">
+                  <TbCircleLetterDFilled className="text-xl text-gray-500 mr-1.5" />
+                  <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">
+                    DRAW: {formatValue(value)}
+                  </span>
+                </div>
+              );
+            }
+            if (dataKey === "away") {
+              return (
+                <div key={dataKey} className="flex items-center">
+                  <img
+                    src={matchData!.awayTeamLogo}
+                    alt={matchData!.awayTeamName}
+                    className="w-5 h-5 mr-1.5"
+                  />
+                  <span className="text-xs font-semibold text-red-500 whitespace-nowrap">
+                    AWAY: {formatValue(value)}
+                  </span>
+                </div>
+              );
+            }
+            return null;
+          })
+        : teamIds
+            .map((teamId) => payload.find((item) => item.dataKey === teamId))
+            .filter((item): item is NonNullable<typeof item> => !!item)
+            .map((item, index) => {
+              const { dataKey, value } = item;
+              const team = getTeamData(dataKey);
+              const color = TEAM_COLORS[index % TEAM_COLORS.length];
 
-        // Match mode: Handle home, draw, away specifically
-        if (isMatchMode) {
-          if (dataKey === "home") {
-            return (
-              <div key={dataKey} className="flex items-center mb-1">
-                <img
-                  src={matchData!.homeTeamLogo}
-                  alt={matchData!.homeTeamName}
-                  className="w-5 h-5 mr-1.5"
-                />
-                <span className="text-xs font-semibold text-blue-500 whitespace-nowrap">
-                  HOME: {formatValue(value)}
-                </span>
-              </div>
-            );
-          }
-          if (dataKey === "draw") {
-            return (
-              <div key={dataKey} className="flex items-center mb-1">
-                <TbCircleLetterDFilled className="text-xl text-gray-500 mr-1.5" />
-                <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">
-                  DRAW: {formatValue(value)}
-                </span>
-              </div>
-            );
-          }
-          if (dataKey === "away") {
-            return (
-              <div key={dataKey} className="flex items-center">
-                <img
-                  src={matchData!.awayTeamLogo}
-                  alt={matchData!.awayTeamName}
-                  className="w-5 h-5 mr-1.5"
-                />
-                <span className="text-xs font-semibold text-red-500 whitespace-nowrap">
-                  AWAY: {formatValue(value)}
-                </span>
-              </div>
-            );
-          }
-          return null;
-        }
-
-        // Tournament mode: Use team data from standings
-        const team = getTeamData(dataKey);
-        return (
-          <div key={dataKey} className="flex items-center mb-1">
-            <img src={team.logo} alt={team.name} className="w-5 h-5 mr-1.5" />
-            <span
-              className={`text-xs font-semibold whitespace-nowrap ${
-                index % 3 === 0 ? "text-blue-500" : index % 3 === 1 ? "text-red-500" : "text-gray-500"
-              }`}
-            >
-              {team.name}: {formatValue(value)}
-            </span>
-          </div>
-        );
-      })}
+              return (
+                <div key={dataKey} className="flex items-center mb-1">
+                  <img src={team.logo} alt={team.name} className="w-5 h-5 mr-1.5" />
+                  <span
+                    className="text-xs font-semibold whitespace-nowrap"
+                    style={{ color }}
+                  >
+                    {team.name}: {formatValue(value)}
+                  </span>
+                </div>
+              );
+            })}
     </div>
   );
 };

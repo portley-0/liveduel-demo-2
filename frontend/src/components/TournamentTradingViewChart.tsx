@@ -34,15 +34,11 @@ interface TooltipState {
   position: { left: number; top: number };
 }
 
-// Distinct colors for team lines
 const TEAM_COLORS = [
   "rgba(0, 123, 255, 1)", // Blue
-  "rgb(225, 29, 72)", // Redmagenta
-  "rgba(128, 128, 128, 1)", // Gray
   "rgba(255, 193, 7, 1)", // Yellow
-  "rgba(40, 167, 69, 1)", // Green
-  "rgba(111, 66, 193, 1)", // Purple
-  "rgba(255, 87, 34, 1)", // Orange
+  "rgb(169, 169, 169)", // Gray 
+  "rgb(225, 29, 72)", // Red
 ];
 
 const decimalToFraction = (decimal: number): string => {
@@ -65,6 +61,10 @@ const decimalToFraction = (decimal: number): string => {
   return `${bestNumer}/${bestDenom}`;
 };
 
+const getDefaultOdd = (teamCount: number): number => {
+  return teamCount > 0 ? 1 / (1 / teamCount) : 3.0;
+};
+
 const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
   oddsHistory,
   tournament,
@@ -83,13 +83,28 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
     position: { left: 0, top: 0 },
   });
 
+  // Use teamIds from contract, fallback to oddsHistory.teamOdds
+  const teamIds = tournament.teamIds?.length
+    ? tournament.teamIds.map(String)
+    : Object.keys(oddsHistory.teamOdds || {}).map(String);
+  const teamCount = teamIds.length || 4;
+  const DEFAULT_ODD = getDefaultOdd(teamCount);
+
+  useEffect(() => {
+    console.log("Chart Team Order:", {
+      teamIds,
+      contractTeamIds: tournament.teamIds,
+      oddsHistoryTeams: Object.keys(oddsHistory.teamOdds || {}),
+    });
+  }, [teamIds, tournament.teamIds]);
+
   const getTimeRangeStart = (): number => {
     const now = Date.now();
     const ranges: Record<Exclude<TimeRange, "default">, number> = {
       "1h": now - 60 * 60 * 1000,
       "2h": now - 2 * 60 * 60 * 1000,
       "1d": now - 24 * 60 * 60 * 1000,
-      "1w": now - 7 * 24 * 60 * 60 * 1000,
+      "1w": now - 7 * 24 * 60 * 1000,
     };
     return timeRange === "default" ? now - 60 * 60 * 1000 : ranges[timeRange];
   };
@@ -115,9 +130,8 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
     return { type: "custom", formatter: decimalToFraction, minMove };
   };
 
-  const DEFAULT_ODD = 3.00000030000003;
-  const computeValue = (odd?: number): number => {
-    const o = odd ?? DEFAULT_ODD;
+  const computeValue = (odd?: number, defaultOdd: number = DEFAULT_ODD): number => {
+    const o = odd ?? defaultOdd;
     return format === "percent" ? 100 / o : o;
   };
 
@@ -127,12 +141,11 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
     const ts = (oddsHistory.timestamps || []).slice(startIndex);
     const teamOdds = oddsHistory.teamOdds || {};
 
-    // Prepare data for each team
     const realData = ts
       .reduce<{ t: number; odds: Record<number, number | undefined> }[]>((acc, t, i) => {
         const entry: { t: number; odds: Record<number, number | undefined> } = { t, odds: {} };
-        Object.keys(teamOdds).forEach((teamId) => {
-          entry.odds[Number(teamId)] = teamOdds[Number(teamId)][i + startIndex];
+        teamIds.forEach((teamId) => {
+          entry.odds[Number(teamId)] = teamOdds[Number(teamId)]?.[i + startIndex];
         });
         acc.push(entry);
         return acc;
@@ -161,11 +174,11 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
 
     if (realData.length > 0) {
       const priorPoint = realData.filter((p) => p.t < rangeStart).slice(-1)[0];
-      Object.keys(teamOdds).forEach((teamId) => {
+      teamIds.forEach((teamId) => {
         flatlineOdds[Number(teamId)] = priorPoint?.odds[Number(teamId)] ?? DEFAULT_ODD;
       });
     } else {
-      Object.keys(teamOdds).forEach((teamId) => {
+      teamIds.forEach((teamId) => {
         flatlineOdds[Number(teamId)] = DEFAULT_ODD;
       });
     }
@@ -186,8 +199,7 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
       .sort((a, b) => a.t - b.t)
       .filter((item, index, arr) => index === 0 || item.t > arr[index - 1].t);
 
-    // Update or create series for each team
-    Object.keys(teamOdds).forEach((teamId, index) => {
+    teamIds.forEach((teamId, index) => {
       const tid = Number(teamId);
       if (!seriesRefs.current[tid]) {
         seriesRefs.current[tid] = chartRef.current!.addSeries(LineSeries, {
@@ -199,13 +211,12 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
       seriesRefs.current[tid].setData(
         combinedData.map((p) => ({
           time: (p.t / 1000) as Time,
-          value: computeValue(p.odds[tid]),
+          value: computeValue(p.odds[tid], DEFAULT_ODD),
         }))
       );
       seriesRefs.current[tid].applyOptions({ priceFormat: getPriceFormat(), pointMarkersVisible: false });
     });
 
-    // Set visible range
     if (timeRange === "default" && displayData.length > 0) {
       const firstTime = displayData[0].t / 1000;
       const lastTime = displayData[displayData.length - 1].t / 1000;
@@ -309,9 +320,9 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
         return;
       }
 
-      const payload = Object.keys(seriesRefs.current).map((teamId) => {
+      const payload = teamIds.map((teamId) => {
         const data = param.seriesData.get(seriesRefs.current[Number(teamId)]!) as SingleValueData;
-        return { dataKey: teamId, value: data?.value }; // Use teamId as dataKey
+        return { dataKey: teamId, value: data?.value };
       });
 
       const OFFSET = 15;
@@ -333,11 +344,11 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
     }, 0);
 
     return () => chartRef.current?.remove();
-  }, [timeRange]);
+  }, [timeRange, teamIds]);
 
   useEffect(() => {
     updateSeriesAndFormat();
-  }, [oddsHistory, format, timeRange]);
+  }, [oddsHistory, format, timeRange, teamIds]);
 
   const isMobile = typeof window !== "undefined" && window.innerWidth < 500;
 
@@ -427,6 +438,7 @@ const TournamentTradingViewChart: React.FC<TournamentTradingViewChartProps> = ({
             label={tooltip.label}
             tournament={tournament}
             format={format}
+            teamIds={teamIds}
           />
         </div>
       )}

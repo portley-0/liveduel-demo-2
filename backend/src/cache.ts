@@ -196,6 +196,8 @@ export interface TournamentData {
 
   nextRoundFixtures?: number[];
 
+  teamIds?: number[];
+
   oddsHistory?: {
     timestamps: number[];
     teamOdds: Record<number, number[]>; // teamId -> odds over time

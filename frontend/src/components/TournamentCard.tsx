@@ -31,10 +31,12 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
     return `${bestNumer}/${bestDenom}`;
   };
 
-  const formatOdds = (odd: number): string => {
-    if (format === "percent") return `${(100 / odd).toFixed(2)}%`;
-    if (format === "fraction") return decimalToFraction(odd);
-    return `${odd.toFixed(2)}x`;
+  const formatOdds = (probability: number): string => {
+    // Convert probability to decimal odds (e.g., 0.2316 -> 1 / 0.2316 ≈ 4.32)
+    const decimalOdds = probability > 0 ? 1 / probability : 1.0; // Fallback to 1.0 if invalid
+    if (format === "percent") return `${(100 / decimalOdds).toFixed(2)}%`;
+    if (format === "fraction") return decimalToFraction(decimalOdds);
+    return `${decimalOdds.toFixed(2)}x`;
   };
 
   // Extract team data from standings
@@ -71,18 +73,25 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
   }, [tournament.latestOdds, tournament.standings]);
 
   return (
-    <div className="relative p-10 mt-[-20px] sm:px-7 xs:px-7 xxs:px-5 sm:pb-5 xs:pb-5 xxs:pb-5 lg:pr-4 flex flex-col w-full lg:max-h-[calc(100vh-80px)]">
-      {/* Top Section: Tournament Logo and Name */}
-      <div className="flex items-center mb-4">
-        <img
-          src={tournament?.standings?.league?.logo || "/default-tournament-logo.png"}
-          alt={tournament?.standings?.league?.name || "Tournament"}
-          className="object-contain 2xl:w-[140px] 2xl:h-[140px] lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] xxs:w-[75px] xxs:h-[75px]"
-        />
-        <span className="2xl:text-2xl lg:text-xl text-white font-[Lato-Bold] ml-4 truncate max-w-[300px]">
-          {tournament.name ? `${tournament.name} Winner` : "Tournament Winner"}
-        </span>
-      </div>  
+    <div className="relative p-10 sm:px-7 xs:px-7 xxs:px-5 sm:pb-5 xs:pb-5 xxs:pb-5 lg:pr-4 flex flex-col w-full">
+      {/* Top Section: Tournament Logo, Name, and Volume */}
+      <div className="flex items-center mb-8">
+        <div className="bg-white flex items-center justify-center 2xl:w-[140px] 2xl:h-[140px] lg:w-[100px] lg:h-[100px] sm:w-[80px] sm:h-[80px] xs:w-[75px] xs:h-[75px] xxs:w-[75px] xxs:h-[75px] aspect-square">
+          <img
+            src={tournament?.standings?.league?.logo || "/default-tournament-logo.png"}
+            alt={tournament?.standings?.league?.name || "Tournament"}
+            className="object-contain 2xl:w-[130px] 2xl:h-[130px] lg:w-[90px] lg:h-[90px] xs:w-[65px] xs:h-[65px] sm:w-[70px] sm:h-[70px] xxs:w-[65px] xxs:h-[65px]"
+          />
+        </div>
+        <div className="flex flex-col ml-4">
+          <span className="2xl:text-4xl lg:text-3xl text-white font-[Lato-Bold]">
+            {tournament?.standings?.league?.name ? `${tournament.standings.league.name} Winner` : "Tournament Winner"}
+          </span>
+          <span className="2xl:text-xl lg:text-xl sm:text-lg xs:text-lg xxs:text-lg text-gray-600 font-semibold">
+            Volume: ${tournament.bettingVolume ? (tournament.bettingVolume / 1_000_000).toFixed(2) : "0.00"}
+          </span>
+        </div>
+      </div>
 
       {/* Middle Section: TradingView Chart */}
       <div className="bg-lightgreyblue 2xl:h-[200px] lg:h-[160px] sm:h-[100px] xs:h-[100px] xxs:h-[100px] min-w-[200px]">
@@ -96,12 +105,6 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
 
       {/* Bottom Section: Team List with Odds */}
       <div className="mt-4 text-white">
-        <div className="2xl:text-2xl lg:text-xl sm:text-sm xs:text-sm xxs:text-sm font-[Quicksand Bold]">
-          <span className="block font-semibold">Volume</span>
-          <div className="text-white font-semibold">
-            ${tournament.bettingVolume ? (tournament.bettingVolume / 1_000_000).toFixed(2) : "0.00"}
-          </div>
-        </div>
         <div className="mt-4">
           {teamsWithOdds.map((team) => (
             <div
@@ -112,13 +115,13 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
                 <img
                   src={team.logo}
                   alt={team.name}
-                  className="object-contain w-[40px] h-[40px] mr-3"
+                  className="object-contain w-[36px] h-[36px]"
                 />
-                <span className="text-white font-[Lato-Bold] 2xl:text-lg lg:text-md sm:text-sm xs:text-sm xxs:text-sm truncate max-w-[200px]">
+                <span className="text-white font-[Lato-Bold] 2xl:text-lg lg:text-md sm:text-sm xs:text-sm xxs:text-sm truncate max-w-[200px] ml-3">
                   {team.name}
                 </span>
               </div>
-              <span className="text-redmagenta font-[Quicksand Bold] 2xl:text-lg lg:text-md sm:text-sm xs:text-sm xxs:text-sm">
+              <span className="text-white font-[Lato-Bold] 2xl:text-xl lg:text-xl sm:text-lg xs:text-lg xxs:text-lg">
                 {formatOdds(team.odds)}
               </span>
             </div>

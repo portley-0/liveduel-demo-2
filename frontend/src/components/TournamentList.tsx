@@ -30,14 +30,12 @@ const areOddsRecordsEqual = (a?: Record<number, number[]>, b?: Record<number, nu
   return aKeys.every((key) => areArraysEqual(a[key], b[key]));
 };
 
-// Shared color palette for chart and team percentages (6 colors)
+// Shared color palette for chart and team percentages
 const TEAM_COLORS = [
-  "rgba(34, 197, 94, 1)", // Green (~green-500, #22c55e)
-  "rgba(168, 85, 247, 1)", // Purple (~purple-500, #a855f7)
-  "rgba(96, 165, 250, 1)", // Blue (text-blue-400, #60a5fa)
-  "rgb(225, 29, 72)", // Red (~redmagenta)
-  "rgba(147, 197, 253, 1)", // Light Blue (~blue-300, #93c5fd)
-  "rgba(249, 115, 22, 1)", // Orange-Red (~orange-500, #f97316)
+  "rgba(0, 123, 255, 1)", // Blue
+  "rgba(255, 193, 7, 1)", // Yellow
+  "rgb(169, 169, 169)", // Gray
+  "rgb(225, 29, 72)", // Red
 ];
 
 const TournamentChart: React.FC<{ oddsHistory: OddsHistory }> = React.memo(
@@ -203,13 +201,15 @@ const TournamentList: React.FC = () => {
           className="relative group bg-greyblue text-white rounded-xl shadow-md w-full h-full flex flex-col focus:outline-none focus:ring-2 focus:ring-blue-500 active:scale-95 hover:bg-hovergreyblue"
         >
           <div className="p-5 xs:p-6 flex flex-col h-full w-full">
-            <div className="relative w-full flex items-center mb-8 mt-2">
-              <img
-                src={tournament.standings?.league.logo || "/placeholder-logo.png"}
-                alt={tournament.name}
-                className="object-contain w-16 h-16 xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] lg:w-14 lg:h-14"
-              />
-              <span className="text-lg xs:text-lg sm:text-lg lg:text-md font-[Lato-Bold] ml-2">
+            <div className="relative w-full flex items-center mb-5 lg:mb-4 sm:mb-7 ">
+              <div className="bg-white flex items-center justify-center w-[90px] h-[90px] sm:w-[90px] sm:h-[90px] lg:w-[70px] lg:h-[70px] 2xl:w-[70px] 2xl:h-[70px] aspect-square shrink-0 ">
+                <img
+                  src={tournament.standings?.league.logo || "/placeholder-logo.png"}
+                  alt={tournament.name}
+                  className="object-contain w-16 h-16 xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] lg:w-14 lg:h-14"
+                />
+              </div>
+              <span className="text-lg xs:text-lg sm:text-xl lg:text-sm font-[Lato-Bold] ml-2">
                 {tournament.standings?.league.name ? `${tournament.standings.league.name} Winner` : "Unknown Tournament Winner"}
               </span>
             </div>
@@ -221,7 +221,7 @@ const TournamentList: React.FC = () => {
               />
             </div>
             <div className="flex justify-between items-end mt-2">
-              <div className="text-xs font-[Quicksand Bold]">
+              <div className="text-xs sm:text-sm xs:text-sm lg:text-xs font-[Quicksand Bold]">
                 <span className="block font-semibold">Volume</span>
                 <div className="text-white font-semibold">
                   $

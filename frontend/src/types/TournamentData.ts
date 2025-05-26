@@ -68,6 +68,8 @@ export interface TeamStanding {
     outcome?: number; 
   
     nextRoundFixtures?: number[];
+
+    teamIds?: number[];
   
     oddsHistory?: {
       timestamps: number[];

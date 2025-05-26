@@ -440,6 +440,7 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
           flatLatestOdds[teamId] = DEFAULT_PROB;
         });
         updateTournamentData(tournamentId, {
+          teamIds,
           oddsHistory: updatedOddsHistory,
           latestOdds: flatLatestOdds,
         });

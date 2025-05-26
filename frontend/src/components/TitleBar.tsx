@@ -3,6 +3,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { FaChartLine, FaFutbol, FaCreditCard, FaCoins } from "react-icons/fa";
+import { IoIosCloseCircleOutline } from "react-icons/io";
 import { FaRegMoneyBillAlt } from "react-icons/fa";
 import { MdAccountBalanceWallet } from "react-icons/md";
 import { RiMenuLine } from "react-icons/ri";
@@ -347,6 +348,13 @@ const TitleBar = () => {
       <Dialog open={showClaimModal} onClose={() => setShowClaimModal(false)} className="fixed inset-0 flex items-center justify-center z-50">
         <div className="fixed inset-0 bg-black opacity-50"></div>
         <div className="bg-greyblue p-6 rounded-xl shadow-lg w-full max-w-sm sm:max-w-[280px] mx-auto text-center relative z-50">
+          <button
+            onClick={() => setShowClaimModal(false)}
+            className="absolute top-2 right-2 text-white hover:text-gray-300 transition"
+            aria-label="Close modal"
+          >
+            <IoIosCloseCircleOutline className="text-2xl sm:text-xl text-white" />
+          </button>
           <h2 className="text-white text-2xl sm:text-xl font-semibold mb-3">Claim Free Bets</h2>
           <p className="text-gray-300 text-lg sm:text-base mb-1">You can claim</p>
           <p className="text-white font-bold text-lg sm:text-base mb-4">2000 mUSDC</p>

@@ -160,7 +160,7 @@ const Predictions: React.FC = () => {
                     navigate(
                       isTournament
                         ? `/dashboard/tournaments/${p.tournamentId}`
-                        : `/dashboard/markets/${p.matchId}`
+                        : `/dashboard/matches/${p.matchId}`
                     )
                   }
                 >
@@ -206,29 +206,27 @@ const Predictions: React.FC = () => {
                   <div className="flex items-center justify-between mt-2">
                     <div className="ml-2 flex-1 overflow-hidden whitespace-nowrap overflow-ellipsis">
                       {isTournament ? (
-                        <>
+                        <div className="flex items-center">
                           {p.leagueLogo && (
-                            <img
-                              src={p.leagueLogo}
-                              alt="League"
-                              className="h-7 w-auto object-contain inline-block"
-                            />
+                            <div className="bg-white aspect-square flex justify-center items-center w-[32px] h-[32px]">
+                              <img
+                                src={p.leagueLogo}
+                                alt="League"
+                                className="h-7 w-auto object-contain"
+                              />
+                            </div>
                           )}
-                          <span className="text-sm text-gray-300 inline-block ml-1">
-                            <span className="block sm:hidden">{truncateText(p.leagueName)}</span>
+                          <span className="text-sm text-gray-300 ml-1">
+                            <span className="block sm:hidden">{p.leagueName}</span>
                             <span className="hidden sm:inline">{p.leagueName}</span>
                           </span>
-                          <span className="text-sm text-gray-300 inline-block ml-1">
-                            {p.selectedTeamName && (
-                              <>
-                                <span className="block sm:hidden">
-                                  {truncateText(p.selectedTeamName)}
-                                </span>
-                                <span className="hidden sm:inline">{p.selectedTeamName}</span>
-                              </>
-                            )}
-                          </span>
-                        </>
+                          {p.selectedTeamName && (
+                            <span className="text-sm text-gray-300 ml-1">
+                              <span className="block sm:hidden">{p.selectedTeamName}</span>
+                              <span className="hidden sm:inline">{p.selectedTeamName}</span>
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <>
                           {p.homeTeamLogo && (
