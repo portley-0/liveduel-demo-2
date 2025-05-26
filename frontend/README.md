@@ -26,7 +26,7 @@ The frontend is divided into 5 primary areas:
   Displays a high level match view of available soccer matches. Provides a menu to filter by soccer league, options for sorting by betting volume, Date ascending and descending, and live only. The high level match view displays the team names, logos, scoreboard, minutes elapsed, and the odds graph along with the current decimal odds for each outcome. 
 
 - **Futures:**
-  Currently displays a high level view of available tournament winner markets. 
+  Currently displays a high level view of available tournament winner markets instead of soccer matches.
 
 - **Match:**
   When a user clicks on a match on the Matches page, a detailed match page is expanded. This provides a bigger view of the scoreboard, time elapsed, and odds graph etc, while also providing more detailed information such as match events, lineups, statistics, and league standings. It also provides a betting interface where the user can select an outcome token to bet on, and the amount of outcome tokens they want to purchase. It will display the total cost of the purchase, the LMSR net cost, plus the fee. 
