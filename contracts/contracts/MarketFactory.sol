@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "./interfaces/ILiquidityPool.sol";
 import "./gnosis/LMSRMarketMaker.sol";
-import "./PredictionMarket.sol";
+import "./PredictionMarket.sol"; 
 import "./TournamentMarket.sol";
 import "./RoundConsumer.sol";
 import "./interfaces/IResultsConsumer.sol";
@@ -65,6 +65,8 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     event PredictionMarketResolved(uint256 matchId, uint8 outcome);
     event PlatformProfitAdded(uint256 amount);
     event RoundQueued(uint256 indexed tournamentId);
+    event RoundProcessingFailed(uint256 indexed tournamentId);
+
 
     constructor(
         address _liquidityPool,
@@ -96,7 +98,6 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         predictionMarketTemplate  = address(new PredictionMarket());
 
         tournamentMarketTemplate = address(new TournamentMarket());
-
     }
 
     function setRoundConsumer(address _roundConsumer) external onlyOwner {
@@ -297,8 +298,8 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
             }
         }
 
-        for (uint256 i = 0; i < tempTournamentFixturesToResolve.length; i++) {
-            uint256 matchId = tempTournamentFixturesToResolve[i];
+        for (uint256 i = 0; i < tournamentFixturesToResolve.length; i++) {
+            uint256 matchId = tournamentFixturesToResolve[i];
 
             if (currentTime < lastResolutionAttempt[matchId] + RESOLUTION_COOLDOWN) {
                 continue;
@@ -336,7 +337,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
             uint256[] memory finalTournamentFixturesToResolve = new uint256[](countTournamentFixturesToResolve);
 
             for (uint256 i = 0; i < countTournamentFixturesToResolve; i++) {
-                finalTournamentFixturesToResolve[i] = tournamentFixturesToResolve[i];
+                finalTournamentFixturesToResolve[i] = tempTournamentFixturesToResolve[i];
             }
             for (uint256 k = 0; k < countToResolve; k++) {
                 finalMatchesToResolve[k] = matchesToResolve[k];
@@ -475,62 +476,74 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
 
         for (uint256 i = 0; i < roundsToProcess.length; i++) {
             uint256 tid = roundsToProcess[i];
-            address tm = tournamentMarkets[tid];
-
-            bytes memory blob = roundConsumer.rawRoundData(tid);
-            uint256 wordCount = blob.length / 4;
-            require(blob.length % 4 == 0 && wordCount >= 2, "Bad round data");
- 
-            // N = number of fixtures
-            uint256 N = (wordCount - 2) / 2;
- 
-            uint256 dataPtr;
-            assembly { dataPtr := add(blob, 32) }
-
-            // Read header: isEnd @ [0], lastIdx @ [1]
-            uint32 isEnd32;
-            uint32 lastIdx32;
-
-            assembly ("memory-safe")  {
-                isEnd32 := shr(224, mload(dataPtr))          // blob[0]
-                lastIdx32 := shr(224, mload(add(dataPtr, 4)))  // blob[1]
-            }
-            bool isTourEnd = (isEnd32 == 1);
-            uint256 lastIdx = uint256(lastIdx32);
- 
-            // Now unpack each fixtureId and timestamp
-            for (uint256 j = 0; j < N; j++) {
-                uint32 id32;
-                uint32 ts32;
-                assembly ("memory-safe")  {
-                    // fixtureId at blob[2 + j]
-                    let pId := add(dataPtr, mul(add(2, j), 4))
-                    id32 := shr(224, mload(pId))
-                    // timestamp at blob[2 + N + j]
-                    let pTs := add(dataPtr, mul(add(add(2, N), j), 4))
-                    ts32 := shr(224, mload(pTs))
-                }
-                uint256 fixtureId = uint256(id32);
-                uint256 fixtureTimestamp = uint256(ts32);
- 
-                bool isRoundFinal      = (j == lastIdx);
-                bool isTournamentFinal = (isTourEnd && j == lastIdx);
-                TournamentMarket(tm).addFixture(fixtureId, isRoundFinal, isTournamentFinal);
+            try this._processSingleRound(tid) {
+                // Success, do nothing
+            } catch {
+                // The round failed to process. Emit an event and continue.
+                emit RoundProcessingFailed(tid);
                 
-                if (fixtureTs[fixtureId] == 0) {
-                    fixtureTs[fixtureId] = fixtureTimestamp;
-                    tournamentFixturesToResolve.push(fixtureId);
-                }
-
+                // We also need to clean up the flags for this failed round
+                // to prevent it from being processed again unnecessarily.
+                roundReady[tid] = false;
+                roundConsumer.clearRawRoundData(tid);
+                continue;
             }
-
-            roundReady[tid] = false;
-            roundConsumer.clearRawRoundData(tid);
-
         }
-
         
         delete pendingRounds;
+    }
+
+    function _processSingleRound(uint256 tid) public {
+        address tm = tournamentMarkets[tid];
+
+        bytes memory blob = roundConsumer.rawRoundData(tid);
+        uint256 wordCount = blob.length / 4;
+        require(blob.length % 4 == 0 && wordCount >= 2, "Bad round data");
+
+        // N = number of fixtures
+        uint256 N = (wordCount - 2) / 2;
+
+        uint256 dataPtr;
+        assembly { dataPtr := add(blob, 32) }
+
+        // Read header: isEnd @ [0], lastIdx @ [1]
+        uint32 isEnd32;
+        uint32 lastIdx32;
+
+        assembly ("memory-safe")  {
+            isEnd32 := shr(224, mload(dataPtr))         // blob[0]
+            lastIdx32 := shr(224, mload(add(dataPtr, 4)))  // blob[1]
+        }
+        bool isTourEnd = (isEnd32 == 1);
+        uint256 lastIdx = uint256(lastIdx32);
+
+        // Now unpack each fixtureId and timestamp
+        for (uint256 j = 0; j < N; j++) {
+            uint32 id32;
+            uint32 ts32;
+            assembly ("memory-safe")  {
+                // fixtureId at blob[2 + j]
+                let pId := add(dataPtr, mul(add(2, j), 4))
+                id32 := shr(224, mload(pId))
+                // timestamp at blob[2 + N + j]
+                let pTs := add(dataPtr, mul(add(add(2, N), j), 4))
+                ts32 := shr(224, mload(pTs))
+            }
+            uint256 fixtureId = uint256(id32);
+            uint256 fixtureTimestamp = uint256(ts32);
+
+            bool isRoundFinal      = (j == lastIdx);
+            bool isTournamentFinal = (isTourEnd && j == lastIdx);
+            TournamentMarket(tm).addFixture(fixtureId, isRoundFinal, isTournamentFinal);
+            
+            if (fixtureTs[fixtureId] == 0) {
+                fixtureTs[fixtureId] = fixtureTimestamp;
+                tournamentFixturesToResolve.push(fixtureId);
+            }
+        }
+
+        roundReady[tid] = false;
+        roundConsumer.clearRawRoundData(tid);
     }
 
     function _removeActiveMatch(uint256 matchId) internal returns (bool) {
@@ -590,6 +603,4 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         require(tournamentMarkets[tournamentId] != address(0), "Market does not exist for this tournament ID");
         return tournamentMarkets[tournamentId];
     }
-
 }
-  

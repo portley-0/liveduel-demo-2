@@ -50,9 +50,11 @@ if (fixturesResp.status !== 200) {
 
 var fixturesForRound = fixturesResp.data.response;
 if (!Array.isArray(fixturesForRound) || fixturesForRound.length === 0) {
-  throw Error("No fixtures found for round " + latestRound);
+  // Don't throw an error. Instead, return a valid payload for an empty round.
+  // isTournamentEnd = 0, lastIdx = 0, no fixtures to add.
+  const emptyFlat = [0, 0];
+  return packU32Array(emptyFlat);
 }
-
 // 4) Sort by kickoff date, extract IDs and timestamps
 var sortedFixtures = fixturesForRound.slice();
 sortedFixtures.sort(function(a, b) {
