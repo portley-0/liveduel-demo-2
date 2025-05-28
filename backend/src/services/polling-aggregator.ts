@@ -115,6 +115,8 @@ export function startTournamentCachePolling() {
 
 export function startStandingsPolling() {
   let intervalTime = 24 * 60 * 60 * 1000; // 24 hours default
+  const MAX_RETRIES = 3; // Number of times to retry a failed API call
+  const RETRY_DELAY = 5000; // Delay in milliseconds between retries (5 seconds)
 
   async function updateStandings() {
     const allMatches = getAllMatches();
@@ -128,55 +130,94 @@ export function startStandingsPolling() {
 
     for (const leagueId of LEAGUES) {
       for (const season of SEASONS) {
-        try {
-          await new Promise((resolve) => setTimeout(resolve, 1500)); // Rate limit
+        let success = false;
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+          try {
+            await new Promise((resolve) => setTimeout(resolve, 1500)); // Original rate limit
 
-          const rawStandingsData = await getStandings(leagueId, season);
+            console.log(`[StandingsPolling] Attempt ${attempt} for league ${leagueId}, season ${season}`);
+            const rawStandingsData = await getStandings(leagueId, season);
 
-          if (!rawStandingsData || rawStandingsData.length === 0) {
-            console.warn(`[StandingsPolling] No standings for league ${leagueId}, season ${season}. Skipping update.`);
-            continue;
+            if (!rawStandingsData || rawStandingsData.length === 0) {
+              console.warn(`[StandingsPolling] No standings for league ${leagueId}, season ${season} on attempt ${attempt}.`);
+              // If the API explicitly returns no data (not an error), we might not want to retry.
+              // For this example, we'll treat it as a case to not retry for now, and let it 'continue' in the outer loop.
+              // If it was an error, the catch block would handle retries.
+              // However, if getStandings returns [] due to an internal error it caught, this logic will proceed.
+              // To be more precise, we'd need getStandings to throw an error if the API call itself failed.
+              // Assuming getStandings returns [] on API error as per previous football-service.js.
+              if (attempt === MAX_RETRIES) {
+                console.warn(`[StandingsPolling] All attempts failed for league ${leagueId}, season ${season}. Skipping update.`);
+              } else {
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY)); // Wait before retrying
+                continue; // Go to next attempt
+              }
+              break; // Break retry loop, move to next season/league
+            }
+
+            const parsedStandings = parseFootballStandings(rawStandingsData);
+            if (!parsedStandings) {
+              console.warn(`[StandingsPolling] Failed to parse standings for league ${leagueId}, season ${season} on attempt ${attempt}.`);
+              if (attempt === MAX_RETRIES) {
+                 console.warn(`[StandingsPolling] Parsing failed after all attempts for league ${leagueId}, season ${season}. Skipping update.`);
+              } else {
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY)); // Wait before retrying (though parsing failure is less likely to be fixed by retry)
+                continue; // Go to next attempt
+              }
+              break; // Break retry loop, move to next season/league
+            }
+
+            // Update matches (consider if this is necessary if standings are primarily for tournaments)
+            const matches = getAllMatches().filter(
+              (match) => match.leagueId === leagueId && match.season === season
+            );
+            for (const match of matches) {
+              updateMatchData(match.matchId, { standings: parsedStandings });
+            }
+
+            // Update tournaments
+            const tournaments = getAllTournaments().filter(
+              (tournament) => tournament.tournamentId === leagueId && (!tournament.season || tournament.season === season)
+            );
+            if (tournaments.length > 0) {
+              for (const tournament of tournaments) {
+                updateTournamentData(tournament.tournamentId, { standings: parsedStandings });
+                console.log(`[StandingsPolling] Successfully updated standings for tournament ${tournament.tournamentId}, season ${season}.`);
+              }
+            } else {
+                console.warn(`[StandingsPolling] No tournament found in cache for leagueId ${leagueId} to update standings.`);
+            }
+            
+            success = true;
+            break; // Successful, break retry loop
+          } catch (error) {
+            console.error(
+              `[StandingsPolling] Error on attempt ${attempt} for league ${leagueId}, season ${season}:`,
+              error
+            );
+            if (attempt === MAX_RETRIES) {
+              console.error(`[StandingsPolling] All ${MAX_RETRIES} attempts failed for league ${leagueId}, season ${season}. Giving up.`);
+            } else {
+              console.log(`[StandingsPolling] Retrying in ${RETRY_DELAY / 1000} seconds...`);
+              await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+            }
           }
-
-          const parsedStandings = parseFootballStandings(rawStandingsData);
-          if (!parsedStandings) {
-            console.warn(`[StandingsPolling] Failed to parse standings for league ${leagueId}, season ${season}.`);
-            continue;
-          }
-
-          // Update matches
-          const matches = getAllMatches().filter(
-            (match) => match.leagueId === leagueId && match.season === season
-          );
-          for (const match of matches) {
-            updateMatchData(match.matchId, { standings: parsedStandings });
-          }
-
-          // Update tournaments
-          const tournaments = getAllTournaments().filter(
-            (tournament) => tournament.tournamentId === leagueId && (!tournament.season || tournament.season === season)
-          );
-          for (const tournament of tournaments) {
-            updateTournamentData(tournament.tournamentId, { standings: parsedStandings });
-          }
-        } catch (error) {
-          console.error(
-            `[StandingsPolling] Error fetching standings for league ${leagueId}, season ${season}:`,
-            error
-          );
+        } // End of retry loop
+        if (!success) {
+            console.warn(`[StandingsPolling] Failed to process standings for league ${leagueId}, season ${season} after all retries.`);
         }
-      }
-    }
+      } // End of season loop
+    } // End of league loop
 
     console.log(
-      `[StandingsPolling] Updated standings. Next update in ${
+      `[StandingsPolling] Standings update cycle finished. Next update in ${
         intervalTime / (60 * 60 * 1000)
       } hour(s).`
     );
   }
 
-  updateStandings();
-  setInterval(updateStandings, intervalTime);
+  updateStandings(); // Initial run
+  setInterval(updateStandings, intervalTime); // Subsequent runs
 }
 
 export function startDataPolling() {
