@@ -21,7 +21,7 @@ const mUSDCABI = [
   },
 ];
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
-const mUSDCAddress = "0x3dD0616eac0c614250280B22B171239365920a10";
+const mUSDCAddress = "0x4f4a5F17d1eaD9a42f4F0e99d180b0be79719bFd";
 
 const TitleBar = () => {
   const [isMobile, setIsMobile] = useState(false);

@@ -19,6 +19,7 @@ This subgraph is deployed to a self-hosted **Graph Node** running on **AWS EC2**
 │   ├── src/
 │   │   ├── prediction-market.ts   # Handles PredictionMarket events
 │   │   ├── market-factory.ts     # Handles MarketFactory events
+│   │   ├── tournament-market.ts     # Handles TournamentMarket events
 │   ├── tests/
 │   │   ├── prediction-market.test.ts   # Testing
 │   ├── docker-compose.yml # Docker setup for Graph Node, Postgres, IPFS 
@@ -36,8 +37,19 @@ The subgraph tracks the following **PredictionMarket** contract events:
 - `PayoutRedeemed(address indexed redeemer, uint8 indexed outcome, uint256 amount)`
 - `MarketResolved(uint256 indexed matchId, uint8 indexed outcome)`
 
+The subgraph tracks the following **TournamentMarket** contract events:
+- `SharesPurchased(tournamentId, outcome, shares, cost)`
+- `SharesSold(tournamentId, seller, outcome, shares, actualGain)`
+- `OddsUpdated(tournamentId, marginalPrices)`
+- `PayoutRedeemed(tournamentId, redeemer, outcome, amount)`
+- `MarketResolved(uint256 indexed tournamentId, uint8 indexed outcome)`
+- `FixtureAdded(uint256 indexed tournamentId, uint256 indexed matchId, bool isRoundFinal, bool isTournamentFinal)`
+- `MatchResultRecorded(uint256 indexed tournamentId, uint256 indexed matchId, uint8 apiOutcome, uint8 winnerIndex)`
+    
+
 It tracks the following **MarketFactory** contract event: 
 - `PredictionMarketDeployed(uint256 matchId, address marketAddress, uint256 matchTimestamp)`
+- `TournamentMarketDeployed(uint256 tournamentId, address marketAddress)`
 
 ## Setup & Deployment
 

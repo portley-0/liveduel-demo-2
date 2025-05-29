@@ -64,18 +64,7 @@ const getGameResult = async (gameId) => {
     data.teams.away.id
   ];
 
-  // ABI-encode uint256[] → Uint8Array
-  function encodeUint256Array(arr) {
-    const offsetHex = '0000000000000000000000000000000000000000000000000000000000000020';
-    const lenHex    = BigInt(arr.length).toString(16).padStart(64, '0');
-    const elemsHex  = arr
-      .map(n => BigInt(n).toString(16).padStart(64, '0'))
-      .join('');
-    const fullHex   = offsetHex + lenHex + elemsHex;
-    return new Uint8Array(fullHex.match(/.{2}/g).map(b => parseInt(b, 16)));
-  }
-
-  return encodeUint256Array(flat);
+  return Functions.encodeUint256Array(flat);
 };
 
 // Return the encoded result
