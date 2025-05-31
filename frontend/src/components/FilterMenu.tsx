@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 const LEAGUES = [
   { id: null, name: "All Leagues" },
+  { id: 15, name: "Fifa Club World Cup" },
   { id: "uefa", name: "UEFA Leagues" },
   { id: 2, name: "UEFA Champions League" },
   { id: 3, name: "UEFA Europa League" },
