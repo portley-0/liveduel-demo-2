@@ -262,47 +262,66 @@ export function stopPollingAggregator() {
 
 async function addUpcomingMatchesToCache() {
   const today = new Date();
-  const fromDate = today.toISOString().split('T')[0];
-
-  const futureDate = new Date();
-  futureDate.setDate(today.getDate() + 6);
-  const toDate = futureDate.toISOString().split('T')[0];
-
+  const initialRangeDays = 6;
+  const rangeIncreaseDays = 7;
+  const maxRangeWeeks = 4; // Set a maximum search range (e.g., 4 weeks)
   const statuses = ['NS', '1H', 'HT', '2H', 'ET', 'P', 'LIVE'];
 
   for (const leagueId of LEAGUES) {
     for (const season of SEASONS) {
-      for (const status of statuses) {
-        const fixtures = await getFixtures({
-          league: leagueId,
-          season,
-          from: fromDate,
-          to: toDate,
-          status: status
-        });
+      let currentRangeDays = initialRangeDays;
+      let fixturesFoundForTournament = false;
 
-        for (const fixture of fixtures) {
-          const matchId = fixture.fixture.id;
-          if (getMatchData(matchId)) continue;
+      while (currentRangeDays <= maxRangeWeeks * 7 && !fixturesFoundForTournament) {
+        const fromDate = today.toISOString().split('T')[0];
+        const futureDate = new Date();
+        futureDate.setDate(today.getDate() + currentRangeDays);
+        const toDate = futureDate.toISOString().split('T')[0];
 
-          updateMatchData(matchId, {
-            matchId,
-            leagueId,
-            leagueName: fixture.league.name,
+        console.log(`[DataPolling] Fetching for league ${leagueId}, season ${season} with range ${currentRangeDays} days.`);
+
+        for (const status of statuses) {
+          const fixtures = await getFixtures({
+            league: leagueId,
             season,
-            matchTimestamp: fixture.fixture.timestamp,
-            homeTeamName: fixture.teams.home.name,
-            homeTeamLogo: fixture.teams.home.logo,
-            awayTeamName: fixture.teams.away.name,
-            awayTeamLogo: fixture.teams.away.logo,
-            homeScore: fixture.goals.home,
-            awayScore: fixture.goals.away,
-            statusShort: fixture.fixture.status.short,
-            elapsed: fixture.fixture.status.elapsed
+            from: fromDate,
+            to: toDate,
+            status: status 
           });
 
-          console.log(`[DataPolling] Added match ${matchId} to cache.`);
+          for (const fixture of fixtures) {
+            const matchId = fixture.fixture.id;
+            if (getMatchData(matchId)) continue;
+
+            updateMatchData(matchId, {
+              matchId,
+              leagueId,
+              leagueName: fixture.league.name,
+              season,
+              matchTimestamp: fixture.fixture.timestamp,
+              homeTeamName: fixture.teams.home.name,
+              homeTeamLogo: fixture.teams.home.logo,
+              awayTeamName: fixture.teams.away.name,
+              awayTeamLogo: fixture.teams.away.logo,
+              homeScore: fixture.goals.home,
+              awayScore: fixture.goals.away,
+              statusShort: fixture.fixture.status.short,
+              elapsed: fixture.fixture.status.elapsed
+            });
+
+            console.log(`[DataPolling] Added match ${matchId} to cache (league ${leagueId}, season ${season}, status ${status} - range ${currentRangeDays} days).`);
+            fixturesFoundForTournament = true;
+          }
         }
+
+        if (!fixturesFoundForTournament) {
+          currentRangeDays += rangeIncreaseDays;
+          console.log(`[DataPolling] No new fixtures found for league ${leagueId}, season ${season}. Increasing range to ${currentRangeDays} days.`);
+        }
+      }
+
+      if (!fixturesFoundForTournament) {
+        console.warn(`[DataPolling] No new fixtures found for league ${leagueId}, season ${season} within the maximum range of ${maxRangeWeeks} weeks.`);
       }
     }
   }
@@ -320,7 +339,7 @@ async function addUpcomingTournamentsToCache() {
 
       updateTournamentData(tournamentId, {
         tournamentId,
-        season: SEASONS[0],
+        season: SEASONS[0] || SEASONS[1],
         name: tournamentDetails.name,
         logo: tournamentDetails.logo
       });
