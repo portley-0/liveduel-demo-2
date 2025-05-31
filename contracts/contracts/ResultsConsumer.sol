@@ -85,13 +85,24 @@ contract ResultsConsumer is FunctionsClient, ConfirmedOwner {
             return;
         }
 
-        // Decode uint256[]: [outcome, homeId, awayId]
-        uint256[] memory flat = abi.decode(response, (uint256[]));
-        require(flat.length == 3, "Bad response shape");
+        uint32 rawOutcome;
+        uint32 rawHomeId;
+        uint32 rawAwayId;
 
-        uint8   outcome = uint8(flat[0]);
-        uint256 homeId  = flat[1];
-        uint256 awayId  = flat[2];
+        assembly ("memory-safe") {
+            let dataPtr := add(response, 32) // Pointer to the start of the actual data
+
+            // Load outcome (32 bytes starting at dataPtr + 0)
+            rawOutcome := mload(dataPtr)
+            // Load homeId (32 bytes starting at dataPtr + 32)
+            rawHomeId := mload(add(dataPtr, 32))
+            // Load awayId (32 bytes starting at dataPtr + 64)
+            rawAwayId := mload(add(dataPtr, 64))
+        }
+
+        uint8   outcome = uint8(rawOutcome);
+        uint256 homeId  = rawHomeId;
+        uint256 awayId  = rawAwayId;
 
         matchResults[matchId] = MatchResult({
           outcome: outcome,

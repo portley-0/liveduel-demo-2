@@ -64,7 +64,22 @@ const getGameResult = async (gameId) => {
     data.teams.away.id
   ];
 
-  return Functions.encodeUint256Array(flat);
+  function packU32Array(numbers) {
+    const buffer = new ArrayBuffer(numbers.length * 4);
+    const view = new DataView(buffer);
+
+    for (let m = 0; m < numbers.length; m++) {
+      const val = Number(numbers[m]);
+      if (val > 0xFFFFFFFF) {
+        throw Error("Value too big for 4 bytes at index " + m);
+      }
+      view.setUint32(m * 4, val, false); // false = big-endian
+    }
+    return new Uint8Array(buffer);
+  }
+
+  return packU32Array(flat);
+
 };
 
 // Return the encoded result

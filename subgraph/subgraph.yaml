@@ -10,9 +10,9 @@ dataSources:
     name: MarketFactory
     network: fuji
     source:
-      address: "0x03050B677cAc1Fa45130D26E74a201f3CD755EA5"
+      address: "0xd6B547Da1999c831B960ec73aA30015a82E6298c"
       abi: MarketFactory
-      startBlock: 41044312
+      startBlock: 41155298
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
