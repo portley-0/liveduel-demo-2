@@ -32,6 +32,7 @@ contract ResultsConsumer is FunctionsClient, ConfirmedOwner {
       uint256 awayId
     );
     event RequestFailed(uint256 indexed matchId, bytes32 requestId, string errorMessage);
+    event RawResponseBytes(bytes rawResponse);
 
     constructor(
         address router,
@@ -72,11 +73,12 @@ contract ResultsConsumer is FunctionsClient, ConfirmedOwner {
         return _sendRequest(req.encodeCBOR(), subscriptionId, 250000, donId);
     }
 
-    function fulfillRequest(
+   function fulfillRequest(
         bytes32 requestId,
         bytes memory response,
         bytes memory err
     ) internal override {
+        emit RawResponseBytes(response);
         uint256 matchId = pendingRequests[requestId];
         delete pendingRequests[requestId];
 
@@ -90,19 +92,21 @@ contract ResultsConsumer is FunctionsClient, ConfirmedOwner {
         uint32 rawAwayId;
 
         assembly ("memory-safe") {
-            let dataPtr := add(response, 32) // Pointer to the start of the actual data
+            let dataPtr := add(response, 32) 
 
-            // Load outcome (32 bytes starting at dataPtr + 0)
-            rawOutcome := mload(dataPtr)
-            // Load homeId (32 bytes starting at dataPtr + 32)
-            rawHomeId := mload(add(dataPtr, 32))
-            // Load awayId (32 bytes starting at dataPtr + 64)
-            rawAwayId := mload(add(dataPtr, 64))
+            // Load outcome (first 4 bytes)
+            rawOutcome := shr(224, mload(dataPtr))
+
+            // Load homeId (next 4 bytes)
+            rawHomeId := shr(224, mload(add(dataPtr, 4)))
+
+            // Load awayId (next 4 bytes)
+            rawAwayId := shr(224, mload(add(dataPtr, 8)))
         }
 
         uint8   outcome = uint8(rawOutcome);
-        uint256 homeId  = rawHomeId;
-        uint256 awayId  = rawAwayId;
+        uint256 homeId  = uint256(rawHomeId);
+        uint256 awayId  = uint256(rawAwayId);
 
         matchResults[matchId] = MatchResult({
           outcome: outcome,
@@ -112,7 +116,7 @@ contract ResultsConsumer is FunctionsClient, ConfirmedOwner {
         matchResolved[matchId] = true;
 
         emit ResultReceived(matchId, outcome, homeId, awayId);
-    }
+    } 
 
     /// @return outcome 0=home,1=draw,2=away
     /// @return homeId  API’s home team ID
