@@ -217,8 +217,8 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         TournamentMarket tm = TournamentMarket(cloneAddress);
 
         bytes32 questionId = keccak256(abi.encodePacked("Tournament Winner:", tournamentId));
-        conditionalTokens.prepareCondition(cloneAddress, questionId, teamIds.length);
-        bytes32 conditionId = conditionalTokens.getConditionId(cloneAddress, questionId, teamIds.length);
+        conditionalTokens.prepareCondition(address(this), questionId, teamIds.length);
+        bytes32 conditionId = conditionalTokens.getConditionId(address(this), questionId, teamIds.length);
 
         bytes32[] memory conditionIds = new bytes32[](1);
         conditionIds[0] = conditionId;
