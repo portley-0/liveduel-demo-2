@@ -121,6 +121,14 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     }
   }, [tradeType]);
 
+   const isResolved = !!tournament.resolvedAt;
+
+  useEffect(() => {
+    if (isResolved) {
+      setExpanded(false); 
+    }
+  }, [isResolved, setExpanded]);
+
   useEffect(() => {
     if (isLoading) {
       setMarketStatus("loading");
