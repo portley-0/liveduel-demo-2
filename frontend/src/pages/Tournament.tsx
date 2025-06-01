@@ -33,7 +33,7 @@ const Tournament: React.FC = () => {
     <div className="w-full min-h-screen bg-darkblue">
       <div className="w-full flex flex-col lg:flex-row">
         <div className="w-full lg:w-3/5 bg-darkblue flex flex-col overflow-y-auto">
-          <div className="breadcrumbs sticky top-0 z-10 px-4 py-2 bg-darkblue text-white">
+          <div className="breadcrumbs sticky top-0 z-10 px-4 py-2 bg-darkblue text-white transform translate-y-[-4px]">
             <ul className="flex gap-2 text-xs">
               <li>
                 <Link
