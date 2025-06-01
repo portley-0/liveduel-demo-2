@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { TournamentData, TeamStanding } from "@/types/TournamentData.ts";
+import { TournamentData, TeamStanding } from "@/types/TournamentData.ts"; // Assuming ResolvedAt and outcome are part of TournamentData
 import TournamentTradingViewChart from "./TournamentTradingViewChart.tsx";
 
 interface TournamentCardProps {
-  tournament: TournamentData;
+  tournament: TournamentData; // Ensure TournamentData includes ResolvedAt?: string | Date; outcome?: number; teamIds?: number[];
 }
 
 type Format = "decimal" | "percent" | "fraction";
@@ -56,8 +56,8 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
   // Get teams with odds for display
   const teamsWithOdds = React.useMemo(() => {
     if (!tournament.latestOdds) return [];
-    const teamIds = tournament.teamIds || Object.keys(tournament.latestOdds).map(Number);
-    return teamIds
+    const teamIdsToUse = tournament.teamIds || Object.keys(tournament.latestOdds).map(Number);
+    return teamIdsToUse
       .map((teamId) => {
         const odds = tournament.latestOdds![teamId];
         const team = getTeamData(teamId);
@@ -79,9 +79,23 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
       });
   }, [tournament.latestOdds, tournament.standings, tournament.teamIds]);
 
+  // Get winner data if the tournament is resolved
+  const winnerData = React.useMemo(() => {
+    if (
+      tournament.resolvedAt &&
+      tournament.outcome !== undefined && // Check if outcome is defined
+      tournament.teamIds &&               // Check if teamIds is defined
+      tournament.teamIds[tournament.outcome] !== undefined // Check if the outcome index is valid for teamIds
+    ) {
+      const winningTeamId = tournament.teamIds[tournament.outcome];
+      return getTeamData(winningTeamId);
+    }
+    return null;
+  }, [tournament.resolvedAt, tournament.outcome, tournament.teamIds, tournament.standings]); // Added tournament.outcome and tournament.teamIds to dependencies
+
   return (
     <div className="relative p-10 sm:px-7 xs:px-7 xxs:px-5 sm:pb-5 xs:pb-5 xxs:pb-5 lg:pr-4 flex flex-col w-full">
-      {/* Top Section: Tournament Logo, Name, and Volume */}
+      {/* Top Section: Tournament Logo, Name, Volume, and Winner Info */}
       <div className="flex items-center xxs:mb-6 xs:mb-6 sm:mb-6 md:mb-7 lg:mb-8">
         <div className="bg-white flex items-center justify-center 2xl:w-[140px] 2xl:h-[140px] lg:w-[100px] lg:h-[100px] sm:w-[80px] sm:h-[80px] xs:w-[75px] xs:h-[75px] xxs:w-[75px] xxs:h-[75px] aspect-square">
           <img
@@ -97,6 +111,19 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
           <span className="2xl:text-xl lg:text-xl sm:text-lg xs:text-lg xxs:text-lg text-gray-600 font-semibold">
             Volume: ${tournament.bettingVolume ? (tournament.bettingVolume / 1_000_000).toFixed(2) : "0.00"}
           </span>
+          {/* Winner Information Section */}
+          {tournament.resolvedAt && winnerData && (
+            <div className="flex items-center mt-2"> {/* Added mt-2 for spacing */}
+              <img
+                src={winnerData.logo}
+                alt={`${winnerData.name} logo`}
+                className="object-contain w-[30px] h-[30px] mr-2" // Adjust size and margin as needed
+              />
+              <span className="2xl:text-xl lg:text-xl sm:text-lg xs:text-lg xxs:text-lg text-green-400 font-semibold"> {/* Tailwind class for green color, adjust as needed */}
+                Winner: {winnerData.name}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

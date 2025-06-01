@@ -104,6 +104,12 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
     });
   }, [sortedTeams, teamIndexMap, tournament.latestOdds, tournament.teamIds]);
 
+  useEffect(() => {
+    if (isResolved) {
+      setExpanded(false); 
+    }
+  }, [isResolved, setExpanded]);
+
   const fetchConditionId = async (): Promise<void> => {
     if (!walletClient || !marketAddress) return;
     try {
