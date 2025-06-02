@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { TournamentData, TeamStanding } from "@/types/TournamentData.ts"; // Assuming ResolvedAt and outcome are part of TournamentData
+import { TournamentData, TeamStanding } from "@/types/TournamentData.ts";
 import TournamentTradingViewChart from "./TournamentTradingViewChart.tsx";
 
 interface TournamentCardProps {
-  tournament: TournamentData; // Ensure TournamentData includes ResolvedAt?: string | Date; outcome?: number; teamIds?: number[];
+  tournament: TournamentData;
 }
 
 type Format = "decimal" | "percent" | "fraction";
@@ -32,13 +32,12 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
   };
 
   const formatOdds = (probability: number): string => {
-    const decimalOdds = probability > 0 ? 1 / probability : 1.0; // Fallback to 1.0 if invalid
+    const decimalOdds = probability > 0 ? 1 / probability : 1.0;
     if (format === "percent") return `${(100 / decimalOdds).toFixed(2)}%`;
     if (format === "fraction") return decimalToFraction(decimalOdds);
     return `${decimalOdds.toFixed(2)}x`;
   };
 
-  // Extract team data from standings
   const getTeamData = (teamId: number) => {
     if (!tournament.standings?.league.standings) {
       return { name: `Team ${teamId}`, logo: "/default-team-logo.png" };
@@ -53,7 +52,6 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
       : { name: `Team ${teamId}`, logo: "/default-team-logo.png" };
   };
 
-  // Get teams with odds for display
   const teamsWithOdds = React.useMemo(() => {
     if (!tournament.latestOdds) return [];
     const teamIdsToUse = tournament.teamIds || Object.keys(tournament.latestOdds).map(Number);
@@ -75,51 +73,59 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
           const indexB = tournament.teamIds.indexOf(b.teamId);
           return indexA - indexB;
         }
-        return a.odds - b.odds; // Fallback to sorting by odds if teamIds is not provided
+        return a.odds - b.odds;
       });
   }, [tournament.latestOdds, tournament.standings, tournament.teamIds]);
 
-  // Get winner data if the tournament is resolved
   const winnerData = React.useMemo(() => {
     if (
       tournament.resolvedAt &&
-      tournament.outcome !== undefined && // Check if outcome is defined
-      tournament.teamIds &&               // Check if teamIds is defined
-      tournament.teamIds[tournament.outcome] !== undefined // Check if the outcome index is valid for teamIds
+      tournament.outcome !== undefined &&
+      tournament.teamIds &&
+      tournament.teamIds[tournament.outcome] !== undefined
     ) {
       const winningTeamId = tournament.teamIds[tournament.outcome];
       return getTeamData(winningTeamId);
     }
     return null;
-  }, [tournament.resolvedAt, tournament.outcome, tournament.teamIds, tournament.standings]); // Added tournament.outcome and tournament.teamIds to dependencies
+  }, [tournament.resolvedAt, tournament.outcome, tournament.teamIds, tournament.standings]);
 
   return (
     <div className="relative p-10 sm:px-7 xs:px-7 xxs:px-5 sm:pb-5 xs:pb-5 xxs:pb-5 lg:pr-4 flex flex-col w-full">
       {/* Top Section: Tournament Logo, Name, Volume, and Winner Info */}
       <div className="flex items-center xxs:mb-6 xs:mb-6 sm:mb-6 md:mb-7 lg:mb-8">
-        <div className="bg-white flex items-center justify-center 2xl:w-[140px] 2xl:h-[140px] lg:w-[100px] lg:h-[100px] sm:w-[80px] sm:h-[80px] xs:w-[75px] xs:h-[75px] xxs:w-[75px] xxs:h-[75px] aspect-square">
+        {/* MODIFIED: Logo container sizes for mobile */}
+        <div className="bg-white flex items-center justify-center 
+                       xxs:w-[80px] xxs:h-[80px] xs:w-[80px] xs:h-[80px] 
+                       sm:w-[90px] sm:h-[90px] lg:w-[100px] lg:h-[100px] 
+                       2xl:w-[140px] 2xl:h-[140px] aspect-square flex-shrink-0">
+          {/* MODIFIED: Logo image sizes for mobile */}
           <img
             src={tournament?.standings?.league?.logo || "/default-tournament-logo.png"}
             alt={tournament?.standings?.league?.name || "Tournament"}
-            className="object-contain 2xl:w-[130px] 2xl:h-[130px] lg:w-[90px] lg:h-[90px] xs:w-[65px] xs:h-[65px] sm:w-[70px] sm:h-[70px] xxs:w-[65px] xxs:h-[65px]"
+            className="object-contain 
+                       xxs:w-[70px] xxs:h-[70px] xs:w-[70px] xs:h-[70px] 
+                       sm:w-[80px] sm:h-[80px] lg:w-[90px] lg:h-[90px] 
+                       2xl:w-[130px] 2xl:h-[130px]"
           />
         </div>
-        <div className="flex flex-col ml-4">
-          <span className="2xl:text-4xl lg:text-3xl text-white font-[Lato-Bold]">
+        <div className="flex flex-col ml-4 flex-1 min-w-0">
+          {/* MODIFIED: Title font sizes for mobile */}
+          <span className="text-xl sm:text-2xl lg:text-3xl 2xl:text-4xl text-white font-[Lato-Bold]">
             {tournament?.standings?.league?.name ? `${tournament.standings.league.name} Winner` : "Tournament Winner"}
           </span>
           <span className="2xl:text-xl lg:text-xl sm:text-lg xs:text-lg xxs:text-lg text-gray-600 font-semibold">
             Volume: ${tournament.bettingVolume ? (tournament.bettingVolume / 1_000_000).toFixed(2) : "0.00"}
           </span>
-          {/* Winner Information Section */}
           {tournament.resolvedAt && winnerData && (
-            <div className="flex items-center mt-2"> {/* Added mt-2 for spacing */}
+            // MODIFIED: Winner div margin for mobile
+            <div className="flex items-center mt-1 sm:mt-2">
               <img
                 src={winnerData.logo}
                 alt={`${winnerData.name} logo`}
-                className="object-contain w-[30px] h-[30px] mr-2" // Adjust size and margin as needed
+                className="object-contain w-[24px] h-[24px] mr-2"
               />
-              <span className="2xl:text-xl lg:text-xl sm:text-lg xs:text-lg xxs:text-lg text-green-400 font-semibold"> {/* Tailwind class for green color, adjust as needed */}
+              <span className="text-xs sm:text-sm lg:text-base text-green-400 font-semibold">
                 Winner: {winnerData.name}
               </span>
             </div>
