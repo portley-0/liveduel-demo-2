@@ -494,7 +494,7 @@ export async function getAllTournamentRedeemedForUser(userAddress: string): Prom
 export async function getAllActiveTournaments(): Promise<TournamentMarketEntity[]> {
   const query = gql`
     query GetAllActiveTournaments {
-      tournamentMarkets(where: { isResolved: false }) {
+      tournamentMarkets() {
         id
         tournamentId
         totalTeams
