@@ -38,8 +38,8 @@ import {
   getAllActiveTournaments
 } from './subgraph-service';
 
-const LEAGUES = [2, 3, 15, 39, 140, 78, 61, 135, 848];
-const SEASONS = [2024, 2025];
+const LEAGUES = [2, 3, 15, 34, 39, 140, 78, 61, 135, 848];
+const SEASONS = [2024, 2025, 2026];
 
 let dataUpdateInterval: NodeJS.Timeout | undefined;
 let matchCacheInterval: NodeJS.Timeout | undefined;
@@ -328,28 +328,56 @@ async function addUpcomingMatchesToCache() {
 }
 
 async function addUpcomingTournamentsToCache() {
-  try {
-    const activeTournaments = await getAllActiveTournaments();
+  console.log('[TournamentCachePolling] Starting to add/update specific season tournaments for defined leagues.');
+
+  const activeTournaments = await getAllActiveTournaments();
     for (const tournament of activeTournaments) {
-      const tournamentId = Number(tournament.tournamentId);
-      if (getTournamentData(tournamentId)) continue;
-
-      const details = await getTournamentDetails({ league: tournamentId, season: SEASONS[0] });
-      const tournamentDetails = details[0] || {};
-
-      updateTournamentData(tournamentId, {
-        tournamentId,
-        season: SEASONS[0] || SEASONS[1],
-        name: tournamentDetails.name,
-        logo: tournamentDetails.logo
-      });
-
-      console.log(`[TournamentCachePolling] Added tournament ${tournamentId} to cache.`);
-      await new Promise(resolve => setTimeout(resolve, 1000)); 
+    let targetSeason: number;
+    const leagueId = Number(tournament.tournamentId);
+    if (leagueId === 34) {
+      targetSeason = 2026;
+    } else {
+      targetSeason = 2024;
     }
-  } catch (error) {
-    console.error('[TournamentCachePolling] Error adding tournaments to cache:', error);
-  }
+
+    const currentCachedTournament = getTournamentData(leagueId);
+
+    if (
+      currentCachedTournament &&
+      currentCachedTournament.season === targetSeason &&
+      currentCachedTournament.name 
+    ) {
+      console.log(`[TournamentCachePolling] Tournament for league ${leagueId}, season ${targetSeason} is already correctly cached. Skipping.`);
+      continue;
+    }
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1200)); 
+
+      console.log(`[TournamentCachePolling] Fetching tournament details for league ${leagueId}, target season ${targetSeason}.`);
+      const detailsArray = await getTournamentDetails({ league: leagueId, season: targetSeason });
+
+      if (detailsArray && detailsArray.length > 0 && detailsArray[0] && detailsArray[0].name) {
+        const tournamentApiData = detailsArray[0];
+
+        const newTournamentEntry: TournamentData = {
+          tournamentId: leagueId,     
+          season: targetSeason,        
+          name: tournamentApiData.name,
+          logo: tournamentApiData.logo,
+        };
+
+        updateTournamentData(leagueId, newTournamentEntry);
+
+        console.log(`[TournamentCachePolling] Successfully cached/updated tournament: League ${leagueId}, Season ${targetSeason}, Name: "${tournamentApiData.name}".`);
+      } else {
+        console.log(`[TournamentCachePolling] No valid tournament details (e.g., name missing) found from API for league ${leagueId}, target season ${targetSeason}. Cache for this league might not be updated or fully populated.`);
+      }
+    } catch (error) {
+      console.error(`[TournamentCachePolling] Error fetching or caching tournament for league ${leagueId}, target season ${targetSeason}:`, error);
+    }
+  } // end league loop
+  console.log('[TournamentCachePolling] Finished cycle for adding/updating specific season tournaments.');
 }
 
 
