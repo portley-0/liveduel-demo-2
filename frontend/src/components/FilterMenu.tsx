@@ -4,17 +4,17 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 const LEAGUES = [
   { id: null, name: "All Leagues" },
-  { id:34, name: "World Cup Qualifiers SA" },
+  { id:34, name: "World Cup Qualifying" },
   { id: 15, name: "Fifa Club World Cup" },
-  { id: "uefa", name: "UEFA Leagues" },
-  { id: 2, name: "UEFA Champions League" },
-  { id: 3, name: "UEFA Europa League" },
-  { id: 848, name: "UEFA Conference League" },
-  { id: 39, name: "Premier League" },
-  { id: 140, name: "La Liga" },
-  { id: 78, name: "Bundesliga" },
-  { id: 61, name: "Ligue 1" },
-  { id: 135, name: "Serie A" },
+  //{ id: "uefa", name: "UEFA Leagues" },
+  //{ id: 2, name: "UEFA Champions League" },
+  //{ id: 3, name: "UEFA Europa League" },
+  //{ id: 848, name: "UEFA Conference League" },
+  //{ id: 39, name: "Premier League" },
+  //{ id: 140, name: "La Liga" },
+  //{ id: 78, name: "Bundesliga" },
+  //{ id: 61, name: "Ligue 1" },
+  //{ id: 135, name: "Serie A" },
 ];
 
 const SORT_OPTIONS = [
