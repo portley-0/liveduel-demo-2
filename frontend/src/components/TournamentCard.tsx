@@ -172,17 +172,17 @@ const TournamentCard: React.FC<TournamentCardProps> = ({ tournament }) => {
               key={team.teamId}
               className="flex items-center justify-between py-2 border-b border-gray-700"
             >
-              <div className="flex items-center min-w-0"> {/* Added min-w-0 for truncation to work */}
+              <div className="flex items-center"> 
                 <img
                   src={team.logo} // Uses new logo URL format
                   alt={team.name}
-                  className="object-contain w-[36px] h-[36px] flex-shrink-0" // Added flex-shrink-0
+                  className="object-contain w-[36px] h-[36px] " 
                 />
-                <span className="text-white font-[Lato-Bold] 2xl:text-lg lg:text-md sm:text-sm xs:text-sm xxs:text-sm truncate max-w-[calc(100%-50px)] ml-3"> {/* Adjusted max-width for better truncation */}
-                  {team.name} {/* Uses name from tournament.teamNames */}
+                <span className="text-white font-[Lato-Bold] 2xl:text-lg lg:text-md sm:text-sm xs:text-sm xxs:text-sm ml-3">  
+                  {team.name} 
                 </span>
               </div>
-              <span className="text-white font-[Lato-Bold] 2xl:text-xl lg:text-xl sm:text-lg xs:text-lg xxs:text-lg ml-2"> {/* Added ml-2 for spacing */}
+              <span className="text-white font-[Lato-Bold] 2xl:text-xl lg:text-xl sm:text-lg xs:text-lg xxs:text-lg"> 
                 {formatOdds(team.odds)}
               </span>
             </div>

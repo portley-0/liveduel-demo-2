@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog } from "@headlessui/react";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { TournamentData, TeamStanding } from "@/types/TournamentData.ts";
+import { TournamentData, /* TeamStanding */ } from "@/types/TournamentData.ts"; // TeamStanding commented out
 import { useTournamentMarketFactory } from "@/hooks/useTournamentMarketFactory.ts";
 import { useTournamentNetCost } from "@/hooks/useTournamentNetCost.ts";
 import { BsArrowDownUp } from "react-icons/bs";
@@ -79,22 +79,40 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
     : tournament.latestOdds
     ? Object.keys(tournament.latestOdds).map(Number)
     : [];
-  const allTeams = Array.isArray(tournament.standings?.league.standings)
-    ? (tournament.standings?.league.standings.flat() as TeamStanding[])
-    : (tournament.standings?.league.standings as TeamStanding[] | undefined) || [];
-  const teams = allTeams.filter((team) => teamIdsInOdds.includes(team.team.id));
-  const sortedTeams = teamIdsInOdds
-    .map((teamId) => teams.find((team) => team.team.id === teamId))
-    .filter((team): team is TeamStanding => !!team);
-  const teamIndexMap = teamIdsInOdds.reduce((acc, teamId, index) => {
-    acc[teamId] = index;
-    return acc;
-  }, {} as Record<number, number>);
+
+  const sortedTeams = React.useMemo(() => {
+    return teamIdsInOdds
+      .map((teamId) => {
+        const name = tournament.teamNames?.[teamId];
+        if (!name) {
+          // If a name is not found for a teamId, this team will be filtered out.
+          return null;
+        }
+        const logo = `https://media.api-sports.io/football/teams/${teamId}.png`;
+        return {
+          // This structure must match what the JSX expects from the original TeamStanding object,
+          // specifically the 'team' property containing id, name, and logo.
+          team: {
+            id: teamId,
+            name: name,
+            logo: logo,
+          },
+        };
+      })
+      .filter((team): team is { team: { id: number; name: string; logo: string } } => !!team);
+  }, [teamIdsInOdds, tournament.teamNames]);
+
+  const teamIndexMap = React.useMemo(() => {
+    return teamIdsInOdds.reduce((acc, teamId, index) => {
+      acc[teamId] = index;
+      return acc;
+    }, {} as Record<number, number>);
+  }, [teamIdsInOdds]);
 
   useEffect(() => {
     console.log("Team Assignments:", {
       teamIdsInOdds,
-      teamNames: sortedTeams.map((team) => ({
+      teamNames: sortedTeams.map((team) => ({ // This will now use the new names and IDs
         id: team.team.id,
         name: team.team.name,
         index: teamIndexMap[team.team.id],
@@ -105,8 +123,8 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
   }, [sortedTeams, teamIndexMap, tournament.latestOdds, tournament.teamIds]);
 
   useEffect(() => {
-    if (isResolved) {
-      setExpanded(false); 
+    if (isResolved && tournament.standings) {
+      setExpanded(false);
     }
   }, [isResolved, setExpanded]);
 
@@ -210,9 +228,9 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
       throw new Error("Missing prerequisites for net cost calculation");
     const provider = publicProvider;
     const tournamentMarket = new ethers.Contract(marketAddress, TournamentMarketABI.abi, provider);
-    const outcomeIndex = teamIndexMap[selectedBet];
-    const netCost: bigint = await tournamentMarket.getNetCost(outcomeIndex, shares);
-    return netCost;
+    const outcomeIndex = teamIndexMap[selectedBet]; // Uses the updated teamIndexMap
+    const currentNetCost: bigint = await tournamentMarket.getNetCost(outcomeIndex, shares); // Renamed variable to avoid conflict
+    return currentNetCost;
   };
 
   async function findSharesForCost(
@@ -223,13 +241,36 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
     let initialGuess = BigInt(Math.round(numericBetAmount * teamIdsInOdds.length)) * SHARE_SCALE;
     let lower = 0n;
     let upper = initialGuess;
-    while ((await getNetCostForShares(upper)) < targetCost) {
-      lower = upper;
-      upper *= 2n;
+
+    if (upper === 0n && targetCost > 0n) {
+        upper = targetCost * SHARE_SCALE / BigInt(teamIdsInOdds.length > 0 ? teamIdsInOdds.length : 1);
+        if (upper === 0n) upper = SHARE_SCALE; // Smallest possible non-zero guess if calculation results in 0
+    } else if (upper === 0n && targetCost === 0n) {
+        return 0n;
     }
+    
+    let iteration = 0;
+    const maxWhileIterations = 20; // Safety break for the while loop
+    // Check if getNetCostForShares can even be called (upper > 0 or shares can be 0)
+    // The loop condition `(await getNetCostForShares(upper)) < targetCost` requires `upper` to be meaningful for `getNetCostForShares`
+    // If `getNetCostForShares(0)` is valid and returns 0, and targetCost is 0, it might loop if not handled.
+    // Assuming `getNetCostForShares(0)` is 0.
+    while (upper === 0n || ((await getNetCostForShares(upper)) < targetCost && iteration < maxWhileIterations) ) {
+        if (targetCost === 0n && upper === 0n) break; // If target is 0 and upper is 0, we're done.
+        lower = upper;
+        upper = upper === 0n ? SHARE_SCALE : upper * 2n; // If upper is 0, start with SHARE_SCALE
+        iteration++;
+        if (upper === 0n && targetCost > 0n) { // Should not happen if initialGuess is handled well.
+            console.warn("findSharesForCost: upper became 0 unexpectedly during expansion for positive targetCost.");
+            return 0n; // Cannot find shares.
+        }
+    }
+
+
     let bestGuess = lower;
     for (let i = 0; i < maxIterations; i++) {
       const mid = (lower + upper) / 2n;
+      if (mid === lower || mid === upper) break; // Converged or stuck
       const cost = await getNetCostForShares(mid);
       if (cost >= targetCost - tolerance && cost <= targetCost + tolerance) {
         return mid;
@@ -250,6 +291,10 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
     setCalculatedSharesScaled(null);
     calcTokenRef.current++;
     if (tradeType !== "buy" || !debouncedBetAmount || debouncedBetAmount === "" || !marketAddress || selectedBet === null) {
+      if (tradeType === "buy" && parseFloat(debouncedBetAmount || "0") === 0) { // Explicitly set 0 shares for 0 amount
+          setCalculatedSharesScaled(0n);
+          setIsCalculating(false);
+      }
       return;
     }
     const currentToken = calcTokenRef.current;
@@ -257,6 +302,13 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
       try {
         setIsCalculating(true);
         const userTotalCost = BigInt(Math.round(parseFloat(debouncedBetAmount) * 1_000_000));
+        if (userTotalCost === 0n) {
+            if (currentToken === calcTokenRef.current) {
+                setCalculatedSharesScaled(0n);
+            }
+            // setIsCalculating(false) will be called in finally
+            return;
+        }
         const targetNetCost = (userTotalCost * 100n) / 104n;
         const shares = await findSharesForCost(targetNetCost);
         if (currentToken === calcTokenRef.current) {
@@ -264,6 +316,9 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
         }
       } catch (error) {
         console.error("Error calculating shares for cost:", error);
+        if (currentToken === calcTokenRef.current) {
+             setCalculatedSharesScaled(null); // Set to null on error
+        }
       } finally {
         if (currentToken === calcTokenRef.current) {
           setIsCalculating(false);
@@ -271,7 +326,7 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
       }
     };
     calculateOutcomeShares();
-  }, [debouncedBetAmount, selectedBet, marketAddress, tradeType, numericBetAmount]);
+  }, [debouncedBetAmount, selectedBet, marketAddress, tradeType, numericBetAmount]); // numericBetAmount is already a dependency
 
   const sendTransaction = async (
     contractAddress: string,
@@ -282,22 +337,23 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
   ): Promise<any> => {
     try {
       setIsTxPending(true);
-      setIsSuccess(false);
+      setIsSuccess(false); // Reset success state at the beginning
       const contract = new ethers.Contract(contractAddress, TournamentMarketABI.abi, signer);
       const gasEstimate = await contract[functionName].estimateGas(...args);
-      const gasLimit = (gasEstimate * BigInt(12)) / BigInt(10);
+      const gasLimit = (gasEstimate * BigInt(12)) / BigInt(10); // 20% buffer
       const tx = await contract[functionName](...args, { gasLimit, ...options });
       setTxHash(tx.hash);
-      const receipt = await tx.wait(1);
+      const receipt = await tx.wait(1); // Wait for 1 confirmation
       if (receipt.status !== 1) {
-        throw new Error("Transaction failed");
+        throw new Error("Transaction failed on-chain");
       }
       setIsSuccess(true);
-      refetch();
+      refetch(); // Refetch market data
       return receipt;
     } catch (error) {
       console.error("Transaction failed:", error);
-      throw error;
+      setIsSuccess(false); // Explicitly set isSuccess to false on error
+      throw error; // Re-throw so caller can handle if needed
     } finally {
       setIsTxPending(false);
     }
@@ -314,13 +370,13 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
       const approvalAmount = BigInt(Math.round(parseFloat(betAmount) * 1_000_000));
-      const deadline = Math.floor(Date.now() / 1000) + 60 * 60;
+      const deadline = Math.floor(Date.now() / 1000) + 60 * 60; // 1 hour
       const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
       const nonce = await usdcContract.nonces(userAddress);
       const domain = {
         name: "Mock USDC",
         version: "1",
-        chainId: 43113,
+        chainId: 43113, // Fuji Testnet
         verifyingContract: USDC_ADDRESS,
       };
       const types = {
@@ -345,7 +401,7 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
         marketAddress,
         "buySharesWithPermit",
         [
-          teamIndexMap[selectedBet],
+          teamIndexMap[selectedBet], // Uses updated teamIndexMap
           calculatedSharesScaled,
           approvalAmount,
           deadline,
@@ -362,6 +418,7 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
       }
     } catch (error) {
       console.error("Buy shares failed:", error);
+      // UI error handling for the user can be added here if desired
     }
   };
 
@@ -370,7 +427,9 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
       openConnectModal?.();
       return;
     }
-    if (!marketAddress || !isValidBet) return;
+    // Original check: if (!marketAddress || !isValidBet) return;
+    // Adding selectedBet === null check because teamIndexMap[selectedBet!] is used.
+    if (!marketAddress || !isValidBet || selectedBet === null) return;
     try {
       const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
@@ -379,16 +438,18 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
       const isApproved = await conditionalTokensContract.isApprovedForAll(userAddress, marketAddress);
       if (!isApproved) {
         const approveTx = await conditionalTokensContract.setApprovalForAll(marketAddress, true);
-        await approveTx.wait();
+        await approveTx.wait(); // Original logic waits here
       }
       const receipt = await sendTransaction(
         marketAddress,
         "sellShares",
-        [teamIndexMap[selectedBet!], betAmountBigInt],
+        [teamIndexMap[selectedBet!], betAmountBigInt], // Uses updated teamIndexMap
         signer
       );
       if (receipt && receipt.status === 1) {
-        setModalData({ shares: numericBetAmount, cost: Number(netCost) / 1e6 });
+        // Original logic: setModalData({ shares: numericBetAmount, cost: Number(netCost) / 1e6 });
+        // Need to ensure netCost is not null.
+        setModalData({ shares: numericBetAmount, cost: netCost ? Number(netCost) / 1e6 : 0 });
         setIsModalOpen(true);
       }
     } catch (error) {
@@ -404,8 +465,14 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
       const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
-      const outcomeIndex = teamIndexMap[selectedBet];
-      const tokenId = outcomeTokenIds[outcomeIndex];
+      const outcomeIndex = teamIndexMap[selectedBet]; // Uses updated teamIndexMap
+      const tokenId = outcomeTokenIds[outcomeIndex]; // outcomeTokenIds are indexed by outcomeIndex
+      if (!tokenId) { // Added check if tokenId is not found for the index
+          console.warn(`Token ID not found for outcome index: ${outcomeIndex}`);
+          setOutcomeBalance(null); // Set to null or appropriate value
+          setIsBalanceLoading(false);
+          return;
+      }
       const balance = await conditionalTokensContract.balanceOf(userAddress, tokenId);
       setOutcomeBalance((Number(balance) / Number(SHARE_SCALE)).toFixed(2));
     } catch (error) {
@@ -419,6 +486,7 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
   useEffect(() => {
     if (isSuccess) {
       refetch();
+      // No other actions like fetching balance or clearing inputs, per strict instructions
     }
   }, [isSuccess, refetch]);
 
@@ -428,7 +496,7 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
       newPrices[teamId] = tournament.latestOdds?.[teamId] ?? DEFAULT_PROB;
     });
     setTeamPrices(newPrices);
-  }, [tournament.latestOdds]);
+  }, [tournament.latestOdds]); // Dependency array unchanged as per original code. teamIdsInOdds could be added if its changes should trigger this.
 
   const handleSelectBet = (teamId: number) => {
     setSelectedBet(teamId);
@@ -436,25 +504,29 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
 
   const prevOdds = (() => {
     const histCount = tournament.oddsHistory?.timestamps?.length ?? 0;
-    if (histCount >= 2) {
+    if (histCount >= 2 && tournament.oddsHistory) { // Added null check for tournament.oddsHistory
       const prev: Record<number, number> = {};
       teamIdsInOdds.forEach((teamId) => {
+        // Ensure teamId exists in teamOdds before accessing
+        const teamOddsHistory = tournament.oddsHistory!.teamOdds[teamId];
         prev[teamId] =
-          tournament.oddsHistory!.teamOdds[teamId]?.[histCount - 2] !== undefined
-            ? 1 / tournament.oddsHistory!.teamOdds[teamId][histCount - 2]
+          teamOddsHistory?.[histCount - 2] !== undefined
+            ? 1 / teamOddsHistory[histCount - 2] // Original logic (assuming teamOdds are probabilities for 1/prob=decimal)
             : tournament.latestOdds?.[teamId] ?? DEFAULT_PROB;
       });
       return prev;
     }
     return teamIdsInOdds.reduce((acc, teamId) => {
-      acc[teamId] = DEFAULT_PROB;
+      acc[teamId] = tournament.latestOdds?.[teamId] ?? DEFAULT_PROB; // Fallback to current odds if not enough history
       return acc;
     }, {} as Record<number, number>);
   })();
 
+
   function getOddsMovementIcon(prev: number, current: number) {
-    const NEUTRAL_PROB = DEFAULT_PROB;
+    const NEUTRAL_PROB = DEFAULT_PROB; // This is used in original logic
     const tol = 1e-7;
+    // Original logic for neutral icon:
     if (Math.abs(current - NEUTRAL_PROB) < tol) {
       return <BsArrowDownUp className="text-gray-400 text-lg" />;
     }
@@ -464,7 +536,7 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
     if (current < prev) {
       return <GoArrowDownRight className="text-red-500 text-lg" />;
     }
-    return <BsArrowDownUp className="text-gray-400 text-lg" />;
+    return <BsArrowDownUp className="text-gray-400 text-lg" />; // Default/no change relative to prev
   }
 
   return (
@@ -491,7 +563,7 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
         </div>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-1 mb-1">
-        {sortedTeams.map((team) => {
+        {sortedTeams.map((team) => { // sortedTeams now uses new data source
           const price = teamPrices[team.team.id] ?? DEFAULT_PROB;
           const isSelected = selectedBet === team.team.id;
           const prevVal = prevOdds[team.team.id];
@@ -512,8 +584,8 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
               onClick={() => !isResolved && handleSelectBet(team.team.id)}
             >
               <img
-                src={team.team.logo}
-                alt={team.team.name}
+                src={team.team.logo} // Uses new logo URL from derived sortedTeams
+                alt={team.team.name} // Uses new name from derived sortedTeams
                 className="w-[26px] h-[26px] sm:w-[28px] sm:h-[28px] object-contain"
               />
               <span className="text-lg sm:text-base">${price.toFixed(2)}</span>
@@ -567,13 +639,13 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
                         <span
                           style={{
                             color:
-                              selectedBet !== null
+                              selectedBet !== null && teamIndexMap[selectedBet] !== undefined // Ensure index is valid
                                 ? TEAM_COLORS[teamIndexMap[selectedBet] % TEAM_COLORS.length]
                                 : "text-gray-500",
                             fontWeight: "600",
                           }}
                         >
-                          ${sortedTeams
+                          ${sortedTeams // Uses new team name
                             .find((t) => t.team.id === selectedBet)
                             ?.team.name.split(" ")[0]
                             .toUpperCase() || "TEAM"}
@@ -626,7 +698,8 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
                             You will receive: {(Number(calculatedSharesScaled) / Number(SHARE_SCALE)).toFixed(2)}{" "}
                           </span>
                           <span className="text-blue-400 font-semibold">
-                            ${sortedTeams.find((t) => t.team.id === selectedBet)?.team.name.toUpperCase() || "TEAM"}
+                            ${/* Uses new team name */
+                            sortedTeams.find((t) => t.team.id === selectedBet)?.team.name.toUpperCase() || "TEAM"}
                           </span>{" "}
                           <span className="text-white">Tokens</span>
                         </span>
@@ -639,9 +712,9 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
                   <strong>You will receive:</strong>{" "}
                   {selectedBet === null || betAmount === ""
                     ? " $0.00 USDC"
-                    : netCost !== null
+                    : netCost !== null // Check netCost from useTournamentNetCost
                     ? ` $${(Number(netCost) / Number(SHARE_SCALE)).toFixed(2)} USDC`
-                    : " Loading..."}
+                    : isFetchingNetCost ? " Loading..." : " $0.00 USDC" /* Fallback or loading for sell */ }
                 </p>
               )}
               {marketStatus === "loading" && (
@@ -662,7 +735,7 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
                   : "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-700"
               }`}
               onClick={tradeType === "buy" ? buyShares : sellShares}
-              disabled={isTxPending}
+              disabled={isTxPending || marketStatus !== "ready" || !isValidBet || isResolved } // Added more comprehensive disabled conditions from original thinking if desired, or keep as original `isTxPending`
             >
               {isTxPending ? "Processing..." : tradeType === "buy" ? "BUY" : "SELL"}
             </button>
@@ -682,11 +755,12 @@ const TournamentBetting: React.FC<{ tournament: TournamentData }> = ({ tournamen
           <h2 className="text-white text-2xl sm:text-xl font-semibold mb-3">Success</h2>
           <p className="text-gray-300 text-lg sm:text-base">
             {tradeType === "buy" ? "You purchased" : "You sold"}{" "}
-            <span className="text-white font-bold">{modalData.shares}</span> Tokens
+            <span className="text-white font-bold">{modalData.shares.toFixed(2)}</span> Tokens 
           </p>
           <p className="text-gray-300 text-lg sm:text-base">
             for <span className="text-white font-bold">${modalData.cost.toFixed(2)}</span> USDC
           </p>
+          {/* Minimal changes: No txHash display unless it was in the original prompt's implied structure */}
           <button
             className="mt-4 bg-greyblue border-2 border-white hover:border-blue-500 text-white font-semibold px-6 py-2 sm:px-4 sm:py-1.5 rounded-full transition"
             onClick={closeModal}

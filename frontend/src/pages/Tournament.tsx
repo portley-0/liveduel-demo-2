@@ -45,11 +45,11 @@ const Tournament: React.FC = () => {
               </li>
               <li>
                 <Link
-                  to={`/dashboard/tournaments?league=${tournament.tournamentId}`}
-                  onClick={() => setSelectedLeague(tournament.tournamentId ?? null)}
+                  to="/dashboard/tournaments"
+                  //onClick={() => setSelectedLeague(tournament.tournamentId ?? null)}
                   className="hover:underline font-bold text-white"
                 >
-                  {tournament?.standings?.league?.name}
+                  {tournament.name}
                 </Link>
               </li>
               <li className="font-bold">
