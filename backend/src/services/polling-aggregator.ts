@@ -724,7 +724,7 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
     return;
   }
 
-  const combinedPoints: Array<{
+  const allPointsFromSources: Array<{
     timestamp: number;
     home: number;
     draw: number;
@@ -735,7 +735,7 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
   const existingHistory = currentMatchData.oddsHistory as OddsHistory | undefined;
   if (existingHistory && existingHistory.timestamps && existingHistory.timestamps.length > 0) {
     for (let i = 0; i < existingHistory.timestamps.length; i++) {
-      combinedPoints.push({
+      allPointsFromSources.push({
         timestamp: existingHistory.timestamps[i],
         home: existingHistory.homeOdds[i],
         draw: existingHistory.drawOdds[i],
@@ -747,7 +747,7 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
 
   oddsData.forEach(item => {
     try {
-      combinedPoints.push({
+      allPointsFromSources.push({
         timestamp: Number(item.timestamp) * 1000,
         home: decimalProbabilityToOdds(convert192x64ToDecimal(Number(item.home))),
         draw: decimalProbabilityToOdds(convert192x64ToDecimal(Number(item.draw))),
@@ -755,61 +755,98 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
         isNew: true,
       });
     } catch (e) {
-      // console.error(`[integrateOddsUpdates] Error processing new odds item for match ${matchId}:`, item, e);
+      // Error processing new odds item
     }
   });
 
-  combinedPoints.sort((a, b) => a.timestamp - b.timestamp);
-
-  const uniquePoints = combinedPoints.filter((point, index, self) =>
+  allPointsFromSources.sort((a, b) => a.timestamp - b.timestamp);
+  const uniqueCombinedPoints = allPointsFromSources.filter((point, index, self) =>
     index === self.findLastIndex(p => p.timestamp === point.timestamp)
   );
 
-  let flatTs1: number, flatTs2: number, flatTs3: number;
+  let expectedFlatTs1: number, expectedFlatTs2: number, expectedFlatTs3: number;
 
-  if (uniquePoints.length === 0) {
-    const anchorTimestamp = currentMatchData.matchTimestamp ? currentMatchData.matchTimestamp * 1000 : Date.now() - (WEEK_MS * 2); // Fallback if matchTimestamp is missing
-    flatTs1 = anchorTimestamp - WEEK_MS - 120000; // Further back to ensure it's before a potential match start based anchor
-    flatTs2 = anchorTimestamp - WEEK_MS - 60000;
-    flatTs3 = anchorTimestamp - WEEK_MS;
+  if (uniqueCombinedPoints.length === 0 || uniqueCombinedPoints.every(p => p.home === FLATLINE_ODDS && p.draw === FLATLINE_ODDS && p.away === FLATLINE_ODDS)) {
+    const anchorTimestamp = currentMatchData.matchTimestamp ? currentMatchData.matchTimestamp * 1000 : (Date.now() - WEEK_MS * 4); // Fallback to a very distant past if matchTimestamp is missing
+    expectedFlatTs1 = anchorTimestamp - WEEK_MS - 120000;
+    expectedFlatTs2 = anchorTimestamp - WEEK_MS - 60000;
+    expectedFlatTs3 = anchorTimestamp - WEEK_MS;
+     if (expectedFlatTs1 <= 0) { expectedFlatTs1 = 1; expectedFlatTs2 = 2; expectedFlatTs3 = 3; }
+     if (expectedFlatTs2 <= expectedFlatTs1) expectedFlatTs2 = expectedFlatTs1 + 1;
+     if (expectedFlatTs3 <= expectedFlatTs2) expectedFlatTs3 = expectedFlatTs2 + 1;
+
   } else {
-    const firstActualTs = uniquePoints[0].timestamp;
+    const firstSignalPoint = uniqueCombinedPoints.find(p => p.home !== FLATLINE_ODDS || p.draw !== FLATLINE_ODDS || p.away !== FLATLINE_ODDS);
+    const firstActualTs = firstSignalPoint ? firstSignalPoint.timestamp : (uniqueCombinedPoints.length > 0 ? uniqueCombinedPoints[0].timestamp : (currentMatchData.matchTimestamp ? currentMatchData.matchTimestamp * 1000 : Date.now() - WEEK_MS * 4));
+
     if (firstActualTs > 180000) {
-      flatTs3 = firstActualTs - 60000;
-      flatTs2 = firstActualTs - 120000;
-      flatTs1 = firstActualTs - 180000;
+      expectedFlatTs3 = firstActualTs - 60000;
+      expectedFlatTs2 = firstActualTs - 120000;
+      expectedFlatTs1 = firstActualTs - 180000;
     } else if (firstActualTs > 3) {
-      flatTs1 = 1;
-      flatTs2 = 2;
-      flatTs3 = 3;
+      expectedFlatTs1 = 1;
+      expectedFlatTs2 = 2;
+      expectedFlatTs3 = 3;
     } else {
-      flatTs1 = 1;
-      flatTs2 = 2;
-      flatTs3 = 3;
+      expectedFlatTs1 = 1;
+      expectedFlatTs2 = 2;
+      expectedFlatTs3 = 3;
     }
   }
 
-  const newHistory: OddsHistory = {
-    timestamps: [flatTs1, flatTs2, flatTs3],
-    homeOdds: [FLATLINE_ODDS, FLATLINE_ODDS, FLATLINE_ODDS],
-    drawOdds: [FLATLINE_ODDS, FLATLINE_ODDS, FLATLINE_ODDS],
-    awayOdds: [FLATLINE_ODDS, FLATLINE_ODDS, FLATLINE_ODDS],
-  };
+  let hasCorrectPrefix = false;
+  if (existingHistory && existingHistory.timestamps && existingHistory.timestamps.length >= 3) {
+    const prefixTimestampsMatch = existingHistory.timestamps[0] === expectedFlatTs1 &&
+                                existingHistory.timestamps[1] === expectedFlatTs2 &&
+                                existingHistory.timestamps[2] === expectedFlatTs3;
+    const prefixOddsAreFlatline = existingHistory.homeOdds.slice(0, 3).every(o => o === FLATLINE_ODDS) &&
+                                existingHistory.drawOdds.slice(0, 3).every(o => o === FLATLINE_ODDS) &&
+                                existingHistory.awayOdds.slice(0, 3).every(o => o === FLATLINE_ODDS);
+    if (prefixTimestampsMatch && prefixOddsAreFlatline) {
+      hasCorrectPrefix = true;
+    }
+  }
 
-  uniquePoints.forEach(point => {
-    if (point.timestamp > flatTs3) {
+  const newHistory: OddsHistory = { timestamps: [], homeOdds: [], drawOdds: [], awayOdds: [] };
+  let pointsToProcessForAppending = uniqueCombinedPoints;
+
+  if (hasCorrectPrefix) {
+    for (let i = 0; i < 3; i++) {
+      newHistory.timestamps.push(existingHistory!.timestamps[i]);
+      newHistory.homeOdds.push(existingHistory!.homeOdds[i]);
+      newHistory.drawOdds.push(existingHistory!.drawOdds[i]);
+      newHistory.awayOdds.push(existingHistory!.awayOdds[i]);
+    }
+    pointsToProcessForAppending = uniqueCombinedPoints.filter(p => p.timestamp > expectedFlatTs3 ||
+        (p.timestamp === expectedFlatTs3 && (p.home !== FLATLINE_ODDS || p.draw !== FLATLINE_ODDS || p.away !== FLATLINE_ODDS))
+    );
+
+  } else {
+    newHistory.timestamps.push(expectedFlatTs1, expectedFlatTs2, expectedFlatTs3);
+    newHistory.homeOdds.push(FLATLINE_ODDS, FLATLINE_ODDS, FLATLINE_ODDS);
+    newHistory.drawOdds.push(FLATLINE_ODDS, FLATLINE_ODDS, FLATLINE_ODDS);
+    newHistory.awayOdds.push(FLATLINE_ODDS, FLATLINE_ODDS, FLATLINE_ODDS);
+  }
+
+  pointsToProcessForAppending.forEach(point => {
+    if (point.timestamp > newHistory.timestamps[newHistory.timestamps.length -1 ]) {
       newHistory.timestamps.push(point.timestamp);
       newHistory.homeOdds.push(point.home);
       newHistory.drawOdds.push(point.draw);
       newHistory.awayOdds.push(point.away);
-    } else if (point.timestamp === flatTs3) {
-      if (point.home !== FLATLINE_ODDS || point.draw !== FLATLINE_ODDS || point.away !== FLATLINE_ODDS) {
-        newHistory.homeOdds[2] = point.home;
-        newHistory.drawOdds[2] = point.draw;
-        newHistory.awayOdds[2] = point.away;
+    } else if (point.timestamp === newHistory.timestamps[newHistory.timestamps.length -1]) {
+       // This case should primarily handle the point.timestamp === expectedFlatTs3 when hasCorrectPrefix is false
+       // or if a new point somehow aligns with the last point of an existing correct prefix.
+      if (point.home !== newHistory.homeOdds[newHistory.homeOdds.length -1] ||
+          point.draw !== newHistory.drawOdds[newHistory.drawOdds.length -1] ||
+          point.away !== newHistory.awayOdds[newHistory.awayOdds.length -1]) {
+            newHistory.homeOdds[newHistory.homeOdds.length -1] = point.home;
+            newHistory.drawOdds[newHistory.drawOdds.length -1] = point.draw;
+            newHistory.awayOdds[newHistory.awayOdds.length -1] = point.away;
       }
     }
   });
+
 
   let latestOddsToStore = { home: DEFAULT_PROB, draw: DEFAULT_PROB, away: DEFAULT_PROB };
   if (oddsData.length > 0) {
@@ -821,7 +858,6 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
         away: convert192x64ToDecimal(Number(lastIncomingOddsItem.away)),
       };
     } catch (e) {
-      // console.error(`[integrateOddsUpdates] Error converting latest odds for match ${matchId}:`, lastIncomingOddsItem, e);
       if (newHistory.timestamps.length > 0) {
         const lastIdx = newHistory.timestamps.length - 1;
         const probFromOdds = (o: number) => (o > 0 && o !== Infinity && o !== 0 ? 1 / o : DEFAULT_PROB);
