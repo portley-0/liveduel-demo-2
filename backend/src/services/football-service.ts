@@ -83,11 +83,6 @@ export async function getStandings(leagueId: number, season: number) {
   }
 }
 
-// Assuming TournamentQueryParams is defined as:
-// export interface TournamentQueryParams {
-//   league?: number;
-//   season?: number;
-// }
 
 export async function getTournamentDetails(params: TournamentQueryParams): Promise<any[]> {
   // Prepare parameters, specifically mapping params.league to 'id'

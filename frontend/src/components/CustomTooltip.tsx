@@ -1,7 +1,7 @@
 import React from "react";
 import { TbCircleLetterDFilled } from "react-icons/tb";
 import { MatchData } from "@/types/MatchData.ts";
-import { TournamentData, TeamStanding } from "@/types/TournamentData.ts";
+import { TournamentData, /* TeamStanding */ } from "@/types/TournamentData.ts"; // TeamStanding commented out as it's no longer directly used here
 
 type Format = "decimal" | "percent" | "fraction";
 
@@ -12,7 +12,7 @@ interface CustomTooltipProps {
   matchData?: MatchData;
   tournament?: TournamentData;
   format: Format;
-  teamIds?: string[];
+  teamIds?: string[]; // These are team IDs as strings, typically from Recharts dataKey
 }
 
 const TEAM_COLORS = [
@@ -73,18 +73,17 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
 
   const isMatchMode = !!matchData;
 
-  const getTeamData = (teamId: string) => {
-    if (!tournament?.standings?.league.standings) {
-      return { name: `Team ${teamId}`, logo: "/default-team-logo.png" };
+  // MODIFIED getTeamData function
+  const getTeamData = (teamIdString: string) => {
+    const teamIdNumber = parseInt(teamIdString, 10); // Convert string ID to number for lookup
+
+    if (tournament && tournament.teamNames && tournament.teamNames[teamIdNumber]) {
+      const name = tournament.teamNames[teamIdNumber];
+      const logo = `https://media.api-sports.io/football/teams/${teamIdNumber}.png`;
+      return { name, logo };
     }
-    const standings = tournament.standings.league.standings;
-    const flatStandings = Array.isArray(standings[0])
-      ? (standings as TeamStanding[][]).flat()
-      : (standings as TeamStanding[]);
-    const team = flatStandings.find((t) => t.team.id.toString() === teamId);
-    return team
-      ? { name: team.team.name, logo: team.team.logo }
-      : { name: `Team ${teamId}`, logo: "/default-team-logo.png" };
+    // Fallback if team not found in tournament.teamNames
+    return { name: `Team ${teamIdString}`, logo: "/default-team-logo.png" };
   };
 
   return (
@@ -134,13 +133,13 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
             }
             return null;
           })
-        : teamIds.map((teamId, index) => {
-            const item = payload.find((p) => p.dataKey === teamId);
-            const team = getTeamData(teamId);
+        : teamIds.map((teamIdString, index) => { // teamId here is a string from props.teamIds (dataKey)
+            const item = payload.find((p) => p.dataKey === teamIdString);
+            const team = getTeamData(teamIdString); // Uses the modified getTeamData
             const color = TEAM_COLORS[index % TEAM_COLORS.length];
 
             return (
-              <div key={teamId} className="flex items-center mb-1">
+              <div key={teamIdString} className="flex items-center mb-1">
                 <img src={team.logo} alt={team.name} className="w-5 h-5 mr-1.5" />
                 <span
                   className="text-xs font-semibold whitespace-nowrap"
