@@ -200,13 +200,13 @@ const TournamentList: React.FC = () => {
             <div className="relative w-full flex items-center mb-6 lg:mb-6 sm:mb-9 ">
               <div className="bg-white flex items-center justify-center w-[90px] h-[90px] sm:w-[90px] sm:h-[90px] lg:w-[70px] lg:h-[70px] 2xl:w-[70px] 2xl:h-[70px] aspect-square shrink-0 ">
                 <img
-                  src={tournament.standings?.league.logo || "/placeholder-logo.png"}
+                  src={tournament.standings?.league.logo || tournament.logo}
                   alt={tournament.name}
                   className="object-contain w-16 h-16 xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] lg:w-14 lg:h-14"
                 />
               </div>
               <span className="text-lg xs:text-lg sm:text-xl lg:text-sm font-[Lato-Bold] ml-2">
-                {tournament.standings?.league.name ? `${tournament.standings.league.name} Winner` : "Unknown Tournament Winner"}
+                {`${tournament.name} Winner`}
               </span>
             </div>
             <div className="bg-lightgreyblue flex-1 min-h-0 max-h-[7.5rem]">

@@ -70,6 +70,7 @@ export interface TeamStanding {
     nextRoundFixtures?: number[];
 
     teamIds?: number[];
+    teamNames?: Record<number, string>;
   
     oddsHistory?: {
       timestamps: number[];

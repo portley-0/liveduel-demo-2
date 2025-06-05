@@ -20,7 +20,8 @@ import {
   getEvents,
   getLineups,
   getStandings,
-  getTournamentDetails
+  getTournamentDetails,
+  getTeamNameById
 } from './football-service';
 
 import {
@@ -504,6 +505,54 @@ async function refreshTournamentSubgraphData(tournamentId: number, oddsData: Tou
 
     // Prepare update object
     const updates: Partial<TournamentData> = {};
+
+    let shouldFetchTeamNames = false;
+    if (!currentTournament.teamNames) { // Case 1: No teamNames map in cache at all
+        console.log(`[refreshTournamentSubgraphData] No teamNames object in cache for tournament ${tournamentId}. Will fetch.`);
+        shouldFetchTeamNames = true;
+    } else {
+        const cachedTeamIdsSet = new Set(currentTournament.teamIds || []);
+        // Case 2: Team list from subgraph is different from cached team list
+        if (teamIds.length !== cachedTeamIdsSet.size || !teamIds.every(id => cachedTeamIdsSet.has(id))) {
+            console.log(`[refreshTournamentSubgraphData] Team list changed for tournament ${tournamentId}. Cached: ${JSON.stringify(Array.from(cachedTeamIdsSet))}, New: ${JSON.stringify(teamIds)}. Will refresh all names.`);
+            shouldFetchTeamNames = true;
+        } else {
+            // Case 3: Team list is the same, but some names might be missing in the cached teamNames map
+            for (const teamId of teamIds) {
+                if (!currentTournament.teamNames[teamId]) {
+                    console.log(`[refreshTournamentSubgraphData] Missing name for teamId ${teamId} in tournament ${tournamentId} (team list unchanged). Will refresh names.`);
+                    shouldFetchTeamNames = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (shouldFetchTeamNames && teamIds.length > 0) {
+        console.log(`[refreshTournamentSubgraphData] Fetching/Refreshing team names for tournament ${tournamentId} using ${teamIds.length} team IDs.`);
+        const newTeamNamesRecord: Record<number, string> = {};
+        const seasonForNameApi = currentTournament.season;
+        if (seasonForNameApi === undefined) {
+            console.warn(`[refreshTournamentSubgraphData] Season is undefined for tournament ${tournamentId}. Team names will be fetched without season context for getTeamNameById (if it's optional).`);
+        }
+
+        for (const teamId of teamIds) {
+            try {
+                const teamName = await getTeamNameById(teamId, tournamentId, seasonForNameApi);
+                if (teamName) {
+                    newTeamNamesRecord[teamId] = teamName;
+                } else {
+                    console.warn(`[refreshTournamentSubgraphData] Could not fetch team name for teamId ${teamId} in tournament ${tournamentId}.`);
+                }
+            } catch (teamNameError) {
+                console.error(`[refreshTournamentSubgraphData] Error fetching team name for teamId ${teamId} in tournament ${tournamentId}:`, teamNameError);
+            }
+        }
+        updates.teamNames = newTeamNamesRecord;
+    } else if (shouldFetchTeamNames && teamIds.length === 0) {
+        console.log(`[refreshTournamentSubgraphData] Subgraph returned zero teamIds for tournament ${tournamentId}. Clearing teamNames.`);
+        updates.teamNames = {}; 
+    }
 
     // Update contract
     if (!currentTournament.contract || currentTournament.contract !== tournamentMarket.id) {
