@@ -358,7 +358,7 @@ async function addUpcomingTournamentsToCache() {
       console.log(`[TournamentCachePolling] Fetching tournament details for league ${leagueId}, target season ${targetSeason}.`);
       const detailsArray = await getTournamentDetails({ league: leagueId, season: targetSeason });
 
-      if (detailsArray && detailsArray.length > 0 && detailsArray[0] && detailsArray[0].name) {
+      if (detailsArray && detailsArray.length > 0 ) {
         const tournamentApiData = detailsArray[0];
 
         const newTournamentEntry: TournamentData = {
