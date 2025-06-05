@@ -82,7 +82,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
   const getTimeRangeStart = (): number => {
     const now = Date.now();
     const ranges: Record<Exclude<TimeRange, "default">, number> = {
-      "1h": now - 60 * 60 * 1000,
+      "1h": now - 60 * 60 * 1000, 
       "2h": now - 2 * 60 * 60 * 1000,
       "1d": now - 24 * 60 * 60 * 1000,
       "1w": now - 7 * 24 * 60 * 60 * 1000,
