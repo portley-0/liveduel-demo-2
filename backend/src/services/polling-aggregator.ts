@@ -331,7 +331,8 @@ async function addUpcomingTournamentsToCache() {
   console.log('[TournamentCachePolling] Starting to add/update specific season tournaments for defined leagues.');
 
   const activeTournaments = await getAllActiveTournaments();
-    for (const tournament of activeTournaments) {
+  console.log(activeTournaments);
+  for (const tournament of activeTournaments) {
     let targetSeason: number;
     const leagueId = Number(tournament.tournamentId);
     if (leagueId === 34) {
