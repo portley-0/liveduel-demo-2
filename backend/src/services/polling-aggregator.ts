@@ -64,7 +64,7 @@ export function startFastSubgraphPolling() {
       // Refresh tournament data
       const allTournaments = getAllTournaments();
       for (const tournament of allTournaments) {
-        if (tournament.resolvedAt) continue;
+        //if (tournament.resolvedAt) continue;
         console.log(`[SubgraphPolling] Refreshing tournament ${tournament.tournamentId}`);
         const oddsData = await getTournamentOddsById(tournament.tournamentId);
         await refreshTournamentSubgraphData(tournament.tournamentId, oddsData);
