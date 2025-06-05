@@ -83,29 +83,73 @@ export async function getStandings(leagueId: number, season: number) {
   }
 }
 
-export async function getTournamentDetails(params: TournamentQueryParams): Promise<any[]> {
-  try {
-    const cleanedParams = Object.fromEntries(
-      Object.entries(params).filter(([_, val]) => val !== undefined)
-    );
+// Assuming TournamentQueryParams is defined as:
+// export interface TournamentQueryParams {
+//   league?: number;
+//   season?: number;
+// }
 
+export async function getTournamentDetails(params: TournamentQueryParams): Promise<any[]> {
+  // Prepare parameters, specifically mapping params.league to 'id'
+  const cleanedParams: { [key: string]: number | string } = {};
+  if (params.league !== undefined) {
+    cleanedParams.id = params.league; // Send the league identifier as 'id'
+  }
+  if (params.season !== undefined) {
+    cleanedParams.season = params.season;
+  }
+
+  console.log(`[FootballService] getTournamentDetails - Attempting to fetch with effective params:`, JSON.stringify(cleanedParams));
+
+  try {
     const response = await apiClient.get('/leagues', { params: cleanedParams });
+
+    console.log(`[FootballService] getTournamentDetails - Raw response status for effective params ${JSON.stringify(cleanedParams)}: ${response.status}`);
+    console.log(`[FootballService] getTournamentDetails - Raw response.data for effective params ${JSON.stringify(cleanedParams)}:`, JSON.stringify(response.data, null, 2));
+
     if (response.status !== 200) {
-      throw new Error(`[FootballService] getTournamentDetails failed with status ${response.status}`);
+      throw new Error(`[FootballService] getTournamentDetails failed with status ${response.status}. Data: ${JSON.stringify(response.data)}`);
     }
 
-    const leagues = response.data?.response ?? [];
-    return leagues.map((league: any) => ({
-      id: league.league.id,
-      name: league.league.name,
-      logo: league.league.logo,
-    }));
-  } catch (error) {
+    if (!response.data || !response.data.response) {
+      console.warn(`[FootballService] getTournamentDetails - API response.data or response.data.response is missing for params:`, cleanedParams);
+      console.warn(`[FootballService] getTournamentDetails - Full API response.data for missing structure:`, JSON.stringify(response.data, null, 2));
+      return []; 
+    }
+
+    const leagues = response.data.response ?? []; 
+
+    if (!Array.isArray(leagues)) {
+        console.warn(`[FootballService] getTournamentDetails - API response.data.response was not an array for params:`, cleanedParams, `. Actual data:`, JSON.stringify(leagues, null, 2));
+        return []; 
+    }
+
+    return leagues.map((leagueItem: any) => {
+      if (leagueItem && leagueItem.league && leagueItem.league.id !== undefined && leagueItem.league.name !== undefined) {
+        return {
+          id: leagueItem.league.id,
+          name: leagueItem.league.name,
+          logo: leagueItem.league.logo, 
+        };
+      } else {
+        console.warn(`[FootballService] getTournamentDetails - Encountered an item in 'leagues' array with unexpected structure:`, JSON.stringify(leagueItem, null, 2));
+        return null; 
+      }
+    }).filter(item => item !== null); 
+
+  } catch (error: any) {
     console.error(
-      `[FootballService] Error fetching tournament details for league ${params.league}, season ${params.season}:`,
-      error
+      `[FootballService] CRITICAL Error fetching tournament details for original params { league: ${params.league}, season: ${params.season} } (effective params: ${JSON.stringify(cleanedParams)}):`,
+      error.message
     );
-    throw error;
+    if (error.response) {
+      console.error('[FootballService] Error response data:', JSON.stringify(error.response.data, null, 2));
+      console.error('[FootballService] Error response status:', error.response.status);
+      console.error('[FootballService] Error response headers:', JSON.stringify(error.response.headers, null, 2));
+    } else if (error.request) {
+      console.error('[FootballService] Error request:', error.request);
+    }
+    return []; 
   }
 }
 
