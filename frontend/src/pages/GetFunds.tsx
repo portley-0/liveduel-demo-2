@@ -246,7 +246,7 @@ const GetFunds: React.FC = () => {
             {/* Desktop layout */}
             <div className="hidden md:block">
               <section className="-mt-10">
-                <h2 className="text-2xl font-semibold mb-2">2. Mint mUSDC</h2>
+                <h2 className="text-2xl font-semibold mb-2">2. Mint Testnet mUSDC</h2>
                 <div className="mt-1 flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-4">
                   <input
                     type="text"
