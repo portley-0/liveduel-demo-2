@@ -209,7 +209,7 @@ const GetFunds: React.FC = () => {
               <div className="flex items-center w-full h-48">
                 <div className="flex-1 flex flex-col justify-center">
                   <h2 className="text-4xl xxs:text-xl xs:text-2xl font-semibold ">
-                    2. Mint Testnet mUSDC
+                    2. Mint Testnet <br /> mUSDC
                   </h2>
                 </div>
                 <div className="ml-auto flex-shrink-0 h-full flex items-center justify-center">
