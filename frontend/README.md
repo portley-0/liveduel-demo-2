@@ -48,31 +48,48 @@ frontend/
 │   ├── abis/
 │   │   ├── ConditionalTokens.json
 │   │   ├── PredictionMarket.json
+│   │   ├── TournamentMarket.json
 │   │   ├── LiquidityPool.json
 │   │   ├── MarketFactory.json
 │   │   └── MockUSDC.json
 │   ├── components/
 │   │   ├── Betting.tsx
+│   │   ├── CustomTooltip.tsx
 │   │   ├── FilterMenu.tsx
 │   │   ├── MatchCard.tsx
 │   │   ├── MatchInfo.tsx
 │   │   ├── MatchList.tsx
-│   │   └── Titlebar.tsx
+│   │   ├── Spinner.tsx
+│   │   ├── Titlebar.tsx
+│   │   ├── TournamentBetting.tsx
+│   │   ├── TournamentCard.tsx
+│   │   ├── TournamentInfo.tsx
+│   │   ├── TournamentList.tsx
+│   │   ├── TournamentTradingViewChart.tsx
+│   │   └── TradingViewChart.tsx
 │   ├── context/
+│   │   ├── FilterContext.tsx
+│   │   ├── TournamentContext.tsx
 │   │   ├── MatchContext.tsx
 │   │   └── WalletProvider.tsx
 │   ├── hooks/
 │   │   ├── useMarketFactory.ts
+│   │   ├── useTournamentMarketFactory.ts
+│   │   ├── useTournamentNetCost.ts
 │   │   └── useNetCost.ts
 │   ├── pages/
 │   │   ├── BuyDuel.tsx
-│   │   ├── Markets.tsx
+│   │   ├── GetFunds.tsx
 │   │   ├── Match.tsx
+│   │   ├── Matches.tsx
 │   │   ├── Predictions.tsx
-│   │   └── Staking.tsx
+│   │   ├── Staking.tsx
+│   │   ├── Tournament.tsx
+│   │   └── Tournaments.tsx
 │   ├── styles/
 │   │   └── globals.css
 │   ├── types/
+│   │   ├── TournamentData.ts
 │   │   └── MatchData.ts
 │   ├── App.tsx
 │   ├── main.tsx

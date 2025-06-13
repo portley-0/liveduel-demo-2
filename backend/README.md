@@ -24,7 +24,7 @@ Below is an overview of the key components:
 * **`get-predictions.ts`** - Aggregates user prediction data from purchase and sales events.
 * **`deploy-market.ts`** - Handles deploying new prediction markets on the blockchain.
 
-### Managed Market Maker & Rebalancer
+### Managed Market Maker / Rebalancer Bot
 
 This is a new service designed to manage the liquidity and pricing of all active prediction markets. It ensures that on-chain odds accurately reflect real-world betting markets, providing a superior user experience.
 
@@ -38,7 +38,7 @@ This is a new service designed to manage the liquidity and pricing of all active
 ---
 ## Key Technologies & Strategies
 
-The Managed Market Maker leverages several advanced algorithms and strategies:
+The Rebalancer Bot leverages several advanced algorithms and strategies:
 
 * **Cyclic Coordinate Descent:** The core optimization algorithm used to find the ideal trade amounts by iteratively refining each outcome.
 * **Binary Search:** The efficient search algorithm used within the Coordinate Descent to find the optimal value for each individual outcome.

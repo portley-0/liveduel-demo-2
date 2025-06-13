@@ -1,7 +1,7 @@
 # Subgraph Module
 
 ## Overview
-The **Subgraph Module** indexes key events from the **PredictionMarket** and **MarketFactory** contracts, enabling efficient data retrieval for the frontend and backend.
+The **Subgraph Module** indexes key events from the **PredictionMarket**, **TournamentMarket** and **MarketFactory** contracts, enabling efficient data retrieval for the frontend and backend.
 
 This subgraph is deployed to a self-hosted **Graph Node** running on **AWS EC2** via Docker Compose.
 
@@ -34,17 +34,17 @@ The subgraph tracks the following **PredictionMarket** contract events:
 - `SharesPurchased(buyer, outcome, shares, actualCost)`
 - `SharesSold(seller, outcome, shares, actualGain)`
 - `OddsUpdated(matchId, home, draw, away)`
-- `PayoutRedeemed(address indexed redeemer, uint8 indexed outcome, uint256 amount)`
-- `MarketResolved(uint256 indexed matchId, uint8 indexed outcome)`
+- `PayoutRedeemed(redeemer, outcome, amount)`
+- `MarketResolved(matchId, outcome)`
 
 The subgraph tracks the following **TournamentMarket** contract events:
 - `SharesPurchased(tournamentId, outcome, shares, cost)`
 - `SharesSold(tournamentId, seller, outcome, shares, actualGain)`
 - `OddsUpdated(tournamentId, marginalPrices)`
 - `PayoutRedeemed(tournamentId, redeemer, outcome, amount)`
-- `MarketResolved(uint256 indexed tournamentId, uint8 indexed outcome)`
-- `FixtureAdded(uint256 indexed tournamentId, uint256 indexed matchId, bool isRoundFinal, bool isTournamentFinal)`
-- `MatchResultRecorded(uint256 indexed tournamentId, uint256 indexed matchId, uint8 apiOutcome, uint8 winnerIndex)`
+- `MarketResolved(tournamentId, outcome)`
+- `FixtureAdded(tournamentId, matchId, isRoundFinal, isTournamentFinal)`
+- `MatchResultRecorded(tournamentId, matchId, apiOutcome, winnerIndex)`
     
 
 It tracks the following **MarketFactory** contract event: 

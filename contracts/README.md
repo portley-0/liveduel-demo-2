@@ -126,7 +126,7 @@ Required environment variables:
 
 ### Deploy Contracts
 
-> Note: Chainlink SubscriptionID must be provided to DeployResultsConsumer.ts
+> Note: Chainlink SubscriptionID must be provided to DeployResultsConsumer.ts and DeployRoundConsumer.ts
 
 ```bash
 pnpm run deploy:gnosis
@@ -158,7 +158,8 @@ After deploying:
 > Note: factory.test.ts requires setting matchId and timestamp. 
 
 ```bash
-pnpm run test:chainlink
+pnpm run test:resultsconsumer
+pnpm run test:roundconsumer
 pnpm run test:sanity
 pnpm run test:staking
 pnpm run test:factory
