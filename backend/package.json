@@ -17,6 +17,7 @@
     "dotenv": "^16.4.5",
     "ethers": "^6.13.5",
     "express": "^4.21.1",
+    "fuzzball": "^2.2.2",
     "graphql-request": "^7.1.2",
     "http": "0.0.1-security",
     "node-fetch": "^2.7.0",

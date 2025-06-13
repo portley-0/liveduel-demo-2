@@ -4,7 +4,8 @@ import express, { Request, Response } from 'express';
 import cors from "cors";
 import { Server as SocketIOServer } from 'socket.io';
 import { deployMarket } from './services/deploy-market';
-import { getUserPredictions } from './services/get-predictions'
+import { getUserPredictions } from './services/get-predictions';
+import { startRebalancerPolling } from './services/rebalancer';
 import { startDataPolling, startFastSubgraphPolling, startMatchCachePolling, startStandingsPolling, startTournamentCachePolling } from './services/polling-aggregator';
 import { initCache, initTournamentCache, getMatchData, getTournamentData } from './cache';
 import { initSocket } from './socket';
@@ -98,6 +99,7 @@ async function main() {
   startStandingsPolling();
   startDataPolling();
   startFastSubgraphPolling();
+  startRebalancerPolling();
 
   app.post('/deploy', async (req, res) => {
     try {
