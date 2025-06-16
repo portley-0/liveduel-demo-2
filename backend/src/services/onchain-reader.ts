@@ -42,7 +42,7 @@ const marketFactoryContract = new ethers.Contract(
 
 export async function getActiveMatchIds(): Promise<number[]> {
   try {
-    const activeMatchesAsBigInt: bigint[] = await marketFactoryContract.activeMatches();
+    const activeMatchesAsBigInt: bigint[] = await marketFactoryContract.getActiveMatches();
     return activeMatchesAsBigInt.map(id => Number(id));
   } catch (error) {
     console.error("Error fetching active match IDs:", error);

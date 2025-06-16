@@ -1,30 +1,25 @@
-// src/services/id-mapper.ts
-
 import fuzz from 'fuzzball';
 import { getFixtures } from './football-service'; 
 import { getMatchbookUpcomingEvents, MatchbookEvent } from './matchbook.api';
 
-// --- TYPE DEFINITIONS ---
 interface ApiFootballMatchDetails {
   homeTeam: string;
   awayTeam: string;
   kickoffTime: string;
 }
 
-// ** MODIFIED INTERFACE **
-// This is the new, richer object our function will return.
 export interface MappingResult {
     matchbookEventId: number;
     homeTeamName: string;
     awayTeamName: string;
 }
 
-// --- CACHING ---
-const idCache = new Map<number, MappingResult>(); // Cache now stores the full result
+const idCache = new Map<number, MappingResult>(); 
 const failedMatchCache = new Set<number>();
-const MIN_SIMILARITY_SCORE = 85;
+const MIN_SIMILARITY_SCORE = 70;
 
 async function getApiFootballMatchDetails(apiFootballId: number): Promise<ApiFootballMatchDetails | null> {
+    console.log(`ID MAPPER: Fetching details for API-Football ID: ${apiFootballId} from football-service.`); // <--- ADD THIS LOG
     try {
         const fixturesResponse = await getFixtures({ id: apiFootballId });
         if (!fixturesResponse || fixturesResponse.length === 0) {
@@ -43,11 +38,6 @@ async function getApiFootballMatchDetails(apiFootballId: number): Promise<ApiFoo
     }
 }
 
-/**
- * **MODIFIED FUNCTION**
- * The main exported function. It now finds a Matchbook event ID and returns it
- * along with the team names used for the match.
- */
 export async function findMatchbookId(apiFootballId: number): Promise<MappingResult | null> {
     if (idCache.has(apiFootballId)) {
         console.log(`ID MAPPER: Cache HIT for API-Football ID ${apiFootballId}.`);
@@ -69,6 +59,9 @@ export async function findMatchbookId(apiFootballId: number): Promise<MappingRes
             failedMatchCache.add(apiFootballId);
             return null;
         }
+        
+        console.log(`ID MAPPER: Found ${matchbookEvents.length} Matchbook events for kickoff time window.`);
+        console.log('ID MAPPER: Matchbook events fetched:', matchbookEvents);
 
         let bestMatch: MatchbookEvent | null = null;
         let highestScore = 0;
@@ -76,6 +69,8 @@ export async function findMatchbookId(apiFootballId: number): Promise<MappingRes
 
         for (const mbEvent of matchbookEvents) {
             const score = fuzz.token_set_ratio(footballMatchName, mbEvent.name);
+            console.log(`ID MAPPER: Comparing "${footballMatchName}" with Matchbook event "${mbEvent.name}". Score: ${score}`);
+
             if (score > highestScore) {
                 highestScore = score;
                 bestMatch = mbEvent;
@@ -85,7 +80,6 @@ export async function findMatchbookId(apiFootballId: number): Promise<MappingRes
         if (bestMatch && highestScore >= MIN_SIMILARITY_SCORE) {
             console.log(`ID MAPPER: Found confident match for ${apiFootballId}! Matchbook Event: "${bestMatch.name}" (${bestMatch.id}) with score ${highestScore}.`);
             
-            // ** MODIFIED CACHE AND RETURN VALUE **
             const result: MappingResult = {
                 matchbookEventId: bestMatch.id,
                 homeTeamName: footballMatch.homeTeam,

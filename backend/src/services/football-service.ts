@@ -1,6 +1,8 @@
 import axios from 'axios';
+import 'dotenv/config';
 
 const API_KEY = process.env.API_KEY || '';
+console.log('API_KEY from env:', process.env.API_KEY);
 const BASE_URL = 'https://v3.football.api-sports.io';
 
 const apiClient = axios.create({

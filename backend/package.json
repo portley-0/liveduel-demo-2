@@ -4,7 +4,13 @@
   "description": "",
   "main": "server.ts",
   "scripts": {
-    "start": "tsx src/server.ts"
+    "start": "tsx src/server.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:onchain": "jest --testMatch \"<rootDir>/tests/onchain-reader.test.ts\"",
+    "test:id-mapper": "jest --testMatch \"<rootDir>/tests/id-mapper.test.ts\"",
+    "test:calculator": "jest --testMatch \"<rootDir>/tests/trade-calculator.test.ts\"",
+    "test:executor": "jest --testMatch \"<rootDir>/tests/trade-executor.test.ts\""
   },
   "keywords": [],
   "author": "",
@@ -26,8 +32,11 @@
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/jest": "^29.5.14",
     "@types/node": "^22.13.9",
     "@types/node-fetch": "^2.6.12",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.4.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   }

@@ -52,33 +52,28 @@ async function getSessionToken(): Promise<string> {
   return await login();
 }
 
-/**
- * Fetches a list of upcoming soccer events from Matchbook for the ID mapper.
- */
 export async function getMatchbookUpcomingEvents(kickoffTime: string): Promise<MatchbookEvent[]> {
-    // This function is correct and needs no changes
     try {
         const token = await getSessionToken();
         const eventStartTime = new Date(kickoffTime);
         const params = {
-            'sport-ids': 15, // ID for Soccer
-            'states': 'open',
+            'sport-ids': 15, 
             'per-page': 100,
-            'after': (eventStartTime.getTime() - 3 * 60 * 60 * 1000), // Widen search window
-            'before': (eventStartTime.getTime() + 3 * 60 * 60 * 1000),
+            'after': Math.floor((eventStartTime.getTime() - (24 * 60 * 60 * 1000)) / 1000), 
+            'before': Math.floor((eventStartTime.getTime() + (48 * 60 * 60 * 1000)) / 1000),
         };
 
         const response = await axios.get(`${MATCHBOOK_API_URL}/edge/rest/events`, {
             headers: { 'session-token': token, 'Accept': 'application/json' },
             params,
         });
+        console.log(`Fetched ${response.data.events.length} upcoming Matchbook events around kickoff time ${kickoffTime}.`);
         
         return response.data.events.map((event: any) => ({
             id: event.id,
             name: event.name,
         }));
     } catch (error) {
-        // ... (safe error handling)
         return [];
     }
 }

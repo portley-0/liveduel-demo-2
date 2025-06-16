@@ -32,6 +32,7 @@ This is a new service designed to manage the liquidity and pricing of all active
 * **`onchain-reader.ts`** - A dedicated module for all read-only interactions with the smart contracts, fetching market state and odds.
 * **`matchbook.api.ts`** - A client for the Matchbook API, responsible for fetching external market odds.
 * **`id-mapper.ts`** - A crucial service that maps internal `api-football` match IDs to the corresponding `Matchbook` event IDs using fuzzy matching.
+* **`fixed-192x64-math.ts`** - A critical library that precisely replicates the Solidity smart contract's fixed-point arithmetic using BigInt, ensuring the accuracy of the off-chain model.
 * **`trade-calculator.ts`** - The "brain" of the operation. It uses an off-chain model of the LMSR to calculate the most efficient trade to align odds.
 * **`trade-executor.ts`** - The "hands" of the operation. It safely submits the calculated trade transactions to the blockchain.
 
@@ -40,8 +41,9 @@ This is a new service designed to manage the liquidity and pricing of all active
 
 The Rebalancer Bot leverages several advanced algorithms and strategies:
 
-* **Cyclic Coordinate Descent:** The core optimization algorithm used to find the ideal trade amounts by iteratively refining each outcome.
-* **Binary Search:** The efficient search algorithm used within the Coordinate Descent to find the optimal value for each individual outcome.
+* **High-Precision Fixed-Point Math:** The core of the rebalancer's accuracy. A TypeScript library using BigInt that faithfully re-implements the Fixed192x64Math from the smart contracts. This avoids floating-point errors and ensures the off-chain calculations match the on-chain reality.
+
+* **Directional Search & Ternary Search:** The optimization algorithm used to find the ideal trade. It first calculates an optimal direction vector to move the market odds and then uses a Ternary Search to find the optimal trade magnitude (k) along that vector which minimizes the error from the target odds. This is a robust approach for unimodal functions.
 * **Token Set Ratio (Fuzzy String Matching):** The specific algorithm from the `fuzzball` library used to reliably map team names between different API sources.
 * **Off-Chain LMSR Simulation:** Replicating the on-chain `pow(2,x)`-based LMSR price formula in TypeScript to predict trade outcomes instantly without gas costs.
 * **Zero-Cost Rebalancing Strategy:** The overall financial goal of structuring trades to have a net cost of zero, using the proceeds from selling overpriced outcomes to fund the purchase of underpriced ones.
@@ -70,6 +72,7 @@ backend/
 │   │   ├── matchbook.api.ts
 │   │   ├── id-mapper.ts
 │   │   ├── trade-calculator.ts
+│ 	│ 	├── fixed-192x64-math.ts
 │   │   └── trade-executor.ts
 │   ├── cache.ts
 │   ├── server.ts
