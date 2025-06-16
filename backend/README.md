@@ -35,6 +35,7 @@ This is a new service designed to manage the liquidity and pricing of all active
 * **`fixed-192x64-math.ts`** - A critical library that precisely replicates the Solidity smart contract's fixed-point arithmetic using BigInt, ensuring the accuracy of the off-chain model.
 * **`trade-calculator.ts`** - The "brain" of the operation. It uses an off-chain model of the LMSR to calculate the most efficient trade to align odds.
 * **`trade-executor.ts`** - The "hands" of the operation. It safely submits the calculated trade transactions to the blockchain.
+* **`portfolio-manager.ts`** - This module handles the bots outcome token inventory so that it can handle selling outcomes aswell as buying.
 
 ---
 ## Key Technologies & Strategies
@@ -45,7 +46,7 @@ The Rebalancer Bot leverages several advanced algorithms and strategies:
 
 * **Directional Search & Ternary Search:** The optimization algorithm used to find the ideal trade. It first calculates an optimal direction vector to move the market odds and then uses a Ternary Search to find the optimal trade magnitude (k) along that vector which minimizes the error from the target odds. This is a robust approach for unimodal functions.
 * **Token Set Ratio (Fuzzy String Matching):** The specific algorithm from the `fuzzball` library used to reliably map team names between different API sources.
-* **Off-Chain LMSR Simulation:** Replicating the on-chain `pow(2,x)`-based LMSR price formula in TypeScript to predict trade outcomes instantly without gas costs.
+* **Off-Chain LMSR Simulation:** Replicating the on-chain `pow(2,x)`-based LMSR price formula in TypeScript to predict trade outcomes instantly.
 * **Zero-Cost Rebalancing Strategy:** The overall financial goal of structuring trades to have a net cost of zero, using the proceeds from selling overpriced outcomes to fund the purchase of underpriced ones.
 * **In-Memory Caching:** Using `Map` and `Set` objects to cache API results and mapping decisions, drastically reducing redundant network calls.
 * **ethers.js:** The library used for all on-chain interactions, including reading market states and executing transactions.
@@ -66,13 +67,14 @@ backend/
 │   │   ├── polling-aggregator.ts
 │   │   ├── get-predictions.ts
 │   │   ├── deploy-market.ts
+│   │   ├── portfolio-manager.ts
 │   │   ├── rebalancer.ts
 │   │   ├── rebalancer.config.ts
 │   │   ├── onchain-reader.ts
 │   │   ├── matchbook.api.ts
 │   │   ├── id-mapper.ts
 │   │   ├── trade-calculator.ts
-│ 	│ 	├── fixed-192x64-math.ts
+│   │   ├── fixed-192x64-math.ts
 │   │   └── trade-executor.ts
 │   ├── cache.ts
 │   ├── server.ts
