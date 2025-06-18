@@ -2,7 +2,7 @@ import { findMatchbookId, MappingResult } from '../src/services/id-mapper';
 
 const ENABLE_CONSOLE_LOGS = true; 
 
-const TEST_API_FOOTBALL_ID = 1321685; 
+const TEST_API_FOOTBALL_ID = 1321690; 
 
 const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args) => {
   if (ENABLE_CONSOLE_LOGS) {
@@ -46,7 +46,6 @@ describe('id-mapper (functionality test)', () => {
       console.log(`  Matchbook Event ID: ${mappingResult.matchbookEventId}`);
       console.log(`  Home Team Name: ${mappingResult.homeTeamName}`);
       console.log(`  Away Team Name: ${mappingResult.awayTeamName}`);
-      // Basic assertions to confirm structure if found
       expect(mappingResult).toHaveProperty('matchbookEventId');
       expect(typeof mappingResult.matchbookEventId).toBe('number');
       expect(mappingResult.matchbookEventId).toBeGreaterThan(0);

@@ -28,8 +28,10 @@ import {
   getOddsUpdatesByMatchId,
   getPredictionMarketByMatchId,
   getSharesPurchasedByMarket,
+  getTradesExecutedByMarket,
   getSharesSoldByMarket,
   OddsUpdatedEntity,
+  TradeExecutedEntity,
   getTournamentOddsById,
   getTournamentMarketByTournamentId,
   getTournamentSharesPurchasedByMarket,
@@ -38,6 +40,8 @@ import {
   TournamentOddsUpdatedEntity,
   getAllActiveTournaments
 } from './subgraph-service';
+
+import { unwindPositions } from './portfolio-manager';
 
 const LEAGUES = [2, 3, 11, 13, 15, 34, 39, 130, 140, 71, 78, 61, 135, 239, 265, 848];
 const SEASONS = [2024, 2025, 2026];
@@ -469,10 +473,17 @@ async function refreshSubgraphData(matchId: number) {
     const predictionMarket = await getPredictionMarketByMatchId(matchId);
 
     if (predictionMarket) {
-      if (predictionMarket.isResolved) {
+      const matchInCache = getMatchData(matchId);
+      if (predictionMarket.isResolved && !matchInCache?.resolvedAt) {
+        console.log(`POLLER: Detected resolved market ${matchId}. Caching resolution and triggering unwind.`);
+        
         updateMatchData(matchId, {
           resolvedAt: Date.now(),
           outcome: predictionMarket.resolvedOutcome ?? undefined
+        });
+
+        unwindPositions(matchId).catch(error => {
+            console.error(`POLLER: Error during unwind process for market ${matchId}:`, error);
         });
       }
 
@@ -936,16 +947,25 @@ function integrateOddsUpdates(matchId: number, oddsData: OddsUpdatedEntity[]) {
 }
 
 async function computeBettingVolume(matchId: number, marketAddress: string) {
-  const purchasedData = await getSharesPurchasedByMarket(marketAddress);
-  const soldData = await getSharesSoldByMarket(marketAddress);
+  const [purchasedData, soldData, executedTradeData] = await Promise.all([
+    getSharesPurchasedByMarket(marketAddress),
+    getSharesSoldByMarket(marketAddress),
+    getTradesExecutedByMarket(marketAddress) 
+  ]);
 
   let totalVolume = 0;
 
   for (const purchaseItem of purchasedData) {
     totalVolume += Number(purchaseItem.actualCost);
   }
+
   for (const saleItem of soldData) {
     totalVolume += Number(saleItem.actualGain);
+  }
+
+  for (const executedTrade of executedTradeData) {
+    const tradeValue = Math.abs(Number(executedTrade.netCostOrGain));
+    totalVolume += tradeValue;
   }
 
   updateMatchData(matchId, { bettingVolume: totalVolume });

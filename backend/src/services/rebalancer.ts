@@ -18,8 +18,8 @@ function calculateDivergence(onChainOdds: MarketOdds, targetOdds: MarketOdds): n
   return Math.max(homeDiv, drawDiv, awayDiv);
 }
 
-const provider = new ethers.JsonRpcProvider(RPC_URL);
-const signer = new ethers.Wallet(REBALANCER_PRIVATE_KEY!, provider);
+const rebalancerProvider = new ethers.JsonRpcProvider(RPC_URL);
+const signer = new ethers.Wallet(REBALANCER_PRIVATE_KEY!, rebalancerProvider);
 console.log(`Rebalancer service initialized. Using wallet: ${signer.address}`);
 
 async function rebalanceAllMarkets() {
@@ -48,7 +48,7 @@ async function rebalanceAllMarkets() {
         const { matchbookEventId, homeTeamName, awayTeamName } = mappingResult;
         
         const [onChainOdds, targetOdds] = await Promise.all([
-            getOnChainOdds(marketState.lmsrAddress),
+            getOnChainOdds(marketState.predictionMarketAddress),
             getMatchbookOdds(matchbookEventId, homeTeamName, awayTeamName),
         ]);
 
@@ -68,6 +68,7 @@ async function rebalanceAllMarkets() {
 
         console.log(`Divergence of ${(divergence * 100).toFixed(2)}% detected for market ${matchId}. Analyzing trade...`);
 
+        // Assume calculateOptimalTrade returns tradeAmounts as `number[]`
         const optimalTrade = calculateOptimalTrade(marketState, targetOdds);
         if (!optimalTrade.hasProfitableTrade || !optimalTrade.tradeAmounts) {
           console.log(`No profitable rebalancing trade found for market ${matchId}.`);
@@ -75,9 +76,8 @@ async function rebalanceAllMarkets() {
         }
         
         const tradeOrder: TradeOrder = {
-          lmsrAddress: marketState.lmsrAddress,
-          usdcAddress: marketState.usdcAddress,
-          tradeAmounts: optimalTrade.tradeAmounts,
+          predictionMarketAddress: marketState.predictionMarketAddress,
+          tradeAmounts: optimalTrade.tradeAmounts.map(BigInt),
         };
 
         console.log(`Optimal trade found for ${matchId}:`, tradeOrder.tradeAmounts);

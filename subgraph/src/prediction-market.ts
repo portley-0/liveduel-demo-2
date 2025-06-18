@@ -1,6 +1,7 @@
 import {
   SharesPurchased as SharesPurchasedEvent,
   SharesSold as SharesSoldEvent,
+  TradeExecuted as TradeExecutedEvent,
   OddsUpdated as OddsUpdatedEvent,
   MarketResolved as MarketResolvedEvent,
   PayoutRedeemed as PayoutRedeemedEvent
@@ -9,11 +10,25 @@ import {
 import {
   SharesPurchased,
   SharesSold,
+  TradeExecuted,
   OddsUpdated,
   MarketResolved,
   PayoutRedeemed,
   PredictionMarket
 } from "../generated/schema"
+
+export function handleTradeExecuted(event: TradeExecutedEvent): void {
+  let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
+  let entity = new TradeExecuted(id)
+
+  entity.market = event.address
+  entity.user = event.params.user
+  entity.tradeAmounts = event.params.tradeAmounts
+  entity.netCostOrGain = event.params.netCostOrGain
+  entity.timestamp = event.block.timestamp
+
+  entity.save()
+}
 
 export function handleSharesPurchased(event: SharesPurchasedEvent): void {
   let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString()

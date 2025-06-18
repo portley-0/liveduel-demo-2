@@ -225,6 +225,27 @@ export async function getSharesPurchasedByMarket(marketAddress: string): Promise
   return data.sharesPurchaseds;
 }
 
+export async function getTradesExecutedByMarket(marketAddress: string): Promise<TradeExecutedEntity[]> {
+  const query = gql`
+    query TradesExecutedByMarket($market: Bytes!) {
+      tradeExecuteds(where: { market: $market }) {
+        id
+        market
+        user
+        tradeAmounts
+        netCostOrGain
+        timestamp
+      }
+    }
+  `;
+  const data = await request<{ tradeExecuteds: TradeExecutedEntity[] }>(
+    SUBGRAPH_URL,
+    query,
+    { market: marketAddress.toLowerCase() }
+  );
+  return data.tradeExecuteds;
+}
+
 export async function getTournamentSharesPurchasedByMarket(marketAddress: string): Promise<TournamentSharesPurchasedEntity[]> {
   const query = gql`
     query GetTournamentSharesPurchased($market: Bytes!) {
@@ -549,6 +570,15 @@ export interface SharesPurchasedEntity {
   shares: string;       
   actualCost: string;   
   timestamp: string;    
+}
+
+export interface TradeExecutedEntity {
+  id: string;
+  market: string;
+  user: string; 
+  tradeAmounts: string[]; 
+  netCostOrGain: string;
+  timestamp: string; 
 }
 
 export interface SharesSoldEntity {

@@ -10,7 +10,8 @@
     "test:onchain": "jest --testMatch \"<rootDir>/tests/onchain-reader.test.ts\"",
     "test:id-mapper": "jest --testMatch \"<rootDir>/tests/id-mapper.test.ts\"",
     "test:calculator": "jest --testMatch \"<rootDir>/tests/trade-calculator.test.ts\"",
-    "test:executor": "jest --testMatch \"<rootDir>/tests/trade-executor.test.ts\""
+    "test:executor": "jest --testMatch \"<rootDir>/tests/trade-executor.test.ts\"",
+    "test:matchbook": "jest --testMatch \"<rootDir>/tests/matchbook.test.ts\""
   },
   "keywords": [],
   "author": "",

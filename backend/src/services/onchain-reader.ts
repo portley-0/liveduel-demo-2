@@ -4,10 +4,12 @@ import { RPC_URL, MARKET_FACTORY_ADDRESS } from './rebalancer.config';
 import MarketFactoryArtifact from '../artifacts/MarketFactory.json';
 import ConditionalTokensArtifact from '../artifacts/ConditionalTokens.json';
 import LmsrMarketMakerArtifact from '../artifacts/LMSRMarketMaker.json';
+import PredictionMarketArtifact from '../artifacts/PredictionMarket.json';
 
 const FIXED_192x64_SCALING_FACTOR = 18446744073709551616n;
 
 interface MarketDetails {
+  predictionMarketAddress: string;
   lmsrAddress: string;
   conditionId: string;
   conditionalTokensAddress: string;
@@ -15,10 +17,10 @@ interface MarketDetails {
 }
 
 export interface MarketState {
-  lmsrAddress: string;
+  predictionMarketAddress: string;
   usdcAddress: string;
-  q: bigint[];
-  b: bigint;
+  q: bigint[]; // The balances of outcome tokens held by the LMSR
+  b: bigint;   // The funding parameter of the LMSR
 }
 
 export interface MarketOdds {
@@ -52,23 +54,32 @@ export async function getActiveMatchIds(): Promise<number[]> {
 
 async function getMarketDetails(matchId: number): Promise<MarketDetails | null> {
     try {
+        const predictionMarketAddress = await marketFactoryContract.predictionMarkets(matchId);
+        if (predictionMarketAddress === ethers.ZeroAddress) {
+            console.warn(`No PredictionMarket contract found for matchId: ${matchId}`);
+            return null;
+        }
+
+        const predictionMarketContract = new ethers.Contract(predictionMarketAddress, PredictionMarketArtifact.abi, provider);
+
         const [lmsrAddress, conditionId, conditionalTokensAddress, usdcAddress] = await Promise.all([
-        marketFactoryContract.lmsrMarketMakers(matchId),
-        marketFactoryContract.matchConditionIds(matchId),
-        marketFactoryContract.conditionalTokens(),
-        marketFactoryContract.usdc(),
+            predictionMarketContract.marketMaker(),
+            predictionMarketContract.conditionId(),
+            predictionMarketContract.conditionalTokens(),
+            predictionMarketContract.usdc(),
         ]);
 
         if (lmsrAddress === ethers.ZeroAddress) {
-        console.warn(`No LMSR Market Maker found for matchId: ${matchId}`);
-        return null;
+            console.warn(`No LMSR Market Maker found for matchId: ${matchId}`);
+            return null;
         }
-        return { lmsrAddress, conditionId, conditionalTokensAddress, usdcAddress };
+        return { predictionMarketAddress, lmsrAddress, conditionId, conditionalTokensAddress, usdcAddress };
     } catch (error) {
         console.error(`Error fetching details for market ${matchId}:`, error);
         return null;
     }
 }
+
 
 async function getPositionIds(details: MarketDetails): Promise<bigint[]> {
     const conditionalTokensContract = new ethers.Contract(
@@ -108,17 +119,17 @@ export async function getMarketState(matchId: number): Promise<MarketState | nul
 
     try {
         const [q_home, q_draw, q_away, b] = await Promise.all([
-        conditionalTokensContract.balanceOf(details.lmsrAddress, positionIds[0]),
-        conditionalTokensContract.balanceOf(details.lmsrAddress, positionIds[1]),
-        conditionalTokensContract.balanceOf(details.lmsrAddress, positionIds[2]),
-        lmsrContract.funding(),
+            conditionalTokensContract.balanceOf(details.lmsrAddress, positionIds[0]),
+            conditionalTokensContract.balanceOf(details.lmsrAddress, positionIds[1]),
+            conditionalTokensContract.balanceOf(details.lmsrAddress, positionIds[2]),
+            lmsrContract.funding(),
         ]);
 
         return {
-        lmsrAddress: details.lmsrAddress,
-        usdcAddress: details.usdcAddress,
-        q: [q_home, q_draw, q_away],
-        b: b,
+            predictionMarketAddress: details.predictionMarketAddress,
+            usdcAddress: details.usdcAddress,
+            q: [q_home, q_draw, q_away],
+            b: b,
         };
     } catch (error) {
         console.error(`Error fetching final market state for ${matchId}:`, error);
@@ -126,13 +137,14 @@ export async function getMarketState(matchId: number): Promise<MarketState | nul
     }
 }
 
-export async function getOnChainOdds(lmsrAddress: string): Promise<MarketOdds | null> {
+export async function getOnChainOdds(predictionMarketAddress: string): Promise<MarketOdds | null> {
     try {
-        const lmsrContract = new ethers.Contract(lmsrAddress, LmsrMarketMakerArtifact.abi, provider);
+        const predictionMarketContract = new ethers.Contract(predictionMarketAddress, PredictionMarketArtifact.abi, provider);
+        
         const [priceHome, priceDraw, priceAway] = await Promise.all([
-            lmsrContract.calcMarginalPrice(0),
-            lmsrContract.calcMarginalPrice(1),
-            lmsrContract.calcMarginalPrice(2),
+            predictionMarketContract.getMarginalPrice(0),
+            predictionMarketContract.getMarginalPrice(1),
+            predictionMarketContract.getMarginalPrice(2),
         ]);
 
         const probHome = convert192x64ToDecimal(priceHome);
@@ -145,7 +157,7 @@ export async function getOnChainOdds(lmsrAddress: string): Promise<MarketOdds | 
             away: 1 / probAway,
         };
     } catch (error) {
-        console.error(`Error fetching marginal prices from ${lmsrAddress}:`, error);
+        console.error(`Error fetching marginal prices from ${predictionMarketAddress}:`, error);
         return null;
     }
 }

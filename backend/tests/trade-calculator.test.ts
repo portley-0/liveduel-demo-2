@@ -1,9 +1,6 @@
-// tests/trade-calculator.test.ts
 import { calculateOptimalTrade, OptimalTrade, MarketState, MarketOdds } from '../src/services/trade-calculator';
 
-// --- CONFIGURATION FOR CONSOLE LOGS ---
 const ENABLE_CONSOLE_LOGS = true;
-// ----------------------------------------
 
 const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args) => {
   if (ENABLE_CONSOLE_LOGS) {
@@ -58,7 +55,6 @@ describe('trade-calculator (Unit Tests)', () => {
       expect(result.hasProfitableTrade).toBe(true);
       expect(result.tradeAmounts).toBeDefined();
       if (result.tradeAmounts) {
-        // CORRECTED ASSERTION: The optimal trade is so small it rounds to 0. We expect a SELL or no trade.
         expect(result.tradeAmounts[0]).toBeLessThanOrEqual(0);
       }
     });
@@ -77,10 +73,8 @@ describe('trade-calculator (Unit Tests)', () => {
     });
 
     it('should correctly model a market funded with 15,000 USDC', () => {
-      // Market funded with 15,000 USDC, which has 6 decimals.
-      const usdcFundingAmount = 15000n * 1_000_000n; // Correctly scaled to 1.5e10
+      const usdcFundingAmount = 15000n * 1_000_000n; 
 
-      // The market maker receives 15,000 of each outcome token (0 decimals).
       const outcomeTokenQuantity = 15000000000n; 
 
       const marketState: MarketState = createMarketState(
@@ -88,13 +82,10 @@ describe('trade-calculator (Unit Tests)', () => {
         usdcFundingAmount
       );
 
-      // Your target odds
       const targetOdds: MarketOdds = createMarketOdds(2.0, 4.0, 4.0);
 
-      // Calculate the trade
       const result = calculateOptimalTrade(marketState, targetOdds);
 
-      // Optional: Log the output to see the exact numbers
       console.log('Trade amounts for 15k USDC market:', result.tradeAmounts);
 
       expect(result.hasProfitableTrade).toBe(true);
@@ -103,7 +94,6 @@ describe('trade-calculator (Unit Tests)', () => {
       if (result.tradeAmounts) {
         const [homeTrade, drawTrade, awayTrade] = result.tradeAmounts;
 
-        // The symmetry check should still hold perfectly
         expect(homeTrade).toBeGreaterThan(0);
         expect(drawTrade).toBeLessThan(0);
         expect(drawTrade).toEqual(awayTrade);

@@ -13,7 +13,7 @@ import {
 
 import MarketFactoryArtifact from '../src/artifacts/MarketFactory.json';
 
-const ENABLE_CONSOLE_LOGS = true; 
+const ENABLE_CONSOLE_LOGS = true;
 
 let provider: ethers.JsonRpcProvider;
 let marketFactoryContract: ethers.Contract;
@@ -56,11 +56,11 @@ describe('onchain-reader (functionality test)', () => {
     marketFactoryContract = new ethers.Contract(
       MARKET_FACTORY_ADDRESS,
       MarketFactoryArtifact.abi,
-      provider 
+      provider
     );
     console.log(`MarketFactory contract initialized at: ${MARKET_FACTORY_ADDRESS}`);
     console.log('--- Ethers.js initialization complete ---');
-  }, 30000); 
+  }, 30000);
 
   afterAll(() => {
     consoleErrorSpy.mockRestore();
@@ -72,7 +72,7 @@ describe('onchain-reader (functionality test)', () => {
   it('should sequentially fetch active match IDs, market state, and on-chain odds', async () => {
     console.log('\n--- Starting sequential on-chain data fetch ---');
     let selectedMatchId: number | undefined;
-    let lmsrAddressForOdds: string | undefined;
+    let predictionMarketAddressForOdds: string | undefined;
 
     console.log('Fetching active match IDs...');
     const activeMatchIds = await getActiveMatchIds();
@@ -80,7 +80,7 @@ describe('onchain-reader (functionality test)', () => {
 
     if (activeMatchIds.length === 0) {
       console.warn('No active matches found. Skipping further tests.');
-      throw new Error('No active matches found on the MarketFactory contract. Cannot proceed with tests.');
+      expect(activeMatchIds.length).toBeGreaterThan(0);
     }
 
     selectedMatchId = activeMatchIds[0];
@@ -95,33 +95,33 @@ describe('onchain-reader (functionality test)', () => {
     }
 
     console.log('Market State retrieved:');
-    console.log(`  LMSR Address: ${marketState.lmsrAddress}`);
-    console.log(`  USDC Address: ${marketState.usdcAddress}`);
-    console.log(`  Quantities (q): [${marketState.q.map(String).join(', ')}]`);
-    console.log(`  Funding (b): ${marketState.b.toString()}`);
+    console.log(`   Prediction Market Address: ${marketState.predictionMarketAddress}`);
+    console.log(`   USDC Address: ${marketState.usdcAddress}`);
+    console.log(`   Quantities (q): [${marketState.q.map(String).join(', ')}]`);
+    console.log(`   Funding (b): ${marketState.b.toString()}`);
 
-    lmsrAddressForOdds = marketState.lmsrAddress;
+    predictionMarketAddressForOdds = marketState.predictionMarketAddress;
 
-    console.log(`Fetching on-chain odds for LMSR Address: ${lmsrAddressForOdds}...`);
-    const onChainOdds = await getOnChainOdds(lmsrAddressForOdds);
+    console.log(`Fetching on-chain odds for Prediction Market Address: ${predictionMarketAddressForOdds}...`);
+    const onChainOdds = await getOnChainOdds(predictionMarketAddressForOdds);
 
     if (!onChainOdds) {
-      console.error(`Could not retrieve on-chain odds for LMSR Address: ${lmsrAddressForOdds}`);
-      throw new Error(`Failed to get on-chain odds for ${lmsrAddressForOdds}.`);
+      console.error(`Could not retrieve on-chain odds for Address: ${predictionMarketAddressForOdds}`);
+      throw new Error(`Failed to get on-chain odds for ${predictionMarketAddressForOdds}.`);
     }
 
     console.log('On-Chain Odds retrieved:');
-    console.log(`  Home: ${onChainOdds.home.toFixed(4)}`);
-    console.log(`  Draw: ${onChainOdds.draw.toFixed(4)}`);
-    console.log(`  Away: ${onChainOdds.away.toFixed(4)}`);
+    console.log(`   Home: ${onChainOdds.home.toFixed(4)}`);
+    console.log(`   Draw: ${onChainOdds.draw.toFixed(4)}`);
+    console.log(`   Away: ${onChainOdds.away.toFixed(4)}`);
 
     console.log('--- Sequential on-chain data fetch complete ---');
 
     expect(activeMatchIds.length).toBeGreaterThan(0);
     expect(selectedMatchId).toBeDefined();
     expect(marketState).toBeDefined();
-    expect(lmsrAddressForOdds).toBeDefined();
+    expect(predictionMarketAddressForOdds).toBeDefined();
     expect(onChainOdds).toBeDefined();
 
-  }, 30000); 
+  }, 30000);
 });

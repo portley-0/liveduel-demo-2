@@ -26,6 +26,15 @@ type SharesSold @entity {
   timestamp: BigInt!
 }
 
+type TradeExecuted @entity {
+  id: ID!
+  market: Bytes!
+  user: Bytes! 
+  tradeAmounts: [BigInt!]! 
+  netCostOrGain: BigInt! 
+  timestamp: BigInt!
+}
+
 type OddsUpdated @entity {
   id: ID!
   market: Bytes!

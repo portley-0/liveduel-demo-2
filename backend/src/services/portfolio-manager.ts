@@ -4,13 +4,10 @@ import ConditionalTokensArtifact from '../artifacts/ConditionalTokens.json';
 import UsdcArtifact from '../artifacts/MockUSDC.json';
 import MarketFactoryArtifact from '../artifacts/MarketFactory.json';
 
-// --- CONFIGURATION ---
-// These addresses would ideally be fetched from a config or the factory contract
-const CONDITIONAL_TOKENS_ADDRESS = '0x...'; // Address of the main ConditionalTokens contract
-const MARKET_FACTORY_ADDRESS = '0x...';     // Address of your MarketFactory contract
-const USDC_ADDRESS = '0x...';               // Address of the USDC contract
+const CONDITIONAL_TOKENS_ADDRESS = '0xb12038A8BA89c51fa3fc2b4215ce0b3483f63f5C'; 
+const MARKET_FACTORY_ADDRESS = '0x222b0e8D3E29d639189BA84DB2c0C7b48Ed87f1D'; 
+const USDC_ADDRESS = '0x1A85e9870Dd44A8167b626981b1aBDc87cAAD4E5'; 
 
-// --- SHARED INSTANCES ---
 const provider = new ethers.JsonRpcProvider(RPC_URL);
 const signer = new ethers.Wallet(REBALANCER_PRIVATE_KEY!, provider);
 
@@ -59,7 +56,7 @@ export async function bootstrapInventory(conditionId: string, usdcAmount: number
 
     } catch (error) {
         console.error(`PORTFOLIO MANAGER: Failed to bootstrap inventory for condition ${conditionId}:`, error);
-        throw error; // Re-throw to let the calling function know it failed.
+        throw error; 
     }
 }
 
@@ -71,30 +68,24 @@ export async function unwindPositions(marketId: number): Promise<void> {
     console.log(`PORTFOLIO MANAGER: Starting unwind process for resolved market ${marketId}.`);
 
     try {
-        // 1. Get the unique conditionId for the market.
         const conditionId = await factoryContract.getConditionId(marketId);
         if (!conditionId || conditionId === ethers.ZeroHash) {
             throw new Error(`Could not find conditionId for market ${marketId}.`);
         }
 
-        // 2. Safety Check: Ensure the oracle has reported the outcome on-chain.
-        // The payoutNumerators will be populated only after resolution.
         const payoutNumerators = await conditionalTokens.payoutNumerators(conditionId);
         if (payoutNumerators.length === 0) {
             console.log(`Cannot unwind yet: Oracle has not reported the outcome for condition ${conditionId}.`);
-            return; // Exit gracefully, will be retried on the next poll.
+            return; 
         }
         console.log(`Oracle has reported outcomes: [${payoutNumerators.join(', ')}]. Proceeding with redemption.`);
 
-        // 3. Define the set of outcome tokens to be redeemed.
-        // The partition [1, 2, 4] tells the contract we are turning in all three outcomes.
         const outcomeSlots = [1, 2, 4];
 
-        // 4. Call redeemPositions to convert the bot's full inventory back into USDC.
         console.log(`Executing redeemPositions for condition ${conditionId}...`);
         const redeemTx = await conditionalTokens.redeemPositions(
             USDC_ADDRESS,
-            ethers.ZeroHash, // Parent collection ID
+            ethers.ZeroHash, 
             conditionId,
             outcomeSlots
         );

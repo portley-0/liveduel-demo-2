@@ -13,13 +13,14 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract PredictionMarket is Initializable, OwnableUpgradeable, ERC1155Holder {
 
-    uint256 public matchId;
+    uint256 public matchId; 
     ILiquidityPool public liquidityPool;
     bytes32 public conditionId; 
     bytes32 public questionId;
     IERC20 public usdc;
     ConditionalTokens public conditionalTokens;
     LMSRMarketMaker public marketMaker;
+    address public botAddress;
 
     bool public isInitialized;
     bool public isResolved;
@@ -37,6 +38,13 @@ contract PredictionMarket is Initializable, OwnableUpgradeable, ERC1155Holder {
     event PayoutRedeemed(address indexed redeemer, uint8 indexed outcome, uint256 amount);
     event OddsUpdated(uint256 indexed matchId, uint256 home, uint256 draw, uint256 away);
     event SharesSold(address indexed seller, uint8 indexed outcome, uint256 shares, int actualGain);
+    event TradeExecuted(address indexed user, int[] tradeAmounts, int netCostOrGain);
+    event BotAddressSet(address indexed newBotAddress);
+
+    modifier onlyBot() {
+        require(msg.sender == botAddress, "Caller is not the authorized bot");
+        _;
+    }
 
     function initializeMarket(
         uint256 _matchId, 
@@ -239,6 +247,68 @@ contract PredictionMarket is Initializable, OwnableUpgradeable, ERC1155Holder {
         totalWageredPerOutcome[outcome] -= uint256(-actualGain);
 
         emit SharesSold(msg.sender, outcome, amount, -actualGain);
+
+        uint256 home = marketMaker.calcMarginalPrice(0);
+        uint256 draw = marketMaker.calcMarginalPrice(1);
+        uint256 away = marketMaker.calcMarginalPrice(2);
+
+        emit OddsUpdated(matchId, home, draw, away);
+    }
+
+    function setBotAddress(address _botAddress) external onlyOwner {
+        require(_botAddress != address(0), "Bot address cannot be the zero address");
+        botAddress = _botAddress;
+        emit BotAddressSet(_botAddress);
+    }
+
+    function trade(int[] calldata tradeAmounts, int collateralLimit) external onlyBot {
+        require(isInitialized, "Not initialized");
+        require(!isResolved, "Market already resolved");
+        require(tradeAmounts.length == 3, "Invalid trade amounts length");
+
+        for (uint8 i = 0; i < tradeAmounts.length; i++) {
+            if (tradeAmounts[i] < 0) {
+                uint256 indexSet = 1 << i;
+                uint256 tokenId = conditionalTokens.getPositionId(
+                    usdc,
+                    conditionalTokens.getCollectionId(bytes32(0), conditionId, indexSet)
+                );
+                uint256 amountToSell = uint(-tradeAmounts[i]);
+                require(conditionalTokens.balanceOf(msg.sender, tokenId) >= amountToSell, "Insufficient outcome tokens to sell");
+                conditionalTokens.safeTransferFrom(msg.sender, address(this), tokenId, amountToSell, "");
+            }
+        }
+
+        int netCost = marketMaker.calcNetCost(tradeAmounts);
+
+        if (netCost > 0) {
+            uint256 totalCost = uint256(netCost); // Fee is 0 for the bot
+            require(usdc.transferFrom(msg.sender, address(this), totalCost), "USDC transferFrom failed");
+            require(usdc.approve(address(marketMaker), totalCost), "Approve to marketMaker failed");
+        }
+
+        int actualCostOrGain = marketMaker.trade(tradeAmounts, collateralLimit);
+
+        if (actualCostOrGain < 0) {
+            require(usdc.transfer(msg.sender, uint(-actualCostOrGain)), "USDC transfer failed");
+        }
+
+        for (uint8 i = 0; i < tradeAmounts.length; i++) {
+            if (tradeAmounts[i] > 0) {
+                uint256 amountToBuy = uint(tradeAmounts[i]);
+                uint256 indexSet = 1 << i;
+                uint256 tokenId = conditionalTokens.getPositionId(
+                    usdc,
+                    conditionalTokens.getCollectionId(bytes32(0), conditionId, indexSet)
+                );
+                
+                uint256 tokenBalance = conditionalTokens.balanceOf(address(this), tokenId);
+                require(tokenBalance >= amountToBuy, "Not enough outcome tokens received from trade");
+                conditionalTokens.safeTransferFrom(address(this), msg.sender, tokenId, amountToBuy, "");
+            }
+        }
+        
+        emit TradeExecuted(msg.sender, tradeAmounts, actualCostOrGain);
 
         uint256 home = marketMaker.calcMarginalPrice(0);
         uint256 draw = marketMaker.calcMarginalPrice(1);

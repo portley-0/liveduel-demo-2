@@ -54,6 +54,7 @@ templates:
         - OddsUpdated
         - MarketResolved
         - PayoutRedeemed
+        - TradeExecuted
 
       abis:
         - name: PredictionMarket
@@ -64,6 +65,8 @@ templates:
           handler: handleSharesPurchased
         - event: SharesSold(indexed address,indexed uint8,uint256,int256)
           handler: handleSharesSold
+        - event: TradeExecuted(indexed address,int256[],int256)
+          handler: handleTradeExecuted
         - event: OddsUpdated(indexed uint256,uint256,uint256,uint256)
           handler: handleOddsUpdated
         - event: MarketResolved(indexed uint256,indexed uint8)

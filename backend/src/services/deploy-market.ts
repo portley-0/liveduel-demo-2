@@ -1,8 +1,11 @@
 import { ethers } from 'ethers';
 import axios from 'axios';
+import { bootstrapInventory } from './portfolio-manager';
 import MarketFactoryArtifact from '../artifacts/MarketFactory.json';
 
 const MARKET_FACTORY_ABI = MarketFactoryArtifact.abi;
+
+const BOOTSTRAP_FUNDING_AMOUNT_USDC = 15000;
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY || '';
 const MARKET_FACTORY_ADDRESS = process.env.MARKET_FACTORY_ADDRESS || '';
@@ -67,6 +70,26 @@ export async function deployMarket(matchId: number, matchTimestamp: number) {
 
   const tx = await factory.deployPredictionMarket(matchId, matchTimestamp);
   await tx.wait();
+
+  try {
+    console.log(`LIFECYCLE: Preparing to bootstrap inventory for new market...`);
+
+    const conditionId = await factory.getConditionId(matchId);
+    if (!conditionId || conditionId === ethers.ZeroHash) {
+        throw new Error(`Could not retrieve a valid conditionId from the factory for matchId ${matchId}.`);
+    }
+    
+    console.log(`Retrieved conditionId: ${conditionId}. Now calling bootstrapInventory...`);
+    
+    await bootstrapInventory(conditionId, BOOTSTRAP_FUNDING_AMOUNT_USDC);
+
+    console.log(`✅✅✅ SUCCESS: Market ${matchId} is deployed and bot inventory is fully funded!`);
+
+  } catch (bootstrapError) {
+    console.error(`❌ LIFECYCLE ERROR: Market was deployed, but bootstrapping failed! Manual intervention may be required.`);
+    console.error(bootstrapError);
+  }
+
   
   const newMarketAddress = await factory.predictionMarkets(matchId);
 

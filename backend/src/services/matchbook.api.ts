@@ -25,7 +25,7 @@ async function login(): Promise<string> {
         const response = await axios.post(
             `${MATCHBOOK_API_URL}/bpapi/rest/security/session`,
             { username: MATCHBOOK_USERNAME, password: MATCHBOOK_PASSWORD },
-            { headers: { 'Content-Type': 'application/json' } }
+            { headers: { accept: 'application/json', 'content-type': 'application/json', 'User-Agent': 'api-doc-test-client' } }
         );
         const token = response.data['session-token'];
         if (!token) throw new Error('Login failed: session-token not found in response.');
@@ -64,9 +64,11 @@ export async function getMatchbookUpcomingEvents(kickoffTime: string): Promise<M
         };
 
         const response = await axios.get(`${MATCHBOOK_API_URL}/edge/rest/events`, {
-            headers: { 'session-token': token, 'Accept': 'application/json' },
+            headers: { 'session-token': token, accept: 'application/json', 'User-Agent': 'api-doc-test-client' },
             params,
         });
+
+        console.log(response.data);
         console.log(`Fetched ${response.data.events.length} upcoming Matchbook events around kickoff time ${kickoffTime}.`);
         
         return response.data.events.map((event: any) => ({
@@ -86,37 +88,52 @@ export async function getMatchbookUpcomingEvents(kickoffTime: string): Promise<M
  * @returns A promise that resolves to a MarketOdds object or null on error.
  */
 export async function getMatchbookOdds(
-    matchbookEventId: number,
+    matchbookEventId: string | number,
     homeTeamName: string,
     awayTeamName: string
 ): Promise<MarketOdds | null> {
   try {
     const token = await getSessionToken();
 
-    const response = await axios.get(`${MATCHBOOK_API_URL}/edge/rest/events/${matchbookEventId}`, {
-      headers: { 'session-token': token, 'Accept': 'application/json' },
-      params: { 'include-prices': true, 'price-depth': 3 },
+    const url = `${MATCHBOOK_API_URL}/edge/rest/events`;
+    const params = {
+      'ids': matchbookEventId.toString(),
+      'exchange-type': 'back-lay',
+      'odds-type': 'DECIMAL',
+      'include-prices': true,
+      'price-depth': 3,
+      'price-mode': 'expanded'
+    };
+    
+    const response = await axios.get(url, {
+      headers: { 'session-token': token, accept: 'application/json', 'User-Agent': 'api-doc-test-client' },
+      params,
     });
+    
+    if (!response.data || !response.data.events || response.data.events.length === 0) {
+      console.warn(`API call was successful, but no event was returned for ID ${matchbookEventId}. The market may not be active yet.`);
+      return null;
+    }
+    const eventObject = response.data.events[0];
+    console.log(`Successfully fetched data for event: "${eventObject.name}"`);
 
-    const matchOddsMarket = response.data.markets.find((m: any) => m.name === 'Match Odds');
+    const matchOddsMarket = eventObject.markets.find((m: any) => m.name === 'Match Odds');
     if (!matchOddsMarket || !matchOddsMarket.runners) {
-      console.warn(`Could not find "Match Odds" market for event ${matchbookEventId}`);
+      console.warn(`Could not find "Match Odds" market for event ${eventObject.id}`);
       return null;
     }
 
     const runners = matchOddsMarket.runners;
     
-    // **MODIFIED LOGIC: Find each runner by name instead of array index.**
     const homeRunner = runners.find((r: any) => fuzz.partial_ratio(r.name, homeTeamName) > 90);
     const awayRunner = runners.find((r: any) => fuzz.partial_ratio(r.name, awayTeamName) > 90);
-    // The name for "Draw" can vary, so check for its inclusion.
     const drawRunner = runners.find((r: any) => r.name.toUpperCase().includes('DRAW'));
 
     const getBestBackPrice = (runner: any): number | null => {
         if (!runner?.prices?.length) return null;
         const backPrices = runner.prices
             .filter((p: any) => p.side === 'back')
-            .sort((a: any, b: any) => b['decimal-odds'] - a['decimal-odds']); // Descending sort for best price
+            .sort((a: any, b: any) => b['decimal-odds'] - a['decimal-odds']); 
         return backPrices.length > 0 ? backPrices[0]['decimal-odds'] : null;
     }
 
@@ -127,18 +144,15 @@ export async function getMatchbookOdds(
     if (homeOdds !== null && drawOdds !== null && awayOdds !== null) {
       return { home: homeOdds, draw: drawOdds, away: awayOdds };
     } else {
-      console.warn(`Could not find all three runners by name for event ${matchbookEventId}`);
+      console.warn(`Could not find all three runners by name for event ${eventObject.id}`);
       return null;
     }
 
   } catch (error) {
-    if (error && typeof error === 'object' && 'response' in error && error.response) {
-      // @ts-ignore
-      console.error(`Error fetching Matchbook odds for event ${matchbookEventId}:`, error.response.data);
-    } else if (error instanceof Error) {
-      console.error(`Error fetching Matchbook odds for event ${matchbookEventId}:`, error.message);
+    if (axios.isAxiosError(error) && error.response) {
+      console.error(`Error in getMatchbookOdds for event ${matchbookEventId}:`, JSON.stringify(error.response.data, null, 2));
     } else {
-      console.error(`An unknown error occurred while fetching Matchbook odds for event ${matchbookEventId}:`, error);
+      console.error(`An unknown error occurred in getMatchbookOdds for event ${matchbookEventId}:`, error);
     }
     return null;
   }
