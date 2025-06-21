@@ -76,6 +76,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const calcTokenRef = useRef(0);
 
   const isResolved = !!match.resolvedAt;
+  const areButtonsDisabled = isResolved || match.marketAvailable !== true;
   const closeModal = () => setIsModalOpen(false);
 
   const fetchConditionId = async (): Promise<void> => {
@@ -567,13 +568,13 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
           return (
             <button
               key={`bet-button-${outcome}-${refreshKey}`}
-              disabled={isResolved}
+              disabled={areButtonsDisabled}
               className={`border-2 shadow-md ${borderColor} text-white font-semibold 
                 w-[128px] h-[45px] md:w-[125px] md:h-[43px] sm:w-[117px] sm:h-[42px] xs:w-[105px] xs:h-[38px] xxs:w-[92px] xxs:h-[35px]
                 flex-shrink-0 flex items-center justify-center sm:space-x-2 xs:space-x-1.5 xxs:space-x-1 transition-all rounded-full focus:outline-none focus:ring-0 ${
-                  isResolved ? "opacity-50 cursor-not-allowed" : isSelected ? "bg-hovergreyblue" : "bg-greyblue hover:bg-hovergreyblue"
+                  areButtonsDisabled ? "opacity-50 cursor-not-allowed" : isSelected ? "bg-hovergreyblue" : "bg-greyblue hover:bg-hovergreyblue"
                 }`}
-              onClick={() => !isResolved && handleSelectBet(outcome)}
+              onClick={() => !areButtonsDisabled && handleSelectBet(outcome)}
             >
               {outcome === "draw" ? (
                 <TbCircleLetterDFilled className="text-gray-400 text-[35px] md:text-[31px] sm:text-[29px] xs:text-[27px] xxs:text-[23px]" />

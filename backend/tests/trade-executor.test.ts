@@ -97,7 +97,7 @@ describe('trade-executor (Integration Test)', () => {
 
         const order: TradeOrder = {
             predictionMarketAddress: activePredictionMarketAddress,
-            tradeAmounts: [100n, 0n, 0n]
+            tradeAmounts: [100000000n, 0n, 0n]
         };
         console.log(`\n--- Testing buy trade on ${order.predictionMarketAddress} ---`);
         await expect(executeTrade(order)).resolves.not.toThrow();
@@ -110,7 +110,7 @@ describe('trade-executor (Integration Test)', () => {
 
         const order: TradeOrder = {
             predictionMarketAddress: activePredictionMarketAddress,
-            tradeAmounts: [-50n, 0n, 0n]
+            tradeAmounts: [-50000000n, 0n, 0n]
         };
         console.log(`\n--- Testing sell trade on ${order.predictionMarketAddress} ---`);
         await expect(executeTrade(order)).resolves.not.toThrow();
@@ -123,7 +123,7 @@ describe('trade-executor (Integration Test)', () => {
 
         const order: TradeOrder = {
             predictionMarketAddress: activePredictionMarketAddress,
-            tradeAmounts: [50n, -25n, 0n]
+            tradeAmounts: [50000000n, -25000000n, 0n]
         };
         console.log(`\n--- Testing complex trade on ${order.predictionMarketAddress} ---`);
         await expect(executeTrade(order)).resolves.not.toThrow();

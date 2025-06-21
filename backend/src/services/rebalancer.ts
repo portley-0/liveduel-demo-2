@@ -77,7 +77,7 @@ async function rebalanceAllMarkets() {
         
         const tradeOrder: TradeOrder = {
           predictionMarketAddress: marketState.predictionMarketAddress,
-          tradeAmounts: optimalTrade.tradeAmounts.map(BigInt),
+          tradeAmounts: optimalTrade.tradeAmounts
         };
 
         console.log(`Optimal trade found for ${matchId}:`, tradeOrder.tradeAmounts);

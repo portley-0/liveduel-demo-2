@@ -5,7 +5,7 @@
     "codegen": "graph codegen",
     "build": "graph build",
     "deploy:studio": "graph deploy --studio subgraph",
-    "deploy:docker": "graph deploy liveduel-tournament subgraph.yaml --node http://localhost:8020 --ipfs http://localhost:5001",
+    "deploy:docker": "graph deploy portley/liveduel-tournament subgraph.yaml --node http://localhost:8020 --ipfs http://localhost:5001",
     "test": "graph test",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"

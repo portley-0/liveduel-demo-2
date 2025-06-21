@@ -2,6 +2,9 @@ import { ethers } from 'ethers';
 import axios from 'axios';
 import { bootstrapInventory } from './portfolio-manager';
 import MarketFactoryArtifact from '../artifacts/MarketFactory.json';
+import { findMatchbookId } from './id-mapper';
+import { getMatchbookOdds } from './matchbook.api';
+import { updateMatchData } from '../cache';
 
 const MARKET_FACTORY_ABI = MarketFactoryArtifact.abi;
 
@@ -60,6 +63,23 @@ export async function deployMarket(matchId: number, matchTimestamp: number) {
     );
   }
 
+  console.log(`PRE-DEPLOY CHECK: Validating market existence on Matchbook for matchId ${matchId}...`);
+
+  const mappingResult = await findMatchbookId(matchId);
+  if (!mappingResult) {
+    throw new Error(`PRE-DEPLOY FAILED: Could not map matchId ${matchId} to a Matchbook event. Deployment aborted.`);
+  }
+
+  const { matchbookEventId, homeTeamName, awayTeamName } = mappingResult;
+  const matchbookOdds = await getMatchbookOdds(matchbookEventId, homeTeamName, awayTeamName);
+
+  if (!matchbookOdds) {
+    throw new Error(`PRE-DEPLOY FAILED: Found Matchbook event ${matchbookEventId}, but no active odds are available. Deployment aborted.`);
+  }
+
+  console.log(`✅ PRE-DEPLOY CHECK PASSED: Matchbook market with active odds found for matchId ${matchId}.`);
+
+
   const provider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
   const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
   const factory = new ethers.Contract(
@@ -84,6 +104,9 @@ export async function deployMarket(matchId: number, matchTimestamp: number) {
     await bootstrapInventory(conditionId, BOOTSTRAP_FUNDING_AMOUNT_USDC);
 
     console.log(`✅✅✅ SUCCESS: Market ${matchId} is deployed and bot inventory is fully funded!`);
+
+    console.log(`Updating cache for matchId ${matchId} to reflect successful deployment.`);
+    updateMatchData(matchId, { marketAvailable: true });
 
   } catch (bootstrapError) {
     console.error(`❌ LIFECYCLE ERROR: Market was deployed, but bootstrapping failed! Manual intervention may be required.`);

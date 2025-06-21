@@ -55,7 +55,7 @@ describe('trade-calculator (Unit Tests)', () => {
       expect(result.hasProfitableTrade).toBe(true);
       expect(result.tradeAmounts).toBeDefined();
       if (result.tradeAmounts) {
-        expect(result.tradeAmounts[0]).toBeLessThanOrEqual(0);
+        expect(result.tradeAmounts[0]).toBeGreaterThan(0);
       }
     });
 
@@ -98,6 +98,45 @@ describe('trade-calculator (Unit Tests)', () => {
         expect(drawTrade).toBeLessThan(0);
         expect(drawTrade).toEqual(awayTrade);
       }
+    });
+  });
+
+  describe('Fresh Market Scenarios for On-Chain Validation', () => {
+    
+    // A single, fresh market state funded with 15k USDC and zero initial inventory.
+    // This is the starting point for all scenarios in this block.
+    const usdcFundingAmount = 15000n * 1_000_000n;
+    const initialOutcomeTokenQuantity = 15000000000n; 
+    const freshMarketState: MarketState = createMarketState(
+      [initialOutcomeTokenQuantity, initialOutcomeTokenQuantity, initialOutcomeTokenQuantity],
+      usdcFundingAmount
+    );
+
+    it('Scenario 1: Strong Home Favorite', () => {
+      const targetOdds = createMarketOdds(2.0, 4.0, 4.0);
+      const result = calculateOptimalTrade(freshMarketState, targetOdds);
+      
+      console.log('\n--- Scenario 1: Strong Home Favorite (2.0, 4.0, 4.0) ---');
+      console.log('Trade Amounts:', result.tradeAmounts);
+      expect(result.hasProfitableTrade).toBe(true);
+    });
+
+    it('Scenario 2: Close Match / Toss-up', () => {
+      const targetOdds = createMarketOdds(2.9, 3.0, 3.1);
+      const result = calculateOptimalTrade(freshMarketState, targetOdds);
+      
+      console.log('\n--- Scenario 2: Close Match (2.9, 3.0, 3.1) ---');
+      console.log('Trade Amounts:', result.tradeAmounts);
+      expect(result.hasProfitableTrade).toBe(true);
+    });
+
+    it('Scenario 3: Extreme Favorite & Longshot', () => {
+        const targetOdds = createMarketOdds(1.25, 6.0, 11.0);
+        const result = calculateOptimalTrade(freshMarketState, targetOdds);
+
+        console.log('\n--- Scenario 3: Extreme Favorite (1.25, 6.0, 11.0) ---');
+        console.log('Trade Amounts:', result.tradeAmounts);
+        expect(result.hasProfitableTrade).toBe(true);
     });
   });
 });
