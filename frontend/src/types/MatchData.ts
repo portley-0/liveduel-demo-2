@@ -162,7 +162,7 @@ export interface MatchData {
   outcome?: number,
   elapsed?: number;    
   matchTimestamp?: number;
-  marketAvailable?: boolean;
+  marketAvailable: boolean;
 
   oddsHistory?: {
     timestamps: number[];

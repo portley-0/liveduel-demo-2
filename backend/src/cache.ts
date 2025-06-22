@@ -165,7 +165,7 @@ export interface MatchData {
   outcome?: number,
   elapsed?: number;    
   matchTimestamp?: number;
-  marketAvailable?: boolean;
+  marketAvailable: boolean;
 
   oddsHistory?: {
     timestamps: number[];
@@ -239,7 +239,7 @@ export function getTournamentData(tournamentId: number): TournamentData | undefi
 
 export function updateMatchData(matchId: number, partialData: Partial<MatchData>) {
   if (!matchCache[matchId]) {
-    matchCache[matchId] = { matchId };
+    matchCache[matchId] = { matchId, marketAvailable: false };
   }
 
   matchCache[matchId] = {

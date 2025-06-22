@@ -311,7 +311,8 @@ async function addUpcomingMatchesToCache() {
               homeScore: fixture.goals.home,
               awayScore: fixture.goals.away,
               statusShort: fixture.fixture.status.short,
-              elapsed: fixture.fixture.status.elapsed
+              elapsed: fixture.fixture.status.elapsed,
+              marketAvailable: false,
             });
 
             console.log(`[DataPolling] Added match ${matchId} to cache (league ${leagueId}, season ${season}, status ${status} - range ${currentRangeDays} days).`);
@@ -418,18 +419,28 @@ async function updateCachedMatches() {
 
 async function refreshFootballData(matchId: number) {
   try {
+
+    const currentMatchData = getMatchData(matchId);
+    if (!currentMatchData) {
+      return; // Exit if match is no longer in cache
+    }
+
     const fixtureArray = await getFixtures({ id: matchId });
     if (fixtureArray.length === 0) {
       return;
     }
     const fixture = fixtureArray[0];
 
-    updateMatchData(matchId, {
-      homeScore: fixture.goals.home,
-      awayScore: fixture.goals.away,
-      statusShort: fixture.fixture.status.short,
-      elapsed: fixture.fixture.status.elapsed
-    });
+    const updatedData = {
+        ...currentMatchData, // Preserves `marketAvailable` and all other fields
+        homeScore: fixture.goals.home, // Overwrites with the latest info
+        awayScore: fixture.goals.away,
+        statusShort: fixture.fixture.status.short,
+        elapsed: fixture.fixture.sattus.elapsed
+    };
+    
+    // 4. Save the fully merged object back to the cache
+    updateMatchData(matchId, updatedData);
 
     if (!isMatchFinished(fixture.fixture.status.short)) {
       await mergeFootballDetails(matchId, fixture);
