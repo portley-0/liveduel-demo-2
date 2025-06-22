@@ -48,7 +48,14 @@ const config: HardhatUserConfig = {
       url: "https://api.avax-test.network/ext/bc/C/rpc",
       accounts: [process.env.PRIVATE_KEY ?? ""],
       gas: "auto", 
-      gasPrice: 5000000000, // 
+      gasPrice: 5000000000, 
+    },
+    liveduelSubnet: {
+      url: "https://rpc-liveduel.cogitus.io/jqrUCybt4XforDsXXhOV/ext/bc/2MWwV2p26iaMu6GxJf2sCfwEVQCTSYA2rBBhAFGzHVdsxgVhxD/rpc",
+      chainId: 43113, 
+      accounts: [process.env.PRIVATE_KEY ?? ""],
+      gas: "auto", 
+      gasPrice: 5000000000,  
     },
   },
   paths: {
