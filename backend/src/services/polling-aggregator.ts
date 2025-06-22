@@ -436,7 +436,7 @@ async function refreshFootballData(matchId: number) {
         homeScore: fixture.goals.home, // Overwrites with the latest info
         awayScore: fixture.goals.away,
         statusShort: fixture.fixture.status.short,
-        elapsed: fixture.fixture.sattus.elapsed
+        elapsed: fixture.fixture.status.elapsed
     };
     
     // 4. Save the fully merged object back to the cache
