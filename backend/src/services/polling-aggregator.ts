@@ -298,7 +298,7 @@ async function addUpcomingMatchesToCache() {
             const matchId = fixture.fixture.id;
             if (getMatchData(matchId)) continue;
 
-            updateMatchData(matchId, {
+            const newMatchObject = {
               matchId,
               leagueId,
               leagueName: fixture.league.name,
@@ -313,7 +313,10 @@ async function addUpcomingMatchesToCache() {
               statusShort: fixture.fixture.status.short,
               elapsed: fixture.fixture.status.elapsed,
               marketAvailable: false,
-            });
+            };
+
+            console.log(`[addUpcomingMatchesToCache] PREPARING TO CREATE MATCH ${matchId}:`, JSON.stringify(newMatchObject, null, 2));
+            updateMatchData(matchId, newMatchObject);
 
             console.log(`[DataPolling] Added match ${matchId} to cache (league ${leagueId}, season ${season}, status ${status} - range ${currentRangeDays} days).`);
             fixturesFoundForTournament = true;
