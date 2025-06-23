@@ -68,7 +68,7 @@ export async function unwindPositions(marketId: number): Promise<void> {
     console.log(`PORTFOLIO MANAGER: Starting unwind process for resolved market ${marketId}.`);
 
     try {
-        const conditionId = await factoryContract.getConditionId(marketId);
+        const conditionId = await factoryContract.matchConditionIds(marketId);
         if (!conditionId || conditionId === ethers.ZeroHash) {
             throw new Error(`Could not find conditionId for market ${marketId}.`);
         }
