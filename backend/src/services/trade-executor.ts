@@ -66,7 +66,7 @@ async function ensureUsdcApproval(predictionMarketAddress: string): Promise<void
     console.log(`USDC allowance is insufficient. Submitting approve transaction...`);
     try {
         const tx = await usdcContract.approve(predictionMarketAddress, ethers.MaxUint256, { // Approve max amount
-            gasLimit: GAS_LIMIT || 500000,
+            gasLimit: GAS_LIMIT || 1000000,
         });
         console.log(`USDC approval transaction sent: ${tx.hash}`);
         await tx.wait();
