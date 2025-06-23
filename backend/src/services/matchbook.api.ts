@@ -111,24 +111,36 @@ export async function getMatchbookOdds(
     });
     
     if (!response.data || !response.data.events || response.data.events.length === 0) {
-      console.warn(`API call was successful, but no event was returned for ID ${matchbookEventId}. The market may not be active yet.`);
+      console.warn(`[getMatchbookOdds] No event data returned for ID ${matchbookEventId}.`);
       return null;
     }
+
     const eventObject = response.data.events[0];
-    console.log(`Successfully fetched data for event: "${eventObject.name}"`);
-
     const matchOddsMarket = eventObject.markets.find((m: any) => m.name === 'Match Odds');
-    if (!matchOddsMarket || !matchOddsMarket.runners) {
-      console.warn(`Could not find "Match Odds" market for event ${eventObject.id}`);
+
+    // Add a guard to ensure we have exactly 3 runners, which is expected for a "Match Odds" market.
+    if (!matchOddsMarket || !matchOddsMarket.runners || matchOddsMarket.runners.length !== 3) {
+      console.warn(`[getMatchbookOdds] Could not find a "Match Odds" market with exactly 3 runners for event ${eventObject.id}`);
       return null;
     }
 
-    const runners = matchOddsMarket.runners;
-    console.log("Found runners:", runners.map((r: any) => r.name));
+    let runners = [...matchOddsMarket.runners]; 
+
+    const drawRunnerIndex = runners.findIndex((r: any) => r.name.toUpperCase().includes('DRAW'));
+    if (drawRunnerIndex === -1) {
+        console.warn(`[getMatchbookOdds] Could not find a 'Draw' runner for event ${eventObject.id}`);
+        return null;
+    }
+    const drawRunner = runners.splice(drawRunnerIndex, 1)[0]; // Pull the draw runner out of the array
     
-    const homeRunner = runners.find((r: any) => fuzz.partial_ratio(r.name, homeTeamName) > 90);
-    const awayRunner = runners.find((r: any) => fuzz.partial_ratio(r.name, awayTeamName) > 90);
-    const drawRunner = runners.find((r: any) => r.name.toUpperCase().includes('DRAW'));
+    const scores = runners.map(r => ({ runner: r, score: fuzz.ratio(r.name, homeTeamName) }));
+    scores.sort((a, b) => b.score - a.score); // Sort by highest score first
+
+    const homeRunner = scores[0].runner;
+    
+    const awayRunner = scores[1].runner;
+    
+    console.log(`[getMatchbookOdds] Matched Runners for ${eventObject.id}: Home='${homeRunner.name}', Away='${awayRunner.name}', Draw='${drawRunner.name}'`);
 
     const getBestBackPrice = (runner: any): number | null => {
         if (!runner?.prices?.length) return null;
@@ -145,15 +157,15 @@ export async function getMatchbookOdds(
     if (homeOdds !== null && drawOdds !== null && awayOdds !== null) {
       return { home: homeOdds, draw: drawOdds, away: awayOdds };
     } else {
-      console.warn(`Could not find all three runners by name for event ${eventObject.id}`);
+      console.warn(`[getMatchbookOdds] Found all three runners, but one was missing price data for event ${eventObject.id}`);
       return null;
     }
 
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
-      console.error(`Error in getMatchbookOdds for event ${matchbookEventId}:`, JSON.stringify(error.response.data, null, 2));
+      console.error(`[getMatchbookOdds] Axios Error for event ${matchbookEventId}:`, JSON.stringify(error.response.data, null, 2));
     } else {
-      console.error(`An unknown error occurred in getMatchbookOdds for event ${matchbookEventId}:`, error);
+      console.error(`[getMatchbookOdds] Unknown error for event ${matchbookEventId}:`, error);
     }
     return null;
   }
