@@ -432,7 +432,7 @@ async function updateCachedMatches() {
       continue;
     }
 
-    if (!match.marketAvailable) {
+    if (match.marketAvailable !== true) {
       const isNowAvailable = await checkMatchbookMarketAvailability(match.matchId);
       if (isNowAvailable) {
         updateMatchData(match.matchId, { marketAvailable: true });
