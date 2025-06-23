@@ -398,6 +398,8 @@ async function checkMatchbookMarketAvailability(matchId: number): Promise<boolea
     console.log(`[MarketCheck] Checking Matchbook availability for match ${matchId}...`);
     const mappingResult = await findMatchbookId(matchId);
 
+    console.log(`[DebugCheck] For match ${matchId}, mappingResult is:`, mappingResult);
+
     // If we can't even map it to a Matchbook ID, it's not available.
     if (!mappingResult) {
       console.log(`[MarketCheck] Matchbook ID not found for match ${matchId}.`);
@@ -406,7 +408,8 @@ async function checkMatchbookMarketAvailability(matchId: number): Promise<boolea
 
     const { matchbookEventId, homeTeamName, awayTeamName } = mappingResult;
     const matchbookOdds = await getMatchbookOdds(matchbookEventId, homeTeamName, awayTeamName);
-    
+    console.log(`[DebugCheck] For match ${matchId} (event ${matchbookEventId}), matchbookOdds are:`, matchbookOdds);
+
     // If we have an event ID but no active odds, it's not available for betting yet.
     if (!matchbookOdds) {
       console.log(`[MarketCheck] Matchbook odds not found for event ${matchbookEventId} (match ${matchId}).`);
