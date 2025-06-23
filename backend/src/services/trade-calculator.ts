@@ -24,6 +24,11 @@ export interface OptimalTrade {
 const TOKEN_SCALE_FACTOR = 10n ** 6n;
 const EXP_LIMIT = 337769972052787200000n;
 
+// The maximum number of shares for any single outcome the bot is bootstrapped with.
+// This acts as the inventory limit for any sell order.
+const MAX_BOT_INVENTORY_PER_OUTCOME = 15000n * TOKEN_SCALE_FACTOR;
+
+
 function predictProbabilities(
   marketState: MarketState,
   tradeDelta: bigint[]
@@ -51,8 +56,8 @@ function predictProbabilities(
 }
 
 /**
- * Calculates the optimal trade to align the market with target odds
- * using a direct calculation model.
+ * Calculates the optimal trade to align the market with target odds,
+ * constrained by the bot's maximum inventory for sell orders.
  */
 export function calculateOptimalTrade(
   marketState: MarketState,
@@ -73,28 +78,62 @@ export function calculateOptimalTrade(
 
   const log2N = binaryLog(BigInt(q.length) * ONE, EstimationMode.Midpoint);
 
-  // This is the theoretical change in the AMM's inventory, q.
   const deltaQ = targetProbsFixed.map((targetProb, i) => {
     const currentProb = currentProbsFixed[i];
     if (targetProb === 0n || currentProb === 0n) return 0n;
-
-    // The change in q should be negative if the target probability is higher.
     const ratio = (targetProb * ONE) / currentProb;
     const log2Ratio = binaryLog(ratio, EstimationMode.Midpoint);
     return -((internalB * log2Ratio) / log2N);
   });
 
-  // The user's trade is the opposite of the change to the AMM's inventory.
   const userTradeInternal = deltaQ.map(dq => -dq);
 
-  const contractTradeAmounts = userTradeInternal.map((trade) => {
+  const idealTradeAmounts = userTradeInternal.map((trade) => {
     return (trade * TOKEN_SCALE_FACTOR) / ONE;
   }) as [bigint, bigint, bigint];
+  
+  // If any sell order exceeds the bot's inventory, the entire trade must be scaled down.
+  let scalingFactor = 1.0;
 
-  const hasTrade = contractTradeAmounts.some((amount) => amount !== 0n);
+  for (const amount of idealTradeAmounts) {
+    // A negative amount indicates a sell order from the bot.
+    if (amount < 0n) {
+      const sellAmount = -amount; // The absolute amount to sell.
+      if (sellAmount > MAX_BOT_INVENTORY_PER_OUTCOME) {
+        // This sell order is too large. Calculate by how much we need to scale it down.
+        const requiredScaling = Number(MAX_BOT_INVENTORY_PER_OUTCOME) / Number(sellAmount);
+        
+        // We need to apply the *most restrictive* scaling factor to the whole trade.
+        if (requiredScaling < scalingFactor) {
+            scalingFactor = requiredScaling;
+        }
+      }
+    }
+  }
+  
+  let constrainedTradeAmounts: [bigint, bigint, bigint];
+
+  if (scalingFactor < 1.0) {
+    // A scaling factor less than 1 means at least one sell was too large.
+    // We scale down the entire trade proportionally to maintain its balance.
+    // We use a large integer to preserve precision during scaling.
+    const precision = 1_000_000_000n;
+    const scalingFactorBigInt = BigInt(Math.floor(scalingFactor * Number(precision)));
+
+    constrainedTradeAmounts = idealTradeAmounts.map(amount => {
+        return (amount * scalingFactorBigInt) / precision;
+    }) as [bigint, bigint, bigint];
+    console.log(`Trade constrained. Original: [${idealTradeAmounts.join(', ')}], Scaled: [${constrainedTradeAmounts.join(', ')}]`);
+
+  } else {
+    // If no scaling was needed, the ideal trade is the final trade.
+    constrainedTradeAmounts = idealTradeAmounts;
+  }
+
+  const hasTrade = constrainedTradeAmounts.some((amount) => amount !== 0n);
 
   return {
     hasProfitableTrade: hasTrade,
-    tradeAmounts: hasTrade ? contractTradeAmounts : undefined,
+    tradeAmounts: hasTrade ? constrainedTradeAmounts : undefined,
   };
 }
