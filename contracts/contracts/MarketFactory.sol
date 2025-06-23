@@ -51,6 +51,8 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     address public predictionMarketTemplate;
     address public tournamentMarketTemplate;
 
+    address public botAddress;
+
     mapping(uint256 => uint256) public fixtureTs;
     uint256[] public tournamentFixturesToResolve;
 
@@ -103,6 +105,11 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     function setRoundConsumer(address _roundConsumer) external onlyOwner {
         require(_roundConsumer != address(0), "Invalid RoundConsumer address");
         roundConsumer = RoundConsumer(_roundConsumer);
+    }
+
+    function setBotAddress(address _botAddress) external onlyOwner {
+        require(_botAddress != address(0), "MarketFactory: Bot address cannot be the zero address");
+        botAddress = _botAddress;
     }
 
     function acceptRoundConsumerOwnership() external onlyOwner {
@@ -184,6 +191,8 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
             address(usdc),
             address(conditionalTokens)
         );
+        require(botAddress != address(0), "Bot address cannot be the zero address");
+        predictionMarket.setBotAddress(botAddress);
 
         address[] memory whitelistArray = new address[](1);
         whitelistArray[0] = cloneAddress;

@@ -15,6 +15,7 @@ if (!RPC_URL || !REBALANCER_PRIVATE_KEY || !MARKET_FACTORY_ADDRESS || !API_FOOTB
 export const POLLING_INTERVAL = 30000; // 30 seconds
 
 export const GAS_LIMIT = 250000; 
+export const USDC_ADDRESS = process.env.USDC_FAUCET_ADDRESS!;
 
 // The minimum price difference required to trigger a rebalancing trade.
 export const DIVERGENCE_THRESHOLD = 0.005; // 0.5%

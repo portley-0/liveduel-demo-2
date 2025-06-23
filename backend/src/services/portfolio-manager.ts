@@ -4,9 +4,9 @@ import ConditionalTokensArtifact from '../artifacts/ConditionalTokens.json';
 import UsdcArtifact from '../artifacts/MockUSDC.json';
 import MarketFactoryArtifact from '../artifacts/MarketFactory.json';
 
-const CONDITIONAL_TOKENS_ADDRESS = '0xb12038A8BA89c51fa3fc2b4215ce0b3483f63f5C'; 
-const MARKET_FACTORY_ADDRESS = '0x222b0e8D3E29d639189BA84DB2c0C7b48Ed87f1D'; 
-const USDC_ADDRESS = '0x1A85e9870Dd44A8167b626981b1aBDc87cAAD4E5'; 
+const CONDITIONAL_TOKENS_ADDRESS = '0x29be6fD166901c308b27F0f874d08dfbc8E9c4Fd'; 
+const MARKET_FACTORY_ADDRESS = '0xe01E0F5B499081314256Af25687829148CA10411'; 
+const USDC_ADDRESS = '0xBdbA46DcF881A7C7f061aE35e8792dC7c335180a'; 
 
 const provider = new ethers.JsonRpcProvider(RPC_URL);
 const signer = new ethers.Wallet(REBALANCER_PRIVATE_KEY!, provider);

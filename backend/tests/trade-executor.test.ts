@@ -1,19 +1,15 @@
 import { ethers } from 'ethers';
 import { executeTrade, TradeOrder } from '../src/services/trade-executor';
-import { RPC_URL, REBALANCER_PRIVATE_KEY } from '../src/services/rebalancer.config';
+import { RPC_URL, REBALANCER_PRIVATE_KEY, USDC_ADDRESS } from '../src/services/rebalancer.config';
 import PredictionMarketArtifact from '../src/artifacts/PredictionMarket.json';
+import MarketFactoryArtifact from '../src/artifacts/MarketFactory.json';
+import ConditionalTokensArtifact from '../src/artifacts/ConditionalTokens.json';
 import UsdcArtifact from '../src/artifacts/MockUSDC.json';
 
-// =================================================================================
-//                            CONFIGURATION
-// =================================================================================
-// 1. PASTE THE ADDRESS OF YOUR NEWLY DEPLOYED PREDICTION MARKET CONTRACT HERE
-const HARDCODED_MARKET_ADDRESS = 'PASTE_YOUR_FRESH_MARKET_ADDRESS_HERE';
+const MATCH_ID = 1321712;
 
-// 2. CONFIGURE YOUR DEPLOYER AND USDC ADDRESSES
-const DEPLOYER_PRIVATE_KEY = process.env.PRIVATE_KEY;
-const USDC_ADDRESS = '0x1A85e9870Dd44A8167b626981b1aBDc87cAAD4E5'; // MockUSDC on Fuji
-// =================================================================================
+const DEPLOYER_PRIVATE_KEY = process.env.PRIVATE_KEY!;
+const MARKET_FACTORY_ADDRESS = process.env.MARKET_FACTORY_ADDRESS!;
 
 // --- Helper Constants and Functions ---
 const FIXED_192x64_SCALING_FACTOR = 18446744073709551616n; // 2^64
@@ -44,8 +40,6 @@ const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args
     }
 });
 
-// --- UPDATED HELPER FUNCTION ---
-// This now uses the more efficient proxy function on the PredictionMarket contract.
 async function getOnChainDecimalProbs(predictionMarketAddress: string): Promise<[number, number, number]> {
     const market = new ethers.Contract(predictionMarketAddress, PredictionMarketArtifact.abi, provider);
     
@@ -73,12 +67,12 @@ describe('trade-executor (End-to-End On-Chain Test)', () => {
         if (!DEPLOYER_PRIVATE_KEY) {
             throw new Error("FATAL: DEPLOYER_PRIVATE_KEY must be set in your environment.");
         }
-        if (!HARDCODED_MARKET_ADDRESS || !HARDCODED_MARKET_ADDRESS.startsWith('0x')) {
-            throw new Error("FATAL: Please set the HARDCODED_MARKET_ADDRESS constant in the test file.");
-        }
 
         const ownerSigner = new ethers.Wallet(DEPLOYER_PRIVATE_KEY!, provider);
-        const predictionMarketContract = new ethers.Contract(HARDCODED_MARKET_ADDRESS, PredictionMarketArtifact.abi, ownerSigner);
+        const marketFactory = new ethers.Contract(MARKET_FACTORY_ADDRESS, MarketFactoryArtifact.abi, ownerSigner);
+        const predictionMarketAddress = await marketFactory.predictionMarkets(MATCH_ID);
+
+        const predictionMarketContract = new ethers.Contract(predictionMarketAddress, PredictionMarketArtifact.abi, ownerSigner);
 
         // Ensure the rebalancer bot is authorized
         const currentBotAddress = await predictionMarketContract.botAddress();
@@ -103,6 +97,19 @@ describe('trade-executor (End-to-End On-Chain Test)', () => {
         const newBalance = await usdcContract.balanceOf(rebalancerSigner.address);
         console.log(`SETUP: Rebalancer USDC Balance: ${ethers.formatUnits(newBalance, 6)}`);
         expect(newBalance).toBeGreaterThan(0);
+
+        console.log(`SETUP: Approving PredictionMarket contract (${predictionMarketAddress}) to spend rebalancer's USDC...`);
+        const usdcFromRebalancer = new ethers.Contract(USDC_ADDRESS, UsdcArtifact.abi, rebalancerSigner);
+        const approveTx = await usdcFromRebalancer.approve(predictionMarketAddress, ethers.MaxUint256); // Approve effectively infinite amount
+        await approveTx.wait();
+        console.log('SETUP: USDC approval successful.');
+        
+        const conditionalTokensAddress = await predictionMarketContract.conditionalTokens();
+        console.log(`SETUP: Approving PredictionMarket as operator for rebalancer's Conditional Tokens (${conditionalTokensAddress})...`);
+        const conditionalTokensFromRebalancer = new ethers.Contract(conditionalTokensAddress, ConditionalTokensArtifact.abi, rebalancerSigner);
+        const setApprovalTx = await conditionalTokensFromRebalancer.setApprovalForAll(predictionMarketAddress, true);
+        await setApprovalTx.wait();
+        console.log('SETUP: Conditional Token approval successful.');
     });
 
     afterAll(() => {
@@ -112,16 +119,21 @@ describe('trade-executor (End-to-End On-Chain Test)', () => {
     });
 
     it('should execute a calculated trade and correctly update on-chain odds', async () => {
+        // --- 0. Retrieve the predictionMarketAddress for this test ---
+        const ownerSigner = new ethers.Wallet(DEPLOYER_PRIVATE_KEY!, provider);
+        const marketFactory = new ethers.Contract(MARKET_FACTORY_ADDRESS, MarketFactoryArtifact.abi, ownerSigner);
+        const predictionMarketAddress = await marketFactory.predictionMarkets(MATCH_ID);
+
         // --- 1. Define the trade we want to test ---
         const calculatedTrade: TradeOrder = {
-            predictionMarketAddress: HARDCODED_MARKET_ADDRESS,
+            predictionMarketAddress: predictionMarketAddress,
             // This is the output from "Scenario 1: Strong Home Favorite" from our unit tests.
             tradeAmounts: [5536053696n, -3927892607n, -3927892607n]
         };
         const targetOdds = { home: 2.0, draw: 4.0, away: 4.0 };
 
         // --- 2. Get the on-chain odds BEFORE the trade ---
-        const beforeProbs = await getOnChainDecimalProbs(HARDCODED_MARKET_ADDRESS);
+        const beforeProbs = await getOnChainDecimalProbs(predictionMarketAddress);
         console.log('\n--- Verifying Scenario 1: Strong Home Favorite (2.0, 4.0, 4.0) ---');
         console.log('On-chain odds BEFORE trade:', beforeProbs.map(p => decimalProbabilityToOdds(p).toFixed(2)));
 
@@ -131,7 +143,7 @@ describe('trade-executor (End-to-End On-Chain Test)', () => {
         console.log('Trade executed successfully.');
 
         // --- 4. Get the on-chain odds AFTER the trade ---
-        const afterProbs = await getOnChainDecimalProbs(HARDCODED_MARKET_ADDRESS);
+        const afterProbs = await getOnChainDecimalProbs(predictionMarketAddress);
         console.log('On-chain odds AFTER trade:', afterProbs.map(p => decimalProbabilityToOdds(p).toFixed(2)));
         console.log('Target odds for comparison: ', [targetOdds.home.toFixed(2), targetOdds.draw.toFixed(2), targetOdds.away.toFixed(2)]);
 

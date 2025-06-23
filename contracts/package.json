@@ -11,6 +11,7 @@
     "test:roundconsumer": "pnpm hardhat run scripts/TestRoundRequest.ts --network avalancheFuji",
     "test:sanity": "npx hardhat test --network avalancheFuji tests/sanitycheck.test.ts",
     "log:tournament": "pnpm hardhat run scripts/LogTournamentState.ts --network avalancheFuji",
+    "set:botaddress": "pnpm hardhat run scripts/SetBotAddress.ts --network avalancheFuji",
     "test:staking": "npx hardhat test --network avalancheFuji tests/staking.test.ts",
     "test:factory": "npx hardhat test --network avalancheFuji tests/factory.test.ts",
     "test:trading": "npx hardhat test --network avalancheFuji tests/trading.test.ts",

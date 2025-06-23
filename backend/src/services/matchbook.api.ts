@@ -80,13 +80,6 @@ export async function getMatchbookUpcomingEvents(kickoffTime: string): Promise<M
     }
 }
 
-/**
- * Fetches the latest odds for a specific Matchbook event ID, finding runners by name.
- * @param matchbookEventId The ID of the event on Matchbook.
- * @param homeTeamName The name of the home team to look for.
- * @param awayTeamName The name of the away team to look for.
- * @returns A promise that resolves to a MarketOdds object or null on error.
- */
 export async function getMatchbookOdds(
     matchbookEventId: string | number,
     homeTeamName: string,
