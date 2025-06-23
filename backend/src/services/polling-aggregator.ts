@@ -42,6 +42,8 @@ import {
 } from './subgraph-service';
 
 import { unwindPositions } from './portfolio-manager';
+import { findMatchbookId } from './id-mapper';
+import { getMatchbookOdds } from './matchbook.api';
 
 const LEAGUES = [2, 3, 11, 13, 15, 34, 39, 130, 140, 71, 78, 61, 135, 239, 265, 848];
 const SEASONS = [2024, 2025, 2026];
@@ -391,6 +393,36 @@ async function addUpcomingTournamentsToCache() {
   console.log('[TournamentCachePolling] Finished cycle for adding/updating specific season tournaments.');
 }
 
+async function checkMatchbookMarketAvailability(matchId: number): Promise<boolean> {
+  try {
+    console.log(`[MarketCheck] Checking Matchbook availability for match ${matchId}...`);
+    const mappingResult = await findMatchbookId(matchId);
+
+    // If we can't even map it to a Matchbook ID, it's not available.
+    if (!mappingResult) {
+      console.log(`[MarketCheck] Matchbook ID not found for match ${matchId}.`);
+      return false;
+    }
+
+    const { matchbookEventId, homeTeamName, awayTeamName } = mappingResult;
+    const matchbookOdds = await getMatchbookOdds(matchbookEventId, homeTeamName, awayTeamName);
+    
+    // If we have an event ID but no active odds, it's not available for betting yet.
+    if (!matchbookOdds) {
+      console.log(`[MarketCheck] Matchbook odds not found for event ${matchbookEventId} (match ${matchId}).`);
+      return false;
+    }
+
+    // If we pass both checks, the market is available!
+    console.log(`[MarketCheck] ✅ Market is available on Matchbook for match ${matchId}.`);
+    return true;
+
+  } catch (error) {
+    console.error(`[MarketCheck] Error checking availability for match ${matchId}:`, error);
+    return false;
+  }
+}
+
 
 async function updateCachedMatches() {
   const allMatches = getAllMatches();
@@ -398,6 +430,13 @@ async function updateCachedMatches() {
   for (const match of allMatches) {
     if (match.resolvedAt) {
       continue;
+    }
+
+    if (!match.marketAvailable) {
+      const isNowAvailable = await checkMatchbookMarketAvailability(match.matchId);
+      if (isNowAvailable) {
+        updateMatchData(match.matchId, { marketAvailable: true });
+      }
     }
 
     const currentTime = Date.now();
@@ -442,7 +481,6 @@ async function refreshFootballData(matchId: number) {
         elapsed: fixture.fixture.status.elapsed
     };
     
-    // 4. Save the fully merged object back to the cache
     updateMatchData(matchId, updatedData);
 
     if (!isMatchFinished(fixture.fixture.status.short)) {

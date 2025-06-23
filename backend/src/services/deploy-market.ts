@@ -4,7 +4,6 @@ import { bootstrapInventory } from './portfolio-manager';
 import MarketFactoryArtifact from '../artifacts/MarketFactory.json';
 import { findMatchbookId } from './id-mapper';
 import { getMatchbookOdds } from './matchbook.api';
-import { updateMatchData } from '../cache';
 
 const MARKET_FACTORY_ABI = MarketFactoryArtifact.abi;
 
@@ -104,9 +103,6 @@ export async function deployMarket(matchId: number, matchTimestamp: number) {
     await bootstrapInventory(conditionId, BOOTSTRAP_FUNDING_AMOUNT_USDC);
 
     console.log(`✅✅✅ SUCCESS: Market ${matchId} is deployed and bot inventory is fully funded!`);
-
-    console.log(`Updating cache for matchId ${matchId} to reflect successful deployment.`);
-    updateMatchData(matchId, { marketAvailable: true });
 
   } catch (bootstrapError) {
     console.error(`❌ LIFECYCLE ERROR: Market was deployed, but bootstrapping failed! Manual intervention may be required.`);
