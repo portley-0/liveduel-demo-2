@@ -124,7 +124,7 @@ export async function getMatchbookOdds(
     }
 
     const runners = matchOddsMarket.runners;
-    console.log(runners)
+    console.log("Found runners:", runners.map((r: any) => r.name));
     
     const homeRunner = runners.find((r: any) => fuzz.partial_ratio(r.name, homeTeamName) > 90);
     const awayRunner = runners.find((r: any) => fuzz.partial_ratio(r.name, awayTeamName) > 90);
