@@ -19,7 +19,9 @@ const failedMatchCache = new Set<number>();
 const MIN_SIMILARITY_SCORE = 70;
 
 async function getApiFootballMatchDetails(apiFootballId: number): Promise<ApiFootballMatchDetails | null> {
-    console.log(`ID MAPPER: Fetching details for API-Football ID: ${apiFootballId} from football-service.`); // <--- ADD THIS LOG
+    console.log(`ID MAPPER: Fetching details for API-Football ID: ${apiFootballId} from football-service.`);
+    await new Promise(resolve => setTimeout(resolve, 5000)); 
+    
     try {
         const fixturesResponse = await getFixtures({ id: apiFootballId });
         if (!fixturesResponse || fixturesResponse.length === 0) {
