@@ -19,7 +19,7 @@ export const TARGET_INVENTORY_PER_OUTCOME = 15000n * TOKEN_SCALE_FACTOR;
 
 export const POLLING_INTERVAL = 30000; // 30 seconds
 
-export const GAS_LIMIT = 1000000; 
+export const GAS_LIMIT = 2000000; 
 export const USDC_ADDRESS = process.env.USDC_FAUCET_ADDRESS!;
 
 // The minimum price difference required to trigger a rebalancing trade.
