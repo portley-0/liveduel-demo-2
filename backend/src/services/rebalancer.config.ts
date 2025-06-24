@@ -17,10 +17,6 @@ export const TOKEN_SCALE_FACTOR = 10n ** 6n; // Scale factor for token amounts
 
 export const TARGET_INVENTORY_PER_OUTCOME = 15000n * TOKEN_SCALE_FACTOR; 
 
-export const MIN_PROFITABLE_SPREAD_PERCENTAGE = 0.05; 
-
-export const DEADBAND_PERCENTAGE = 0.01;
-
 export const POLLING_INTERVAL = 30000; // 30 seconds
 
 export const GAS_LIMIT = 1000000; 

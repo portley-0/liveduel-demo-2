@@ -93,7 +93,7 @@ export async function deployMarket(matchId: number, matchTimestamp: number) {
   try {
     console.log(`LIFECYCLE: Preparing to bootstrap inventory for new market...`);
 
-    const conditionId = await factory.getConditionId(matchId);
+    const conditionId = await factory.matchConditionIds(matchId);
     if (!conditionId || conditionId === ethers.ZeroHash) {
         throw new Error(`Could not retrieve a valid conditionId from the factory for matchId ${matchId}.`);
     }
