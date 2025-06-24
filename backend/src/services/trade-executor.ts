@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { REBALANCER_PRIVATE_KEY, RPC_URL, GAS_LIMIT, USDC_ADDRESS } from './rebalancer.config';
+import { REBALANCER_PRIVATE_KEY, RPC_URL, GAS_LIMIT, USDC_ADDRESS, CONDITIONAL_TOKENS_ADDRESS } from './rebalancer.config';
 import PredictionMarketArtifact from '../artifacts/PredictionMarket.json';
 import ConditionalTokensArtifact from '../artifacts/ConditionalTokens.json';
 import UsdcArtifact from '../artifacts/MockUSDC.json'; 
@@ -14,13 +14,13 @@ const signer = new ethers.Wallet(REBALANCER_PRIVATE_KEY!, provider);
 
 const approvalCache: { [key: string]: boolean } = {};
 
-async function ensureConditionalTokenApproval(predictionMarketAddress: string, conditionalTokensAddress: string): Promise<void> {
-    const cacheKey = `conditionalTokens:${conditionalTokensAddress}`;
+async function ensureConditionalTokenApproval(predictionMarketAddress: string): Promise<void> {
+    const cacheKey = `conditionalTokens-for:${predictionMarketAddress}`;
     if (approvalCache[cacheKey]) {
         return;
     }
 
-    const conditionalTokensContract = new ethers.Contract(conditionalTokensAddress, ConditionalTokensArtifact.abi, signer);
+    const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, ConditionalTokensArtifact.abi, signer);
 
     console.log(`Checking Conditional Token approval for operator: ${predictionMarketAddress}`);
     const isApproved = await conditionalTokensContract.isApprovedForAll(signer.address, predictionMarketAddress);
@@ -34,7 +34,7 @@ async function ensureConditionalTokenApproval(predictionMarketAddress: string, c
     console.log(`Approval not set. Submitting setApprovalForAll transaction...`);
     try {
         const tx = await conditionalTokensContract.setApprovalForAll(predictionMarketAddress, true, {
-            gasLimit: GAS_LIMIT || 100000,
+            gasLimit: 100000, 
         });
         console.log(`Approval transaction sent: ${tx.hash}`);
         await tx.wait();
@@ -47,7 +47,7 @@ async function ensureConditionalTokenApproval(predictionMarketAddress: string, c
 }
 
 async function ensureUsdcApproval(predictionMarketAddress: string): Promise<void> {
-    const cacheKey = `usdc:${USDC_ADDRESS}`;
+    const cacheKey = `usdc-for:${predictionMarketAddress}`;
     if (approvalCache[cacheKey]) {
         return;
     }
@@ -57,7 +57,7 @@ async function ensureUsdcApproval(predictionMarketAddress: string): Promise<void
     console.log(`Checking USDC allowance for spender: ${predictionMarketAddress}`);
     const allowance = await usdcContract.allowance(signer.address, predictionMarketAddress);
 
-    if (allowance >= ethers.parseUnits('1000000', 6)) { // Check for a reasonably large allowance
+    if (allowance >= ethers.parseUnits('1000000', 6)) { 
         console.log(`USDC allowance is sufficient. Caching result.`);
         approvalCache[cacheKey] = true;
         return;
@@ -66,7 +66,7 @@ async function ensureUsdcApproval(predictionMarketAddress: string): Promise<void
     console.log(`USDC allowance is insufficient. Submitting approve transaction...`);
     try {
         const tx = await usdcContract.approve(predictionMarketAddress, ethers.MaxUint256, { // Approve max amount
-            gasLimit: GAS_LIMIT || 2000000,
+            gasLimit: 100000, 
         });
         console.log(`USDC approval transaction sent: ${tx.hash}`);
         await tx.wait();
@@ -91,8 +91,7 @@ export async function executeTrade(order: TradeOrder): Promise<void> {
 
     try {
         if (hasSellOrder) {
-            const conditionalTokensAddress = await predictionMarketContract.conditionalTokens();
-            await ensureConditionalTokenApproval(order.predictionMarketAddress, conditionalTokensAddress);
+            await ensureConditionalTokenApproval(order.predictionMarketAddress);
         }
 
         if (hasBuyOrder) {
@@ -100,14 +99,23 @@ export async function executeTrade(order: TradeOrder): Promise<void> {
         }
     } catch (approvalError) {
         console.error('Halting trade execution due to approval error:', approvalError);
-        return;
+        return; 
     }
 
     try {
+        const collateralLimit = 0; 
+
+        const estimatedGas = await predictionMarketContract.trade.estimateGas(
+            order.tradeAmounts,
+            collateralLimit
+        );
+        const gasLimitWithBuffer = (estimatedGas * 120n) / 100n;
+
         console.log(`Executing trade on market ${order.predictionMarketAddress} with amounts: [${order.tradeAmounts.join(', ')}]`);
+        console.log(`Gas estimation: ${estimatedGas}. Sending with limit: ${gasLimitWithBuffer}.`);
         
-        const tx = await predictionMarketContract.trade(order.tradeAmounts, 0, {
-            gasLimit: GAS_LIMIT || 2000000, 
+        const tx = await predictionMarketContract.trade(order.tradeAmounts, collateralLimit, {
+            gasLimit: gasLimitWithBuffer,
         });
 
         console.log(`Trade transaction sent: ${tx.hash}`);
