@@ -21,6 +21,7 @@ export interface MarketState {
   usdcAddress: string;
   q: bigint[]; // The balances of outcome tokens held by the LMSR
   b: bigint;   // The funding parameter of the LMSR
+  conditionId: string; // The condition ID of the market
 }
 
 export interface MarketOdds {
@@ -116,6 +117,7 @@ export async function getMarketState(matchId: number): Promise<MarketState | nul
 
     const lmsrContract = new ethers.Contract(details.lmsrAddress, LmsrMarketMakerArtifact.abi, provider);
     const conditionalTokensContract = new ethers.Contract(details.conditionalTokensAddress, ConditionalTokensArtifact.abi, provider);
+    const conditionId = details.conditionId;
 
     try {
         const [q_home, q_draw, q_away, b] = await Promise.all([
@@ -130,6 +132,7 @@ export async function getMarketState(matchId: number): Promise<MarketState | nul
             usdcAddress: details.usdcAddress,
             q: [q_home, q_draw, q_away],
             b: b,
+            conditionId: conditionId
         };
     } catch (error) {
         console.error(`Error fetching final market state for ${matchId}:`, error);
