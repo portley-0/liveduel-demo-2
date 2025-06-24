@@ -15,7 +15,6 @@ export interface MappingResult {
 }
 
 const idCache = new Map<number, MappingResult>(); 
-const failedMatchCache = new Set<number>();
 const MIN_SIMILARITY_SCORE = 70;
 
 async function getApiFootballMatchDetails(apiFootballId: number): Promise<ApiFootballMatchDetails | null> {
@@ -45,20 +44,17 @@ export async function findMatchbookId(apiFootballId: number): Promise<MappingRes
         console.log(`ID MAPPER: Cache HIT for API-Football ID ${apiFootballId}.`);
         return idCache.get(apiFootballId)!;
     }
-    if (failedMatchCache.has(apiFootballId)) return null;
 
     console.log(`ID MAPPER: Cache MISS for ${apiFootballId}. Attempting new match...`);
 
     try {
         const footballMatch = await getApiFootballMatchDetails(apiFootballId);
         if (!footballMatch) {
-            failedMatchCache.add(apiFootballId);
             return null;
         }
 
         const matchbookEvents = await getMatchbookUpcomingEvents(footballMatch.kickoffTime);
         if (!matchbookEvents || matchbookEvents.length === 0) {
-            failedMatchCache.add(apiFootballId);
             return null;
         }
         
@@ -91,12 +87,10 @@ export async function findMatchbookId(apiFootballId: number): Promise<MappingRes
             return result;
         } else {
             console.log(`ID MAPPER: Failed to find confident match for ${apiFootballId}. Best score was ${highestScore}.`);
-            failedMatchCache.add(apiFootballId);
             return null;
         }
     } catch (error) {
         console.error(`ID MAPPER: An unexpected error occurred while mapping ID ${apiFootballId}:`, error);
-        failedMatchCache.add(apiFootballId);
         return null;
     }
 }
