@@ -11,7 +11,8 @@ import {
   FixtureLineups,
   FixtureEvent,
   FixtureStatistics,
-  TournamentData
+  TournamentData,
+  MatchData
 } from '../cache';
 
 import {
@@ -465,20 +466,14 @@ async function updateCachedMatches() {
 async function refreshFootballData(matchId: number) {
   try {
 
-    const currentMatchData = getMatchData(matchId);
-    if (!currentMatchData) {
-      return; // Exit if match is no longer in cache
-    }
-
     const fixtureArray = await getFixtures({ id: matchId });
     if (fixtureArray.length === 0) {
       return;
     }
     const fixture = fixtureArray[0];
 
-    const updatedData = {
-        ...currentMatchData, // Preserves `marketAvailable` and all other fields
-        homeScore: fixture.goals.home, // Overwrites with the latest info
+    const updatedData: Partial<MatchData> = {
+        homeScore: fixture.goals.home,
         awayScore: fixture.goals.away,
         statusShort: fixture.fixture.status.short,
         elapsed: fixture.fixture.status.elapsed
