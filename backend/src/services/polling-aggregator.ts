@@ -523,8 +523,7 @@ async function refreshSubgraphData(matchId: number) {
     const predictionMarket = await getPredictionMarketByMatchId(matchId);
 
     if (predictionMarket) {
-      const matchInCache = getMatchData(matchId);
-      if (predictionMarket.isResolved && !matchInCache?.resolvedAt) {
+      if (predictionMarket.isResolved) {
         console.log(`POLLER: Detected resolved market ${matchId}. Caching resolution and triggering unwind.`);
         
         updateMatchData(matchId, {
