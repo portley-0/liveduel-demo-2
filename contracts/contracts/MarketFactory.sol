@@ -153,7 +153,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     function _createPredictionMarket(uint256 matchId, uint256 matchTimestamp) internal {
         require(predictionMarkets[matchId] == address(0), "Market already exists");
 
-        uint256 initialFunding = 15000 * 1e6;
+        uint256 initialFunding = 10000 * 1e6;
         liquidityPool.withdrawLiquidity(initialFunding);
         usdc.approve(address(lmsrFactory), initialFunding);
 
@@ -217,7 +217,7 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
     ) external onlyOwner {
         require(tournamentMarkets[tournamentId] == address(0), "Tournament exists");
 
-        uint256 initialFunding = 20000 * 1e6;
+        uint256 initialFunding = 10000 * 1e6;
         liquidityPool.withdrawLiquidity(initialFunding);
         usdc.approve(address(lmsrFactory), initialFunding);
 

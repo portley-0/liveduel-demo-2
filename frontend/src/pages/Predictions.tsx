@@ -7,7 +7,7 @@ import { Dialog } from "@headlessui/react";
 import PredictionMarketABI from "@/abis/PredictionMarket.json" with { type: "json" };
 import ConditionalTokensABI from "@/abis/ConditionalTokens.json" with { type: "json" };
 
-const CONDITIONAL_TOKENS_ADDRESS = "0xeD99ca0215856aD5DEc48dDA728dfe40EFb24d5e";
+const CONDITIONAL_TOKENS_ADDRESS = "0xfd16C758285877B88F2C30B66686dc8515EaE1CA";
 const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 
 interface UserPrediction {
