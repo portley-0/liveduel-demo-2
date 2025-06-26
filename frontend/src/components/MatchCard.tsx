@@ -62,7 +62,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
           <img
             src={match.homeTeamLogo}
             alt={match.homeTeamName}
-            className="object-contain 2xl:w-[280px] 2xl:h-[280px] lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] xxs:w-[75px] xxs:h-[75px]"
+            className="object-contain 2xl:w-[190px] 2xl:h-[190px] lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] xxs:w-[75px] xxs:h-[75px]"
           />
           <span className="2xl:text-4xl lg:text-xl text-white font-[Lato-Bold] mt-3 mb-3 xs:mb-1 xxs:mb-1 sm:mb-2 2xl:mb-5 truncate max-w-[180px]">
             {match.homeTeamName}
@@ -101,7 +101,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match }) => {
           <img
             src={match.awayTeamLogo}
             alt={match.awayTeamName}
-            className="object-contain 2xl:w-[280px] 2xl:h-[280px] lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] xxs:w-[75px] xxs:h-[75px]"
+            className="object-contain 2xl:w-[190px] 2xl:h-[190px] lg:w-[100px] lg:h-[100px] xs:w-[75px] xs:h-[75px] sm:w-[80px] sm:h-[80px] xxs:w-[75px] xxs:h-[75px]"
           />
           <span className="2xl:text-4xl lg:text-xl text-white font-[Lato-Bold] mt-3 mb-2 sm:mb-1 xs:mb-1 xxs:mb-1 2xl:mb-5 truncate max-w-[180px]">
             {match.awayTeamName}
