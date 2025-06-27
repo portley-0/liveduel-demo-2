@@ -72,7 +72,7 @@ describe("PredictionMarket - buyShares() & sellShares()", function () {
     conditionId = await predictionMarket.conditionId();
     console.log(`Condition ID: ${conditionId}`);
 
-    await usdc["mint(uint256)"](ethers.utils.parseUnits("20000", 6));
+    await usdc["mint(uint256)"](ethers.utils.parseUnits("10000000", 6));
     console.log(`Minted 20000 USDC to user: ${user.address}`);
 
     // Get outcome token ID

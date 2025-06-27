@@ -6,7 +6,7 @@ import MarketFactoryArtifact from '../src/artifacts/MarketFactory.json'; // Adju
 dotenv.config();
 
 // --- Configuration ---
-const MARKET_ID_TO_FIX = 1321716; // <-- CHANGE THIS VALUE
+const MARKET_ID_TO_FIX = 1321726; // <-- CHANGE THIS VALUE
 
 const BOOTSTRAP_FUNDING_AMOUNT_USDC = 15000;
 
