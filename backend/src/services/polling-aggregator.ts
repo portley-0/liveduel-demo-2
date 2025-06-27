@@ -46,7 +46,8 @@ import { unwindPositions } from './portfolio-manager';
 import { findMatchbookId } from './id-mapper';
 import { getMatchbookOdds } from './matchbook.api';
 
-const LEAGUES = [2, 3, 11, 13, 15, 34, 39, 130, 140, 71, 78, 61, 135, 239, 265, 848];
+//const LEAGUES = [2, 3, 11, 13, 15, 34, 39, 130, 140, 71, 78, 61, 135, 239, 265, 848];
+const LEAGUES = [15];
 const SEASONS = [2024, 2025, 2026];
 
 let dataUpdateInterval: NodeJS.Timeout | undefined;

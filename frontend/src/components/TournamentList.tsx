@@ -120,7 +120,7 @@ const TournamentList: React.FC = () => {
   if (!tournaments || Object.keys(tournaments).length === 0) {
     return (
       <div className="fixed inset-0 z-50 flex justify-center items-center">
-        <span className="loading loading-spinner text-blue-700 h-10 w-10"></span>
+        <span className="text-lg font-semibold">No Tournaments currently available</span>
       </div>
     );
   }
