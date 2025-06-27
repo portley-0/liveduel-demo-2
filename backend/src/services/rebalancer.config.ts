@@ -23,4 +23,4 @@ export const GAS_LIMIT = 2000000;
 export const USDC_ADDRESS = process.env.USDC_FAUCET_ADDRESS!;
 
 // The minimum price difference required to trigger a rebalancing trade.
-export const DIVERGENCE_THRESHOLD = 0.02; 
+export const DIVERGENCE_THRESHOLD = 0.01; 
