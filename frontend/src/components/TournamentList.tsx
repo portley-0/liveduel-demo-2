@@ -117,19 +117,10 @@ const TournamentList: React.FC = () => {
   const { tournaments } = useTournaments();
   const { selectedLeague, sortBy, deployedOnly } = useFilter();
 
-  if (!tournaments || Object.keys(tournaments).length === 0) {
-    return (
-      <div className="fixed inset-0 z-50 flex justify-center items-center">
-        <span className="text-lg font-semibold">No Tournaments currently available</span>
-      </div>
-    );
-  }
-
   const UEFA_LEAGUE_IDS = [2, 3, 848];
 
-  let filteredTournaments = Object.values(tournaments);
+  let filteredTournaments = Object.values(tournaments || {});
 
-  // League filter (using tournamentId as leagueId)
   if (selectedLeague !== null) {
     if (selectedLeague === "uefa") {
       filteredTournaments = filteredTournaments.filter((tournament) =>
@@ -251,9 +242,17 @@ const TournamentList: React.FC = () => {
 
   return (
     <div className="w-full grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-6 3xl:grid-cols-7 gap-4 p-4 pb-[80px]">
-      {filteredTournaments.map((tournament) => (
-        <TournamentItem key={tournament.tournamentId} tournament={tournament} />
-      ))}
+      {filteredTournaments.length > 0 ? (
+        filteredTournaments.map((tournament) => (
+          <TournamentItem key={tournament.tournamentId} tournament={tournament} />
+        ))
+      ) : (
+        <div className="col-span-full flex justify-center items-center h-64">
+          <span className="text-lg font-semibold text-white">
+            No Tournaments currently available
+          </span>
+        </div>
+      )}
     </div>
   );
 };
