@@ -72,7 +72,6 @@ export async function getMatchbookUpcomingEvents(kickoffTime: string): Promise<M
             params,
         });
         
-        console.log(`[getMatchbookUpcomingEvents] RAW RESPONSE for kickoff ${kickoffTime}:`, JSON.stringify(response.data, null, 2));
         console.log(`Fetched ${response.data.events.length} upcoming Matchbook events around kickoff time ${kickoffTime}.`);
 
         return response.data.events.map((event: any) => ({
