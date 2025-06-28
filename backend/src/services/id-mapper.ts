@@ -1,6 +1,6 @@
 import fuzz from 'fuzzball';
-import { getFixtures } from './football-service'; 
-import { getMatchbookUpcomingEvents, MatchbookEvent } from './matchbook.api';
+import { getFixtures } from './football-service';
+import { getMatchbookUpcomingEvents, MatchbookEvent, getMatchbookOdds } from './matchbook.api';
 
 interface ApiFootballMatchDetails {
   homeTeam: string;
@@ -14,13 +14,19 @@ export interface MappingResult {
     awayTeamName: string;
 }
 
-const idCache = new Map<number, MappingResult>(); 
-const MIN_SIMILARITY_SCORE = 70;
+interface CachedMapping extends MappingResult {
+    expiry: number;
+}
+
+const idCache = new Map<number, CachedMapping>();
+
+const CACHE_TTL = 1 * 60 * 60 * 1000;
+const MIN_SIMILARITY_SCORE = 75; 
 
 async function getApiFootballMatchDetails(apiFootballId: number): Promise<ApiFootballMatchDetails | null> {
     console.log(`ID MAPPER: Fetching details for API-Football ID: ${apiFootballId} from football-service.`);
-    await new Promise(resolve => setTimeout(resolve, 5000)); 
-    
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
     try {
         const fixturesResponse = await getFixtures({ id: apiFootballId });
         if (!fixturesResponse || fixturesResponse.length === 0) {
@@ -40,12 +46,17 @@ async function getApiFootballMatchDetails(apiFootballId: number): Promise<ApiFoo
 }
 
 export async function findMatchbookId(apiFootballId: number): Promise<MappingResult | null> {
-    if (idCache.has(apiFootballId)) {
+    const cachedItem = idCache.get(apiFootballId);
+    if (cachedItem && Date.now() < cachedItem.expiry) {
         console.log(`ID MAPPER: Cache HIT for API-Football ID ${apiFootballId}.`);
-        return idCache.get(apiFootballId)!;
+        return cachedItem;
     }
 
-    console.log(`ID MAPPER: Cache MISS for ${apiFootballId}. Attempting new match...`);
+    if (cachedItem) {
+        console.log(`ID MAPPER: Cache STALE for ${apiFootballId}. Attempting new match...`);
+    } else {
+        console.log(`ID MAPPER: Cache MISS for ${apiFootballId}. Attempting new match...`);
+    }
 
     try {
         const footballMatch = await getApiFootballMatchDetails(apiFootballId);
@@ -55,40 +66,53 @@ export async function findMatchbookId(apiFootballId: number): Promise<MappingRes
 
         const matchbookEvents = await getMatchbookUpcomingEvents(footballMatch.kickoffTime);
         if (!matchbookEvents || matchbookEvents.length === 0) {
+            console.warn(`ID MAPPER: No upcoming events found from Matchbook for kickoff ${footballMatch.kickoffTime}`);
             return null;
         }
-        
-        console.log(`ID MAPPER: Found ${matchbookEvents.length} Matchbook events for kickoff time window.`);
-        console.log('ID MAPPER: Matchbook events fetched:', matchbookEvents);
 
-        let bestMatch: MatchbookEvent | null = null;
-        let highestScore = 0;
+        console.log(`ID MAPPER: Found ${matchbookEvents.length} Matchbook events for kickoff time window.`);
+
         const footballMatchName = `${footballMatch.homeTeam} ${footballMatch.awayTeam}`;
 
-        for (const mbEvent of matchbookEvents) {
-            const score = fuzz.token_set_ratio(footballMatchName, mbEvent.name);
-            console.log(`ID MAPPER: Comparing "${footballMatchName}" with Matchbook event "${mbEvent.name}". Score: ${score}`);
+        const potentialMatches = matchbookEvents
+            .map(mbEvent => ({
+                event: mbEvent,
+                score: fuzz.token_set_ratio(footballMatchName, mbEvent.name)
+            }))
+            .filter(match => match.score >= MIN_SIMILARITY_SCORE)
+            .sort((a, b) => b.score - a.score); 
 
-            if (score > highestScore) {
-                highestScore = score;
-                bestMatch = mbEvent;
+        if (potentialMatches.length === 0) {
+            console.warn(`ID MAPPER: Failed to find any confident match for "${footballMatchName}".`);
+            return null;
+        }
+
+        console.log(`ID MAPPER: Found ${potentialMatches.length} potential matches for "${footballMatchName}". Verifying which one has an active market...`);
+
+        for (const match of potentialMatches) {
+            console.log(`ID MAPPER: Testing event "${match.event.name}" (ID: ${match.event.id}) with score ${match.score}...`);
+            const odds = await getMatchbookOdds(match.event.id, footballMatch.homeTeam, footballMatch.awayTeam);
+
+            if (odds) {
+                console.log(`ID MAPPER: SUCCESS! Found active market for event ID ${match.event.id}. This is the correct ID.`);
+                
+                const result: MappingResult = {
+                    matchbookEventId: match.event.id,
+                    homeTeamName: footballMatch.homeTeam,
+                    awayTeamName: footballMatch.awayTeam,
+                };
+                
+                idCache.set(apiFootballId, { ...result, expiry: Date.now() + CACHE_TTL });
+                
+                return result; 
+            } else {
+                console.log(`ID MAPPER: No odds found for event ID ${match.event.id}. It is likely stale. Trying next potential match...`);
             }
         }
 
-        if (bestMatch && highestScore >= MIN_SIMILARITY_SCORE) {
-            console.log(`ID MAPPER: Found confident match for ${apiFootballId}! Matchbook Event: "${bestMatch.name}" (${bestMatch.id}) with score ${highestScore}.`);
-            
-            const result: MappingResult = {
-                matchbookEventId: bestMatch.id,
-                homeTeamName: footballMatch.homeTeam,
-                awayTeamName: footballMatch.awayTeam,
-            };
-            idCache.set(apiFootballId, result);
-            return result;
-        } else {
-            console.log(`ID MAPPER: Failed to find confident match for ${apiFootballId}. Best score was ${highestScore}.`);
-            return null;
-        }
+        console.warn(`ID MAPPER: All potential matches for "${footballMatchName}" were tested and none had an available market.`);
+        return null;
+
     } catch (error) {
         console.error(`ID MAPPER: An unexpected error occurred while mapping ID ${apiFootballId}:`, error);
         return null;
