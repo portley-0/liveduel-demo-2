@@ -1,5 +1,5 @@
 import axios from 'axios';
-import fuzz from 'fuzzball'; 
+import fuzz from 'fuzzball';
 import { MATCHBOOK_USERNAME, MATCHBOOK_PASSWORD } from './rebalancer.config';
 
 export interface MarketOdds {
@@ -57,25 +57,30 @@ export async function getMatchbookUpcomingEvents(kickoffTime: string): Promise<M
         const token = await getSessionToken();
         const eventStartTime = new Date(kickoffTime);
         const params = {
-            'sport-ids': 15, 
+            'sport-ids': 15,
             'per-page': 100,
-            'after': Math.floor((eventStartTime.getTime() - (23 * 60 * 60 * 1000)) / 1000), 
-            'before': Math.floor((eventStartTime.getTime() + (47 * 60 * 60 * 1000)) / 1000),
+            'after': Math.floor((eventStartTime.getTime() - (24 * 60 * 60 * 1000)) / 1000),
+            'before': Math.floor((eventStartTime.getTime() + (48 * 60 * 60 * 1000)) / 1000),
+            'include-prices': true,
+            'price-depth': 1,
+            'exchange-type': 'back-lay',
+            'odds-type': 'DECIMAL',
         };
 
         const response = await axios.get(`${MATCHBOOK_API_URL}/edge/rest/events`, {
             headers: { 'session-token': token, accept: 'application/json', 'User-Agent': 'api-doc-test-client' },
             params,
         });
-
-        console.log(response.data);
-        console.log(`Fetched ${response.data.events.length} upcoming Matchbook events around kickoff time ${kickoffTime}.`);
         
+        console.log(`[getMatchbookUpcomingEvents] RAW RESPONSE for kickoff ${kickoffTime}:`, JSON.stringify(response.data, null, 2));
+        console.log(`Fetched ${response.data.events.length} upcoming Matchbook events around kickoff time ${kickoffTime}.`);
+
         return response.data.events.map((event: any) => ({
             id: event.id,
             name: event.name,
         }));
     } catch (error) {
+        console.error(`[getMatchbookUpcomingEvents] Error fetching events:`, error);
         return [];
     }
 }
@@ -102,23 +107,16 @@ export async function getMatchbookOdds(
       headers: { 'session-token': token, accept: 'application/json', 'User-Agent': 'api-doc-test-client' },
       params,
     });
-
-    console.log(`[getMatchbookOdds] RAW response for ${matchbookEventId}:`, JSON.stringify(response.data, null, 2));
     
     if (!response.data || !response.data.events || response.data.events.length === 0) {
-      console.warn(`[getMatchbookOdds] No event data returned for ID ${matchbookEventId}.`);
       return null;
     }
 
     const eventObject = response.data.events[0];
-
-    console.log(`[Debug] Available markets for event ${eventObject.id}:`, eventObject.markets.map((m: any) => m.name));
-
     const matchOddsMarket = eventObject.markets.find((m: any) => m.name === 'Match Odds');
 
-    // Add a guard to ensure we have exactly 3 runners, which is expected for a "Match Odds" market.
     if (!matchOddsMarket || !matchOddsMarket.runners || matchOddsMarket.runners.length !== 3) {
-      console.warn(`[getMatchbookOdds] Could not find a "Match Odds" market with exactly 3 runners for event ${eventObject.id}`);
+      console.warn(`[getMatchbookOdds] Could not find a "Match Odds" market with 3 runners for event ${eventObject.id}`);
       return null;
     }
 
@@ -129,17 +127,14 @@ export async function getMatchbookOdds(
         console.warn(`[getMatchbookOdds] Could not find a 'Draw' runner for event ${eventObject.id}`);
         return null;
     }
-    const drawRunner = runners.splice(drawRunnerIndex, 1)[0]; // Pull the draw runner out of the array
+    const drawRunner = runners.splice(drawRunnerIndex, 1)[0];
     
     const scores = runners.map(r => ({ runner: r, score: fuzz.ratio(r.name, homeTeamName) }));
-    scores.sort((a, b) => b.score - a.score); // Sort by highest score first
+    scores.sort((a, b) => b.score - a.score);
 
     const homeRunner = scores[0].runner;
-    
     const awayRunner = scores[1].runner;
     
-    console.log(`[getMatchbookOdds] Matched Runners for ${eventObject.id}: Home='${homeRunner.name}', Away='${awayRunner.name}', Draw='${drawRunner.name}'`);
-
     const getBestBackPrice = (runner: any): number | null => {
         if (!runner?.prices?.length) return null;
         const backPrices = runner.prices
@@ -155,7 +150,7 @@ export async function getMatchbookOdds(
     if (homeOdds !== null && drawOdds !== null && awayOdds !== null) {
       return { home: homeOdds, draw: drawOdds, away: awayOdds };
     } else {
-      console.warn(`[getMatchbookOdds] Found all three runners, but one was missing price data for event ${eventObject.id}`);
+      console.warn(`[getMatchbookOdds] One or more runners was missing price data for event ${eventObject.id}`);
       return null;
     }
 
