@@ -102,6 +102,8 @@ export async function getMatchbookOdds(
       headers: { 'session-token': token, accept: 'application/json', 'User-Agent': 'api-doc-test-client' },
       params,
     });
+
+    console.log(`[getMatchbookOdds] RAW response for ${matchbookEventId}:`, JSON.stringify(response.data, null, 2));
     
     if (!response.data || !response.data.events || response.data.events.length === 0) {
       console.warn(`[getMatchbookOdds] No event data returned for ID ${matchbookEventId}.`);
@@ -109,6 +111,9 @@ export async function getMatchbookOdds(
     }
 
     const eventObject = response.data.events[0];
+
+    console.log(`[Debug] Available markets for event ${eventObject.id}:`, eventObject.markets.map((m: any) => m.name));
+
     const matchOddsMarket = eventObject.markets.find((m: any) => m.name === 'Match Odds');
 
     // Add a guard to ensure we have exactly 3 runners, which is expected for a "Match Odds" market.
