@@ -59,8 +59,8 @@ export async function getMatchbookUpcomingEvents(kickoffTime: string): Promise<M
         const params = {
             'sport-ids': 15, 
             'per-page': 100,
-            'after': Math.floor((eventStartTime.getTime() - (24 * 60 * 60 * 1000)) / 1000), 
-            'before': Math.floor((eventStartTime.getTime() + (48 * 60 * 60 * 1000)) / 1000),
+            'after': Math.floor((eventStartTime.getTime() - (23 * 60 * 60 * 1000)) / 1000), 
+            'before': Math.floor((eventStartTime.getTime() + (47 * 60 * 60 * 1000)) / 1000),
         };
 
         const response = await axios.get(`${MATCHBOOK_API_URL}/edge/rest/events`, {
