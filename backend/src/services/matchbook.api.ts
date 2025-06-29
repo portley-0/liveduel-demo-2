@@ -1,39 +1,43 @@
 import axios from 'axios';
 import fuzz from 'fuzzball';
+import JSONbig from 'json-bigint';
 import { MATCHBOOK_USERNAME, MATCHBOOK_PASSWORD } from './rebalancer.config';
 
-/**
- * Defines the structure for the final odds object.
- */
 export interface MarketOdds {
   home: number;
   draw: number;
   away: number;
 }
 
-/**
- * Defines the basic structure for a Matchbook event used in discovery.
- */
 export interface MatchbookEvent {
-  id: number;
+  id: bigint; 
   name: string;
 }
 
-// Session object to hold the token and its expiry time.
 let session = {
   token: null as string | null,
   expiry: 0 as number,
 };
 const MATCHBOOK_API_URL = 'https://api.matchbook.com';
 
-/**
- * Logs into the Matchbook API and retrieves a new session token.
- * @returns {Promise<string>} A new session token.
- */
+const axiosInstance = axios.create({
+  transformResponse: [(data) => {
+    if (typeof data === 'string') {
+      try {
+        return JSONbig.parse(data);
+      } catch (e) {
+        return data;
+      }
+    }
+    return data;
+  }],
+});
+
+
 async function login(): Promise<string> {
     console.log('Authenticating with Matchbook API...');
     try {
-        const response = await axios.post(
+        const response = await axiosInstance.post(
             `${MATCHBOOK_API_URL}/bpapi/rest/security/session`,
             { username: MATCHBOOK_USERNAME, password: MATCHBOOK_PASSWORD },
             { headers: { accept: 'application/json', 'content-type': 'application/json', 'User-Agent': 'api-doc-test-client' } }
@@ -41,14 +45,11 @@ async function login(): Promise<string> {
         const token = response.data['session-token'];
         if (!token) throw new Error('Login failed: session-token not found in response.');
         console.log('Successfully authenticated with Matchbook.');
-        // Set expiry for 5.5 hours to be safe (tokens last for 6 hours).
         session = { token, expiry: Date.now() + 5.5 * 60 * 60 * 1000 };
         return token;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
             console.error("Matchbook login failed:", error.response.data);
-        } else if (error instanceof Error) {
-            console.error("Matchbook login failed:", error.message);
         } else {
             console.error("Matchbook login failed:", error);
         }
@@ -56,10 +57,6 @@ async function login(): Promise<string> {
     }
 }
 
-/**
- * Retrieves a valid session token, logging in if necessary.
- * @returns {Promise<string>} A valid session token.
- */
 async function getSessionToken(): Promise<string> {
   if (session.token && Date.now() < session.expiry) {
     return session.token;
@@ -67,12 +64,6 @@ async function getSessionToken(): Promise<string> {
   return await login();
 }
 
-/**
- * Fetches upcoming football events from Matchbook within a given time window.
- * This is used for the initial discovery of match IDs.
- * @param {string} kickoffTime - The ISO string of the target kickoff time.
- * @returns {Promise<MatchbookEvent[]>} A list of upcoming events.
- */
 export async function getMatchbookUpcomingEvents(kickoffTime: string): Promise<MatchbookEvent[]> {
     try {
         const token = await getSessionToken();
@@ -84,7 +75,7 @@ export async function getMatchbookUpcomingEvents(kickoffTime: string): Promise<M
             'before': Math.floor((eventStartTime.getTime() + (8 * 60 * 60 * 1000)) / 1000),
         };
 
-        const response = await axios.get(`${MATCHBOOK_API_URL}/edge/rest/events`, {
+        const response = await axiosInstance.get(`${MATCHBOOK_API_URL}/edge/rest/events`, {
             headers: { 'session-token': token, accept: 'application/json', 'User-Agent': 'api-doc-test-client' },
             params,
         });
@@ -92,7 +83,7 @@ export async function getMatchbookUpcomingEvents(kickoffTime: string): Promise<M
         console.log(`Fetched ${response.data.events.length} upcoming Matchbook events around kickoff time ${kickoffTime}.`);
 
         return response.data.events.map((event: any) => ({
-            id: event.id,
+            id: event.id, 
             name: event.name,
         }));
     } catch (error) {
@@ -101,39 +92,31 @@ export async function getMatchbookUpcomingEvents(kickoffTime: string): Promise<M
     }
 }
 
-/**
- * Fetches and processes odds for a specific football match.
- * @param {string | number} matchbookEventId - The unique ID of the Matchbook event.
- * @param {string} homeTeamName - The name of the home team for fuzzy matching.
- * @param {string} awayTeamName - The name of the away team for fuzzy matching.
- * @returns {Promise<MarketOdds | null>} An object with home, draw, and away odds, or null if not found.
- */
 export async function getMatchbookOdds(
-    matchbookEventId: string | number,
+    matchbookEventId: bigint, 
     homeTeamName: string,
     awayTeamName: string
 ): Promise<MarketOdds | null> {
   try {
     const token = await getSessionToken();
 
-    const url = `${MATCHBOOK_API_URL}/edge/rest/events/${matchbookEventId}`;
+    const url = `${MATCHBOOK_API_URL}/edge/rest/events/${matchbookEventId.toString()}`; // Use .toString() for the URL
 
     const params = {
-      'include-prices': true, 
+      'include-prices': true,
       'odds-type': 'DECIMAL',
       'price-depth': 3,
-      'exchange-type': 'back-lay',
     };
 
-    const response = await axios.get(url, {
+    const response = await axiosInstance.get(url, {
       headers: { 'session-token': token, accept: 'application/json', 'User-Agent': 'api-doc-test-client' },
       params,
     });
 
-    console.log(`[getMatchbookOdds] RAW response for event ${matchbookEventId}:`, JSON.stringify(response.data, null, 2));
+    console.log(`[getMatchbookOdds] RAW response for event ${matchbookEventId.toString()}:`, JSON.stringify(response.data, null, 2));
 
     if (!response.data || !response.data.markets || response.data.markets.length === 0) {
-      console.warn(`[getMatchbookOdds] Event object returned, but it contains no markets for event ID ${matchbookEventId}.`);
+      console.warn(`[getMatchbookOdds] Event object returned, but it contains no markets for event ID ${matchbookEventId.toString()}.`);
       return null;
     }
 
@@ -145,11 +128,10 @@ export async function getMatchbookOdds(
     );
 
     if (!matchOddsMarket) {
-        console.warn(`[getMatchbookOdds] Could not find a suitable primary market (e.g., Match Odds) for event ${matchbookEventId}`);
+        console.warn(`[getMatchbookOdds] Could not find a suitable primary market for event ${matchbookEventId.toString()}`);
         return null;
     }
-    console.log(`[getMatchbookOdds] Found market: "${matchOddsMarket.name}" for event ${matchbookEventId}`);
-
+    
     if (!matchOddsMarket.runners || matchOddsMarket.runners.length !== 3) {
       console.warn(`[getMatchbookOdds] Market "${matchOddsMarket.name}" does not have exactly 3 runners.`);
       return null;
@@ -170,15 +152,11 @@ export async function getMatchbookOdds(
         awayScore: fuzz.ratio(r.name, awayTeamName)
     }));
 
-    console.log('[getMatchbookOdds] Fuzzy matching scores:', teamRunners.map(r => ({name: r.runner.name, home: r.homeScore, away: r.awayScore})));
-
     teamRunners.sort((a, b) => b.homeScore - a.homeScore);
     const homeRunner = teamRunners[0].runner;
 
     teamRunners.sort((a, b) => b.awayScore - a.awayScore);
     const awayRunner = teamRunners[0].runner;
-
-    console.log(`[getMatchbookOdds] Matched Runners: Home='${homeRunner.name}', Away='${awayRunner.name}', Draw='${drawRunner.name}'`);
 
     const getBestBackPrice = (runner: any): number | null => {
         if (!runner?.prices?.length) return null;
@@ -201,9 +179,9 @@ export async function getMatchbookOdds(
 
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
-      console.error(`[getMatchbookOdds] Axios Error for event ${matchbookEventId}:`, JSON.stringify(error.response.data, null, 2));
+      console.error(`[getMatchbookOdds] Axios Error for event ${matchbookEventId.toString()}:`, JSON.stringify(error.response.data, null, 2));
     } else {
-      console.error(`[getMatchbookOdds] Unknown error for event ${matchbookEventId}:`, error);
+      console.error(`[getMatchbookOdds] Unknown error for event ${matchbookEventId.toString()}:`, error);
     }
     return null;
   }
