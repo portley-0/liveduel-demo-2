@@ -88,12 +88,15 @@ export async function getMatchbookOdds(
   try {
     const token = await getSessionToken();
 
-    const url = `${MATCHBOOK_API_URL}/edge/rest/events/${matchbookEventId}`;
+    // --- USING THE CORRECT ENDPOINT YOU FOUND ---
+    // This directly fetches the markets for a specific event ID.
+    const url = `${MATCHBOOK_API_URL}/edge/rest/events/${matchbookEventId}/markets`;
 
     const params = {
+      // We must explicitly ask for prices to be included.
+      'include-prices': true,
       'exchange-type': 'back-lay',
       'odds-type': 'DECIMAL',
-      'include-prices': true,
       'price-depth': 3,
       'price-mode': 'expanded'
     };
@@ -103,31 +106,33 @@ export async function getMatchbookOdds(
       params,
     });
 
-    console.log(`[getMatchbookOdds] RAW response for ${matchbookEventId}:`, JSON.stringify(response.data, null, 2));
+    console.log(`[getMatchbookOdds] RAW response for markets of event ${matchbookEventId}:`, JSON.stringify(response.data, null, 2));
 
-    if (!response.data || !response.data.id) {
-      console.warn(`[getMatchbookOdds] No event data returned for ID ${matchbookEventId}.`);
+    // The response now contains a 'markets' array.
+    if (!response.data || !response.data.markets || response.data.markets.length === 0) {
+      console.warn(`[getMatchbookOdds] No markets returned for event ID ${matchbookEventId}.`);
       return null;
     }
 
-    const eventObject = response.data;
+    const markets = response.data.markets;
+    console.log(`[Debug] Found ${markets.length} markets for event ${matchbookEventId}.`);
 
-    console.log(`[Debug] Available markets for event ${eventObject.id}:`, eventObject.markets.map((m: any) => m.name));
-
+    // Now, we find the specific 'Match Odds' market within this list.
     const possibleMarketNames = ['Match Odds', 'Full Time Result', 'Moneyline'];
-    const matchOddsMarket = eventObject.markets.find((m: any) =>
+    const matchOddsMarket = markets.find((m: any) =>
       possibleMarketNames.includes(m.name)
     );
 
     if (!matchOddsMarket) {
-        console.warn(`[getMatchbookOdds] Could not find a suitable primary market (e.g., Match Odds, Full Time Result) for event ${eventObject.id}`);
+        console.warn(`[getMatchbookOdds] Could not find a suitable primary market (e.g., Match Odds) for event ${matchbookEventId}`);
         return null;
     }
-    console.log(`[getMatchbookOdds] Found market: "${matchOddsMarket.name}" for event ${eventObject.id}`);
+    console.log(`[getMatchbookOdds] Found market: "${matchOddsMarket.name}" for event ${matchbookEventId}`);
 
+    // --- The rest of the logic remains the same, as it correctly processes a market object ---
 
     if (!matchOddsMarket.runners || matchOddsMarket.runners.length !== 3) {
-      console.warn(`[getMatchbookOdds] Market "${matchOddsMarket.name}" does not have exactly 3 runners for event ${eventObject.id}`);
+      console.warn(`[getMatchbookOdds] Market "${matchOddsMarket.name}" does not have exactly 3 runners for event ${matchbookEventId}`);
       return null;
     }
 
@@ -135,7 +140,7 @@ export async function getMatchbookOdds(
 
     const drawRunnerIndex = runners.findIndex((r: any) => r.name.toUpperCase().includes('DRAW'));
     if (drawRunnerIndex === -1) {
-        console.warn(`[getMatchbookOdds] Could not find a 'Draw' runner in market "${matchOddsMarket.name}" for event ${eventObject.id}`);
+        console.warn(`[getMatchbookOdds] Could not find a 'Draw' runner in market "${matchOddsMarket.name}" for event ${matchbookEventId}`);
         return null;
     }
     const drawRunner = runners.splice(drawRunnerIndex, 1)[0];
@@ -154,8 +159,7 @@ export async function getMatchbookOdds(
     teamRunners.sort((a, b) => b.awayScore - a.awayScore);
     const awayRunner = teamRunners[0].runner;
 
-
-    console.log(`[getMatchbookOdds] Matched Runners for ${eventObject.id}: Home='${homeRunner.name}', Away='${awayRunner.name}', Draw='${drawRunner.name}'`);
+    console.log(`[getMatchbookOdds] Matched Runners for ${matchbookEventId}: Home='${homeRunner.name}', Away='${awayRunner.name}', Draw='${drawRunner.name}'`);
 
     const getBestBackPrice = (runner: any): number | null => {
         if (!runner?.prices?.length) return null;
@@ -172,7 +176,7 @@ export async function getMatchbookOdds(
     if (homeOdds !== null && drawOdds !== null && awayOdds !== null) {
       return { home: homeOdds, draw: drawOdds, away: awayOdds };
     } else {
-      console.warn(`[getMatchbookOdds] Found all three runners, but one or more was missing price data for event ${eventObject.id}`);
+      console.warn(`[getMatchbookOdds] Found all three runners, but one or more was missing price data for event ${matchbookEventId}`);
       return null;
     }
 
