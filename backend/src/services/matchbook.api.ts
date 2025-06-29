@@ -88,9 +88,9 @@ export async function getMatchbookOdds(
   try {
     const token = await getSessionToken();
 
-    const url = `${MATCHBOOK_API_URL}/edge/rest/events`;
+    const url = `${MATCHBOOK_API_URL}/edge/rest/events/${matchbookEventId}`;
+
     const params = {
-      'ids': matchbookEventId.toString(),
       'exchange-type': 'back-lay',
       'odds-type': 'DECIMAL',
       'include-prices': true,
@@ -105,12 +105,12 @@ export async function getMatchbookOdds(
 
     console.log(`[getMatchbookOdds] RAW response for ${matchbookEventId}:`, JSON.stringify(response.data, null, 2));
 
-    if (!response.data || !response.data.events || response.data.events.length === 0) {
+    if (!response.data || !response.data.id) {
       console.warn(`[getMatchbookOdds] No event data returned for ID ${matchbookEventId}.`);
       return null;
     }
 
-    const eventObject = response.data.events[0];
+    const eventObject = response.data;
 
     console.log(`[Debug] Available markets for event ${eventObject.id}:`, eventObject.markets.map((m: any) => m.name));
 
@@ -172,7 +172,7 @@ export async function getMatchbookOdds(
     if (homeOdds !== null && drawOdds !== null && awayOdds !== null) {
       return { home: homeOdds, draw: drawOdds, away: awayOdds };
     } else {
-      console.warn(`[getMatchbookOdds] Found all three runners, but one was missing price data for event ${eventObject.id}`);
+      console.warn(`[getMatchbookOdds] Found all three runners, but one or more was missing price data for event ${eventObject.id}`);
       return null;
     }
 
