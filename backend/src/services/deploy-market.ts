@@ -17,7 +17,7 @@ const API_KEY = process.env.API_KEY || '';
 const baseUrl = 'https://v3.football.api-sports.io';
 const endpoint = '/fixtures';
 
-const ALLOWED_LEAGUE_IDS = [2, 3, 11, 13, 15, 34, 39, 130, 140, 71, 78, 61, 135, 239, 265, 848];
+const ALLOWED_LEAGUE_IDS = [2, 3, 11, 13, 15, 34, 39, 130, 140, 71, 78, 61, 135, 239, 265, 848, 743];
 
 async function fetchGameData(gameId: number) {
   const response = await axios.get(`${baseUrl}${endpoint}?id=${gameId}`, {

@@ -9,7 +9,7 @@ interface ApiFootballMatchDetails {
 }
 
 export interface MappingResult {
-    matchbookEventId: number;
+    matchbookEventId: bigint;
     homeTeamName: string;
     awayTeamName: string;
 }

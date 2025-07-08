@@ -9,6 +9,7 @@ const LEAGUES = [
   //{ id: 71, name: "Brasileirão Série A" },
   //{ id: 11, name: "Copa Sudamericana" },
   { id: 15, name: "Fifa Club World Cup" },
+  { id:743, name: "UEFA Womens Championship" },
   //{ id: 130, name: "Copa Argentina" },
   //{ id: 239, name: "Categoría Primera A (Colombia)" },
   //{ id: 265, name: "Chilean Primera División" }
