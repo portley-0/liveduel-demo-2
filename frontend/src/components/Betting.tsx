@@ -108,14 +108,15 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   }, [walletClient, match.matchId, marketAddress]);
 
   useEffect(() => {
-  // Trigger the fetch when user enters sell mode and dependencies are ready
-  if (tradeType === "sell" && marketAddress && walletClient && conditionId) {
-    fetchOutcomeBalances();
-  } else {
-    // Clear balances when not in sell mode
-    setOutcomeBalances({ home: 0, draw: 0, away: 0 });
-  }
-}, [tradeType, walletClient, marketAddress, conditionId]);
+    // Trigger the fetch when the user enters sell mode AND all dependencies are ready
+    if (tradeType === "sell" && marketAddress && walletClient && conditionId && Object.keys(outcomeTokenIds).length === 3) {
+      fetchOutcomeBalances();
+    } else {
+      // Clear balances when not in sell mode
+      setOutcomeBalances({ home: 0, draw: 0, away: 0 });
+    }
+    // Add `outcomeTokenIds` to the dependency array
+  }, [tradeType, walletClient, marketAddress, conditionId, outcomeTokenIds]);
 
 
   useEffect(() => {
