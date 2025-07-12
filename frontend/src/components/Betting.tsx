@@ -63,7 +63,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [awayPrice, setAwayPrice] = useState<number>(DEFAULT_PROB);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState({ shares: 0, cost: 0 });
-  const [outcomeBalance, setOutcomeBalance] = useState<string | null>(null);
+  const [outcomeBalances, setOutcomeBalances] = useState<{ [key in "home" | "draw" | "away"]: number }>({ home: 0, draw: 0, away: 0 });
   const [isBalanceLoading, setIsBalanceLoading] = useState(false);
   const [conditionId, setConditionId] = useState<string | null>(null);
   const [outcomeTokenIds, setOutcomeTokenIds] = useState<{ [key: number]: string }>({});
@@ -108,19 +108,15 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   }, [walletClient, match.matchId, marketAddress]);
 
   useEffect(() => {
-    if (tradeType !== "sell" || !marketAddress || selectedBet === null || !conditionId) return;
-    const timeout = setTimeout(() => {
-      fetchOutcomeBalance();
-    }, 250);
-    return () => clearTimeout(timeout);
-  }, [tradeType, selectedBet, walletClient, marketAddress, conditionId]);
+  // Trigger the fetch when user enters sell mode and dependencies are ready
+  if (tradeType === "sell" && marketAddress && walletClient && conditionId) {
+    fetchOutcomeBalances();
+  } else {
+    // Clear balances when not in sell mode
+    setOutcomeBalances({ home: 0, draw: 0, away: 0 });
+  }
+}, [tradeType, walletClient, marketAddress, conditionId]);
 
-  useEffect(() => {
-    if (tradeType === "buy") {
-      setOutcomeBalance(null);
-      setIsBalanceLoading(false);
-    }
-  }, [tradeType]);
 
   useEffect(() => {
     if (isResolved) {
@@ -410,21 +406,30 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     }
   };
   
-  const fetchOutcomeBalance = async () => {
-    if (!walletClient || !marketAddress || selectedBet === null || !conditionId) return;
+  const fetchOutcomeBalances = async () => {
+    if (!walletClient || !marketAddress || !conditionId || Object.keys(outcomeTokenIds).length < 3) return;
     setIsBalanceLoading(true);
     try {
       const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
       const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
-      const outcomeIndex = betMapping[selectedBet];
-      const tokenId = outcomeTokenIds[outcomeIndex];
-      const balance = await conditionalTokensContract.balanceOf(userAddress, tokenId);
-      setOutcomeBalance((Number(balance) / 1e6).toFixed(2));
+
+      const balances = { home: 0, draw: 0, away: 0 };
+      // Loop through each outcome to fetch its balance
+      for (const outcome of ["home", "draw", "away"] as const) {
+        const outcomeIndex = betMapping[outcome];
+        const tokenId = outcomeTokenIds[outcomeIndex];
+        if (tokenId) {
+          const balance = await conditionalTokensContract.balanceOf(userAddress, tokenId);
+          // Store the numeric balance
+          balances[outcome] = Number(balance) / 1e6;
+        }
+      }
+      setOutcomeBalances(balances);
     } catch (error) {
-      console.error("Failed to fetch outcome balance:", error);
-      setOutcomeBalance(null);
+      console.error("Failed to fetch outcome balances:", error);
+      setOutcomeBalances({ home: 0, draw: 0, away: 0 });
     } finally {
       setIsBalanceLoading(false);
     }
@@ -559,6 +564,8 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
           const price = outcome === "home" ? homePrice : outcome === "draw" ? drawPrice : awayPrice;
           const isSelected = selectedBet === outcome;
           const prevVal = prevOdds[outcome];
+          const isSellDisabled = tradeType === "sell" && outcomeBalances[outcome] <= 0;
+          const isButtonDisabled = areButtonsDisabled || isSellDisabled;
           const borderColor =
             isSelected && tradeType === "buy"
               ? "border-blue-500"
@@ -568,13 +575,13 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
           return (
             <button
               key={`bet-button-${outcome}-${refreshKey}`}
-              disabled={areButtonsDisabled}
+              disabled={isButtonDisabled}
               className={`border-2 shadow-md ${borderColor} text-white font-semibold 
                 w-[128px] h-[45px] md:w-[125px] md:h-[43px] sm:w-[117px] sm:h-[42px] xs:w-[105px] xs:h-[38px] xxs:w-[92px] xxs:h-[35px]
                 flex-shrink-0 flex items-center justify-center sm:space-x-2 xs:space-x-1.5 xxs:space-x-1 transition-all rounded-full focus:outline-none focus:ring-0 ${
-                  areButtonsDisabled ? "opacity-50 cursor-not-allowed" : isSelected ? "bg-hovergreyblue" : "bg-greyblue hover:bg-hovergreyblue"
+                  isButtonDisabled ? "opacity-50 cursor-not-allowed" : isSelected ? "bg-hovergreyblue" : "bg-greyblue hover:bg-hovergreyblue"
                 }`}
-              onClick={() => !areButtonsDisabled && handleSelectBet(outcome)}
+              onClick={() => !isButtonDisabled && handleSelectBet(outcome)} 
             >
               {outcome === "draw" ? (
                 <TbCircleLetterDFilled className="text-gray-400 text-[35px] md:text-[31px] sm:text-[29px] xs:text-[27px] xxs:text-[23px]" />
@@ -630,9 +637,9 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                     <strong className="text-md">Balance: </strong>
                     {isBalanceLoading ? (
                       "Checking..."
-                    ) : outcomeBalance !== null ? (
+                    ) : selectedBet ? (
                       <>
-                        <span className="font-semibold">{outcomeBalance}</span>{" "}
+                        <span className="font-semibold">{outcomeBalances[selectedBet].toFixed(2)}</span>{" "}
                         <span
                           className={
                             selectedBet === "home"
