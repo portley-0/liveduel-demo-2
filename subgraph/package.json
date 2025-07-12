@@ -11,10 +11,13 @@
     "docker:down": "docker-compose down"
   },
   "dependencies": {
-    "@graphprotocol/graph-cli": "0.96.0",
+    "@graphprotocol/graph-cli": "0.97.1",
     "@graphprotocol/graph-ts": "0.37.0"
   },
   "devDependencies": {
+    "@graphprotocol/graph-cli": "^0.97.1",
     "matchstick-as": "^0.6.0"
-  }
+  },
+  "version": "1.0.0",
+  "main": "index.js"
 }

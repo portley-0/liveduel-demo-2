@@ -22,6 +22,7 @@ const mUSDCABI = [
 ];
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 const mUSDCAddress = "0x78FD2A3454A4F37C5518FE7E8AB07001DC0572Ce";
+const SUBGRAPH_URL = import.meta.env.VITE_SUBGRAPH_URL;
 
 const TitleBar = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -29,6 +30,7 @@ const TitleBar = () => {
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [processingUSDC, setProcessingUSDC] = useState(false);
   const [hasClaimed, setHasClaimed] = useState(false);
+  const [totalTxs, setTotalTxs] = useState(0);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -40,6 +42,47 @@ const TitleBar = () => {
     handleResize();
     window.addEventListener("resize", debouncedResize);
     return () => window.removeEventListener("resize", debouncedResize);
+  }, []);
+
+  useEffect(() => {
+    const query = `
+      query GetTotalTxs {
+        sharesPurchaseds: _meta { count }
+        sharesSolds: _meta { count }
+        tradeExecuteds: _meta { count }
+        tournamentSharesPurchaseds: _meta { count }
+        tournamentSharesSolds: _meta { count }
+      }
+    `;
+
+    const fetchTotalTxs = async () => {
+      if (!SUBGRAPH_URL) {
+        console.error("Subgraph URL is not configured.");
+        return;
+      }
+      try {
+        const response = await fetch(SUBGRAPH_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query }),
+        });
+        const { data } = await response.json();
+        
+        const total = Object.values(data).reduce(
+          (acc: number, value: any) => acc + value.count,
+          0
+        );
+
+        setTotalTxs(total);
+      } catch (error) {
+        console.error("Failed to fetch total transactions:", error);
+      }
+    };
+
+    fetchTotalTxs(); // Fetch immediately on load
+    const intervalId = setInterval(fetchTotalTxs, 30000); // And then every 30 seconds
+
+    return () => clearInterval(intervalId); // Cleanup on component unmount
   }, []);
 
   const closeDrawer = () => {
@@ -342,6 +385,11 @@ const TitleBar = () => {
                 </NavLink>
               </li>
             ))}
+            <li className="mt-auto">
+              <p className="font-semibold text-md text-gray-400 pointer-events-none">
+                Total Txs: {totalTxs > 0 ? totalTxs.toLocaleString() : "..."}
+              </p>
+            </li>
           </ul>
         </div>
       </div>
