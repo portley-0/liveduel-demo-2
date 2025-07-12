@@ -1,4 +1,4 @@
-type PredictionMarket @entity {
+type PredictionMarket @entity(immutable: false)  {
   id: ID!               
   matchId: BigInt!
   matchTimestamp: BigInt!
@@ -6,7 +6,7 @@ type PredictionMarket @entity {
   resolvedOutcome: Int 
 }
 
-type SharesPurchased @entity {
+type SharesPurchased @entity(immutable: true) {
   id: ID!               
   market: Bytes!        
   buyer: Bytes!
@@ -16,7 +16,7 @@ type SharesPurchased @entity {
   timestamp: BigInt!
 }
 
-type SharesSold @entity {
+type SharesSold @entity(immutable: true) {
   id: ID!
   market: Bytes!
   seller: Bytes!
@@ -26,7 +26,7 @@ type SharesSold @entity {
   timestamp: BigInt!
 }
 
-type TradeExecuted @entity {
+type TradeExecuted @entity(immutable: true) {
   id: ID!
   market: Bytes!
   user: Bytes! 
@@ -35,7 +35,7 @@ type TradeExecuted @entity {
   timestamp: BigInt!
 }
 
-type OddsUpdated @entity {
+type OddsUpdated @entity(immutable: true) {
   id: ID!
   market: Bytes!
   matchId: BigInt!
@@ -45,7 +45,7 @@ type OddsUpdated @entity {
   timestamp: BigInt!
 }
 
-type MarketResolved @entity {
+type MarketResolved @entity(immutable: true) {
   id: ID!
   market: Bytes!
   matchId: BigInt!
@@ -53,7 +53,7 @@ type MarketResolved @entity {
   timestamp: BigInt!
 }
 
-type PayoutRedeemed @entity {
+type PayoutRedeemed @entity(immutable: true) {
   id: ID!
   market: Bytes!
   redeemer: Bytes!
@@ -62,7 +62,7 @@ type PayoutRedeemed @entity {
   timestamp: BigInt!
 }
 
-type TournamentMarket @entity {
+type TournamentMarket @entity(immutable: false)  {
   id: ID!
   tournamentId: BigInt!
   totalTeams: Int!
@@ -72,7 +72,7 @@ type TournamentMarket @entity {
   teamIds: [BigInt!]!
 }
 
-type TournamentSharesPurchased @entity {
+type TournamentSharesPurchased @entity(immutable: true) {
   id: ID!
   market: Bytes!
   buyer: Bytes!
@@ -82,7 +82,7 @@ type TournamentSharesPurchased @entity {
   timestamp: BigInt!
 }
 
-type TournamentSharesSold @entity {
+type TournamentSharesSold @entity(immutable: true) {
   id: ID!
   market: Bytes!
   seller: Bytes!
@@ -92,14 +92,14 @@ type TournamentSharesSold @entity {
   timestamp: BigInt!
 }
 
-type TournamentOddsUpdated @entity {
+type TournamentOddsUpdated @entity(immutable: true) {
   id: ID!
   market: Bytes!
   prices: [BigInt!]!
   timestamp: BigInt!
 }
 
-type TournamentMarketResolved @entity {
+type TournamentMarketResolved @entity(immutable: true) {
   id: ID!
   market: Bytes!
   tournamentId: BigInt!
@@ -107,7 +107,7 @@ type TournamentMarketResolved @entity {
   timestamp: BigInt!
 }
 
-type TournamentPayoutRedeemed @entity {
+type TournamentPayoutRedeemed @entity(immutable: true) {
   id: ID!
   market: Bytes!
   tournamentId: BigInt!
@@ -117,7 +117,7 @@ type TournamentPayoutRedeemed @entity {
   timestamp: BigInt!
 }
 
-type TournamentFixture @entity {
+type TournamentFixture @entity(immutable: false) {
   id: ID! 
   tournamentId: BigInt!
   matchId: BigInt!
