@@ -7,11 +7,17 @@ globalThis.Headers = fetch.Headers;
 const SUBGRAPH_URL = process.env.SUBGRAPH_URL || '';
 
 export async function getOddsUpdatesByMatchId(matchId: number): Promise<OddsUpdatedEntity[]> {
+  let allOddsUpdates: OddsUpdatedEntity[] = [];
+  let skip = 0;
+  const BATCH_SIZE = 1000;
+
   const query = gql`
-    query OddsUpdates($matchId: BigInt!) {
+    query OddsUpdates($matchId: BigInt!, $first: Int!, $skip: Int!) {
       oddsUpdateds(
-        where: { matchId: $matchId }
-        orderBy: timestamp
+        first: $first,
+        skip: $skip,
+        where: { matchId: $matchId },
+        orderBy: timestamp,
         orderDirection: asc
       ) {
         id
@@ -25,9 +31,25 @@ export async function getOddsUpdatesByMatchId(matchId: number): Promise<OddsUpda
     }
   `;
 
-  const variables = { matchId: matchId.toString() };
-  const data = await request<{ oddsUpdateds: OddsUpdatedEntity[] }>(SUBGRAPH_URL, query, variables);
-  return data.oddsUpdateds;
+  while (true) {
+    const variables = {
+      matchId: matchId.toString(),
+      first: BATCH_SIZE,
+      skip: skip
+    };
+
+    const data = await request<{ oddsUpdateds: OddsUpdatedEntity[] }>(SUBGRAPH_URL, query, variables);
+    
+    allOddsUpdates.push(...data.oddsUpdateds);
+
+    if (data.oddsUpdateds.length < BATCH_SIZE) {
+      break;
+    }
+
+    skip += BATCH_SIZE;
+  }
+
+  return allOddsUpdates;
 }
 
 export async function getTournamentOddsById(tournamentId: number): Promise<TournamentOddsUpdatedEntity[]> {
