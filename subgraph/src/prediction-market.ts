@@ -14,10 +14,26 @@ import {
   OddsUpdated,
   MarketResolved,
   PayoutRedeemed,
-  PredictionMarket
+  PredictionMarket,
+  PlatformStats 
 } from "../generated/schema"
 
+import { BigInt } from "@graphprotocol/graph-ts";
+
+function incrementTxCount(): void {
+  const STATS_ID = "platform-stats";
+  let stats = PlatformStats.load(STATS_ID);
+  if (!stats) {
+    stats = new PlatformStats(STATS_ID);
+    stats.totalTxs = BigInt.fromI32(0);
+  }
+  stats.totalTxs = stats.totalTxs.plus(BigInt.fromI32(1));
+  stats.save();
+}
+
 export function handleTradeExecuted(event: TradeExecutedEvent): void {
+  incrementTxCount(); 
+
   let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   let entity = new TradeExecuted(id)
 
@@ -31,12 +47,14 @@ export function handleTradeExecuted(event: TradeExecutedEvent): void {
 }
 
 export function handleSharesPurchased(event: SharesPurchasedEvent): void {
+  incrementTxCount(); 
+
   let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   let entity = new SharesPurchased(id)
 
   entity.market = event.address
   entity.buyer = event.params.buyer
-  entity.outcome = event.params.outcome    
+  entity.outcome = event.params.outcome
   entity.shares = event.params.shares
   entity.actualCost = event.params.actualCost
   entity.timestamp = event.block.timestamp
@@ -45,6 +63,8 @@ export function handleSharesPurchased(event: SharesPurchasedEvent): void {
 }
 
 export function handleSharesSold(event: SharesSoldEvent): void {
+  incrementTxCount(); 
+
   let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   let entity = new SharesSold(id)
 
