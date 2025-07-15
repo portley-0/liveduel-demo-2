@@ -47,11 +47,9 @@ const TitleBar = () => {
   useEffect(() => {
     const query = `
       query GetTotalTxs {
-        sharesPurchaseds: _meta { count }
-        sharesSolds: _meta { count }
-        tradeExecuteds: _meta { count }
-        tournamentSharesPurchaseds: _meta { count }
-        tournamentSharesSolds: _meta { count }
+        platformStats(id: "platform-stats") {
+          totalTxs
+        }
       }
     `;
 
@@ -66,23 +64,22 @@ const TitleBar = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query }),
         });
+        
         const { data } = await response.json();
         
-        const total = Object.values(data).reduce(
-          (acc: number, value: any) => acc + value.count,
-          0
-        );
+        if (data && data.platformStats) {
+          setTotalTxs(Number(data.platformStats.totalTxs));
+        }
 
-        setTotalTxs(total);
       } catch (error) {
         console.error("Failed to fetch total transactions:", error);
       }
     };
 
-    fetchTotalTxs(); // Fetch immediately on load
-    const intervalId = setInterval(fetchTotalTxs, 30000); // And then every 30 seconds
+    fetchTotalTxs();
+    const intervalId = setInterval(fetchTotalTxs, 30000);
 
-    return () => clearInterval(intervalId); // Cleanup on component unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   const closeDrawer = () => {
