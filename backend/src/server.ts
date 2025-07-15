@@ -8,6 +8,7 @@ import { getUserPredictions } from './services/get-predictions';
 import { startRebalancerPolling } from './services/rebalancer';
 import { startDataPolling, startFastSubgraphPolling, startMatchCachePolling, startStandingsPolling, startTournamentCachePolling } from './services/polling-aggregator';
 import { initCache, initTournamentCache, getMatchData, getTournamentData } from './cache';
+import { startPruningScheduler } from './services/pruning-scheduler';
 import { initSocket } from './socket';
 import { ethers } from "ethers";
 
@@ -100,6 +101,7 @@ async function main() {
   startDataPolling();
   startFastSubgraphPolling();
   startRebalancerPolling();
+  startPruningScheduler();
 
   app.post('/deploy', async (req, res) => {
     try {
