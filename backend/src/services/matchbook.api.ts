@@ -113,8 +113,6 @@ export async function getMatchbookOdds(
       params,
     });
 
-    console.log(`[getMatchbookOdds] RAW response for event ${matchbookEventId.toString()}:`, JSON.stringify(response.data, null, 2));
-
     if (!response.data || !response.data.markets || response.data.markets.length === 0) {
       console.warn(`[getMatchbookOdds] Event object returned, but it contains no markets for event ID ${matchbookEventId.toString()}.`);
       return null;
