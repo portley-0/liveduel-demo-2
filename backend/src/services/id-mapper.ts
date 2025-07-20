@@ -21,7 +21,7 @@ interface CachedMapping extends MappingResult {
 const idCache = new Map<number, CachedMapping>();
 
 const CACHE_TTL = 1 * 60 * 60 * 1000;
-const MIN_SIMILARITY_SCORE = 75; 
+const MIN_SIMILARITY_SCORE = 70; 
 
 async function getApiFootballMatchDetails(apiFootballId: number): Promise<ApiFootballMatchDetails | null> {
     console.log(`ID MAPPER: Fetching details for API-Football ID: ${apiFootballId} from football-service.`);
@@ -74,17 +74,10 @@ export async function findMatchbookId(apiFootballId: number): Promise<MappingRes
 
         const footballMatchName = `${footballMatch.homeTeam} ${footballMatch.awayTeam}`;
 
-        let normalizedFootballMatchName = footballMatchName;
-
-        if (footballMatch.homeTeam.endsWith(' W') && footballMatch.awayTeam.endsWith(' W')) {
-            normalizedFootballMatchName = footballMatchName.replace(/\bW\b/g, 'Women');
-            console.log(`ID MAPPER: Detected women's match. Normalized name to "${normalizedFootballMatchName}"`);
-        }
-
         const potentialMatches = matchbookEvents
             .map(mbEvent => ({
                 event: mbEvent,
-                score: fuzz.token_set_ratio(normalizedFootballMatchName, mbEvent.name)
+                score: fuzz.token_set_ratio(footballMatchName, mbEvent.name)
             }))
             .filter(match => match.score >= MIN_SIMILARITY_SCORE)
             .sort((a, b) => b.score - a.score); 
