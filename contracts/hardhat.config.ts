@@ -14,17 +14,31 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 1, 
+            runs: 1,
           },
           metadata: {
-            bytecodeHash: "none"
+            bytecodeHash: "none",
           },
           evmVersion: "istanbul",
-          viaIR: true
+          viaIR: true,
         },
       },
       {
-        version: "0.5.1", 
+        version: "0.8.25",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1,
+          },
+          metadata: {
+            bytecodeHash: "none",
+          },
+          evmVersion: "istanbul",
+          viaIR: true,
+        },
+      },
+      {
+        version: "0.5.1",
         settings: {
           optimizer: {
             enabled: true,
@@ -39,23 +53,24 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
   },
   typechain: {
-    outDir: "typechain-types",  
-    target: "ethers-v5",        
+    outDir: "typechain-types",
+    target: "ethers-v6",
     alwaysGenerateOverloads: false,
   },
   networks: {
     avalancheFuji: {
       url: "https://api.avax-test.network/ext/bc/C/rpc",
       accounts: [process.env.PRIVATE_KEY ?? ""],
-      gas: "auto", 
-      gasPrice: 5000000000, 
+      gas: "auto",
+      gasPrice: 5_000_000_000,
     },
     liveduelSubnet: {
-      url: "https://rpc-liveduel.cogitus.io/jqrUCybt4XforDsXXhOV/ext/bc/2MWwV2p26iaMu6GxJf2sCfwEVQCTSYA2rBBhAFGzHVdsxgVhxD/rpc",
-      chainId: 43113, 
+      url:
+        "https://rpc-liveduel.cogitus.io/jqrUCybt4XforDsXXhOV/ext/bc/2MWwV2p26iaMu6GxJf2sCfwEVQCTSYA2rBBhAFGzHVdsxgVhxD/rpc",
+      chainId: 43113,
       accounts: [process.env.PRIVATE_KEY ?? ""],
-      gas: "auto", 
-      gasPrice: 5000000000,  
+      gas: "auto",
+      gasPrice: 5_000_000_000,
     },
   },
   paths: {

@@ -8,10 +8,13 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["app/*"]
+      "@/*": ["app/*"],
+      "@utilities/*": ["contracts/icm-contracts/utilities/*"],
+      "@ictt/*": ["contracts/icm-contracts/ictt/*"],
+      "@teleporter/*": ["contracts/icm-contracts/teleporter/*"]
     }
   },
-    "typeRoots": ["node_modules/@types"],
+  "typeRoots": ["node_modules/@types"],
   "include": [
     "contracts/**/*",
     "scripts/**/*",
