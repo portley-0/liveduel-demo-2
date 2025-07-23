@@ -1,36 +1,39 @@
-import 'dotenv/config'; 
+import 'dotenv/config';
 import { Pool } from 'pg';
 
-export async function pruneOldTrades() {
-  const pool = new Pool({
-    connectionString: process.env.POSTGRES_URL,
-  });
+const SCHEMA = 'sgd1';
+const TABLE = 'trade_executed';
+const INTERVAL_DAYS = 10;
 
-  const client = await pool.connect();
-  console.log('Connected to PostgreSQL for pruning...');
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
+});
+
+export async function pruneOldTrades() {
+  console.log(
+    `Pruning "${SCHEMA}.${TABLE}" records older than NOW() - INTERVAL '${INTERVAL_DAYS} days'`
+  );
 
   try {
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const cutoffTimestamp = Math.floor(weekAgo.getTime() / 1000); 
-
-    console.log(`Pruning "TradeExecuted" records older than ${weekAgo.toISOString()}`);
-
-    const schemaName = 'sgd1'; 
-
-    const deleteQuery = `DELETE FROM ${schemaName}."trade_executed" WHERE timestamp < $1;`;
-    const res = await client.query(deleteQuery, [cutoffTimestamp]);
-    console.log(`✅ Successfully deleted ${res.rowCount} old trade records.`);
+    // Delete anything older than 10 days
+    const deleteQuery = `
+      DELETE FROM ${SCHEMA}."${TABLE}"
+      WHERE "timestamp" < NOW() - INTERVAL '${INTERVAL_DAYS} days';
+    `;
+    const { rowCount } = await pool.query(deleteQuery);
+    console.log(`✅ Deleted ${rowCount} old trade records.`);
 
     console.log('Vacuuming the table to reclaim space...');
-    await client.query(`VACUUM ${schemaName}."trade_executed";`);
+    await pool.query(`VACUUM ${SCHEMA}."${TABLE}";`);
     console.log('✅ Vacuum complete.');
-
   } catch (err) {
     console.error('❌ Error during pruneOldTrades execution:', err);
-  } finally {
-    client.release();
-    await pool.end();
-    console.log('Database connection closed.');
   }
+}
+
+// Allow running as a standalone script:
+if (require.main === module) {
+  pruneOldTrades()
+    .catch(() => {})
+    .finally(() => pool.end());
 }
