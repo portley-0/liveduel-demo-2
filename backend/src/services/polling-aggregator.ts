@@ -444,22 +444,19 @@ async function updateCachedMatches() {
       }
     }
 
-    const currentTime = Date.now();
-    const matchStartTimeMs = match.matchTimestamp! * 1000;
-
     const predictionMarket = await getPredictionMarketByMatchId(match.matchId);
     const hasPredictionMarket = !!predictionMarket;
 
     if (hasPredictionMarket && !match.contract) {
       console.log(`[updateCachedMatches] Setting contract for match ${match.matchId}: ${predictionMarket.id}`);
       updateMatchData(match.matchId, { contract: predictionMarket.id });
+      await refreshFootballData(match.matchId);
     }
 
-    if (matchStartTimeMs && currentTime >= matchStartTimeMs || hasPredictionMarket) {
-      console.log(`Refreshing data for match ${match.matchId}`);
+    const isLive = !!match.statusShort && match.statusShort !== 'NS';
+    if (isLive) {
+      console.log(`Refreshing data for live match ${match.matchId}`);
       await refreshFootballData(match.matchId);
-    } else {
-      console.log(`Skipping data refresh for match ${match.matchId}`);
     }
   }
 }
