@@ -28,16 +28,14 @@ export const apiClient = rateLimit(rawClient, {
 });
 
 apiClient.interceptors.response.use((resp: AxiosResponse) => {
-  const remaining =
-    resp.headers['x-ratelimit-remaining'] ??
-    resp.headers['x-rapidapi-requests-remaining'];
-  const limit =
-    resp.headers['x-ratelimit-limit'] ??
-    resp.headers['x-rapidapi-request-limit'];
-  console.log(`[API Rate] ${remaining ?? '?'} / ${limit ?? '?'}`);
+  const rateHeaders = Object.entries(resp.headers)
+    .filter(([key]) => /limit|remaining/i.test(key))
+    .map(([key, val]) => `${key}=${val}`)
+    .join(', ');
+
+  console.log(`[API Rate Headers] ${rateHeaders || '<none found>'}`);
   return resp;
 });
-
 
 export interface GetFixtureParams {
   id?: number;
