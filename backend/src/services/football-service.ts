@@ -1,4 +1,3 @@
-// football-service.ts
 import axios, { AxiosResponse } from 'axios';
 import rateLimit from 'axios-rate-limit';
 import axiosRetry from 'axios-retry';
@@ -8,7 +7,6 @@ const API_KEY = process.env.API_KEY || '';
 console.log('API_KEY from env:', process.env.API_KEY);
 const BASE_URL = 'https://v3.football.api-sports.io';
 
-// 1) Create the raw Axios instance
 const rawClient = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -17,7 +15,6 @@ const rawClient = axios.create({
   },
 });
 
-// 2) Add retry-on-429 (and network errors) with exponential backoff
 axiosRetry(rawClient, {
   retries: 3,
   retryDelay: axiosRetry.exponentialDelay,
@@ -25,22 +22,22 @@ axiosRetry(rawClient, {
     axiosRetry.isNetworkError(error) || error.response?.status === 429,
 });
 
-// 3) Wrap it in a rate-limiter: max 450 requests per 60 000 ms
 export const apiClient = rateLimit(rawClient, {
   maxRequests: 450,
   perMilliseconds: 60 * 1000,
 });
 
-// 4) (Optional) log actual usage from response headers
 apiClient.interceptors.response.use((resp: AxiosResponse) => {
-  const used  = resp.headers['x-ratelimit-used']   || resp.headers['x-rapidapi-requests-used'];
-  const limit = resp.headers['x-ratelimit-limit']  || resp.headers['x-rapidapi-request-limit'];
-  console.log(`[API Rate] ${used || '?'} / ${limit || '?'}`);
+  const remaining =
+    resp.headers['x-ratelimit-remaining'] ??
+    resp.headers['x-rapidapi-requests-remaining'];
+  const limit =
+    resp.headers['x-ratelimit-limit'] ??
+    resp.headers['x-rapidapi-request-limit'];
+  console.log(`[API Rate] ${remaining ?? '?'} / ${limit ?? '?'}`);
   return resp;
 });
 
-
-// ---------- Your existing types and functions below remain exactly the same ----------
 
 export interface GetFixtureParams {
   id?: number;
