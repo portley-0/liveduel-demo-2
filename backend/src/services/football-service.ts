@@ -28,12 +28,14 @@ export const apiClient = rateLimit(rawClient, {
 });
 
 apiClient.interceptors.response.use((resp: AxiosResponse) => {
-  const rateHeaders = Object.entries(resp.headers)
-    .filter(([key]) => /limit|remaining/i.test(key))
-    .map(([key, val]) => `${key}=${val}`)
-    .join(', ');
+  const entries = Object.entries(resp.headers)
+    .filter(([key]) => /x-?ratelimit/i.test(key))
+    .map(([key, val]) => `${key}=${val}`);
 
-  console.log(`[API Rate Headers] ${rateHeaders || '<none found>'}`);
+  if (entries.length) {
+    console.log(`[API Rate Headers] ${entries.join(', ')}`);
+  }
+
   return resp;
 });
 
