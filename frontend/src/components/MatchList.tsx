@@ -170,6 +170,7 @@ const MatchList: React.FC = () => {
     (match) =>
       match.statusShort && !["FT", "AET", "PEN"].includes(match.statusShort)
   );
+  filteredMatches = filteredMatches.filter((match) => match.marketAvailable === true);
   // Selected only filter
   if (selectedOnly) {
     const leagueIds = defaultSelections
