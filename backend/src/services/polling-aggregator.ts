@@ -42,7 +42,7 @@ import {
   getAllActiveTournaments
 } from './subgraph-service';
 
-import { unwindPositions } from './portfolio-manager';
+import { unwindPositions, reconcileMissingBootstraps } from './portfolio-manager';
 import { findMatchbookId } from './id-mapper';
 import { getMatchbookOdds } from './matchbook.api';
 
@@ -64,6 +64,19 @@ export function startFastSubgraphPolling() {
     try {
       // Refresh match data
       const allMatches = getAllMatches();
+
+      const candidates = allMatches
+       .filter(m => m.contract && !m.resolvedAt && m.marketAvailable)
+       .map(m => m.matchId);
+      
+      if (candidates.length > 0) {
+        try {
+          await reconcileMissingBootstraps(candidates, 15000);
+        } catch (err) {
+          console.error('FAST POLLER: Error reconciling missing bootstraps:', err);
+        }
+      }
+
       for (const match of allMatches) {
         if (match.resolvedAt) continue;
         console.log(`[SubgraphPolling] Refreshing match ${match.matchId}`);
@@ -529,8 +542,8 @@ async function refreshSubgraphData(matchId: number) {
           outcome: predictionMarket.resolvedOutcome ?? undefined
         });
 
-        unwindPositions(matchId).catch(error => {
-            console.error(`POLLER: Error during unwind process for market ${matchId}:`, error);
+        await unwindPositions(matchId).catch(error => {
+          console.error(`POLLER: Error during unwind process for market ${matchId}:`, error);
         });
       }
 

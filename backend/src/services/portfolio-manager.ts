@@ -65,35 +65,109 @@ export async function bootstrapInventory(conditionId: string, usdcAmount: number
  * @param marketId The API-Football ID for the market, used to find the on-chain identifiers.
  */
 export async function unwindPositions(marketId: number): Promise<void> {
-    console.log(`PORTFOLIO MANAGER: Starting unwind process for resolved market ${marketId}.`);
+  console.log(`PORTFOLIO MANAGER: Starting unwind process for resolved market ${marketId}.`);
 
-    try {
-        const conditionId = await factoryContract.matchConditionIds(marketId);
-        if (!conditionId || conditionId === ethers.ZeroHash) {
-            throw new Error(`Could not find conditionId for market ${marketId}.`);
-        }
-
-        const payoutNumerators = await conditionalTokens.payoutNumerators(conditionId);
-        if (payoutNumerators.length === 0) {
-            console.log(`Cannot unwind yet: Oracle has not reported the outcome for condition ${conditionId}.`);
-            return; 
-        }
-        console.log(`Oracle has reported outcomes: [${payoutNumerators.join(', ')}]. Proceeding with redemption.`);
-
-        const outcomeSlots = [1, 2, 4];
-
-        console.log(`Executing redeemPositions for condition ${conditionId}...`);
-        const redeemTx = await conditionalTokens.redeemPositions(
-            USDC_ADDRESS,
-            ethers.ZeroHash, 
-            conditionId,
-            outcomeSlots
-        );
-        await redeemTx.wait();
-        console.log(`✅ UNWIND SUCCESS: Capital reclaimed for market ${marketId}. TxHash: ${redeemTx.hash}`);
-        
-    } catch (error) {
-        console.error(`PORTFOLIO MANAGER: Failed to unwind positions for market ${marketId}:`, error);
-        throw error;
+  try {
+    const conditionId: string = await factoryContract.matchConditionIds(marketId);
+    if (!conditionId || conditionId === ethers.ZeroHash) {
+      throw new Error(`Could not find conditionId for market ${marketId}.`);
     }
+
+    // Check if condition is resolved by looking at payoutDenominator
+    const payoutDenominator: bigint = await conditionalTokens.payoutDenominator(conditionId);
+    if (payoutDenominator === 0n) {
+      console.log(`Cannot unwind yet: condition ${conditionId} is not resolved (denominator is zero).`);
+      return;
+    }
+
+    // Fetch payout numerators
+    const payoutNumerators: bigint[] = await conditionalTokens.payoutNumerators(conditionId);
+    console.log(`Oracle reported payout numerators: [${payoutNumerators.map(n => n.toString()).join(', ')}], denominator: ${payoutDenominator.toString()}`);
+
+    // Build indexSets: one per non-zero payout numerator (each outcome that has weight)
+    const indexSets: number[] = [];
+    for (let j = 0; j < payoutNumerators.length; j++) {
+      if (payoutNumerators[j] !== 0n) {
+        indexSets.push(1 << j); // e.g., outcome slot j => bitmask with that bit set
+      }
+    }
+    if (indexSets.length === 0) {
+      console.log(`No winning outcomes found for condition ${conditionId}; nothing to redeem.`);
+      return;
+    }
+
+    console.log(`Executing redeemPositions for condition ${conditionId} with indexSets [${indexSets.join(', ')}]...`);
+    const redeemTx = await conditionalTokens.redeemPositions(
+      USDC_ADDRESS,
+      ethers.ZeroHash,
+      conditionId,
+      indexSets,
+      { gasLimit: 300_000 }
+    );
+    const receipt = await redeemTx.wait();
+    console.log(`✅ UNWIND SUCCESS: Capital reclaimed for market ${marketId}. TxHash: ${receipt.transactionHash}`);
+  } catch (error) {
+    console.error(`PORTFOLIO MANAGER: Failed to unwind positions for market ${marketId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Given a list of active matchIds and the expected bootstrap amount per market,
+ * ensure each has outcome tokens; if not, try to bootstrap it.
+ */
+export async function reconcileMissingBootstraps(
+  matchIds: number[],
+  expectedUsdcPerMarket: number
+): Promise<void> {
+  for (const matchId of matchIds) {
+    try {
+      const conditionId: string = await factoryContract.matchConditionIds(matchId);
+      if (!conditionId || conditionId === ethers.ZeroHash) {
+        console.warn(`Reconcile: no conditionId for match ${matchId}, skipping.`);
+        continue;
+      }
+
+      // How many outcomes this condition has
+      const nOutcomes: number = await conditionalTokens.getOutcomeSlotCount(conditionId);
+      if (nOutcomes < 2) {
+        console.warn(`Reconcile: invalid outcome count (${nOutcomes}) for condition ${conditionId}`);
+        continue;
+      }
+
+      // Build partition / outcome slots
+      const outcomeSlots = Array.from({ length: nOutcomes }, (_, i) => 1 << i); // [1,2,4,...]
+
+      // Check current inventory: does the bot hold at least some of each outcome token?
+      const walletAddress = await signer.getAddress();
+      let missing = false;
+      for (const slot of outcomeSlots) {
+        const collectionId = await conditionalTokens.getCollectionId(ethers.ZeroHash, conditionId, slot);
+        const positionId = await conditionalTokens.getPositionId(USDC_ADDRESS, collectionId);
+        const balance: bigint = await conditionalTokens.balanceOf(walletAddress, positionId);
+        if (balance === 0n) {
+          console.log(`Reconcile: missing token for slot ${slot} on condition ${conditionId}`);
+          missing = true;
+        }
+      }
+
+      if (!missing) {
+        console.log(`Reconcile: inventory already present for match ${matchId} (condition ${conditionId}).`);
+        continue;
+      }
+
+      // Attempt bootstrap with fallback chunking
+      console.log(`Reconcile: bootstrapping missing inventory for match ${matchId}, condition ${conditionId}`);
+      try {
+        await bootstrapInventory(conditionId, expectedUsdcPerMarket);
+      } catch (primaryErr) {
+        console.warn(`Reconcile: primary bootstrap failed for match ${matchId}, trying smaller chunk.`, primaryErr);
+        // fallback to half
+        await bootstrapInventory(conditionId, Math.floor(expectedUsdcPerMarket / 2));
+      }
+
+    } catch (err) {
+      console.error(`Reconcile: error handling match ${matchId}:`, err);
+    }
+  }
 }
