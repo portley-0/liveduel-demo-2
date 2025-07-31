@@ -129,7 +129,8 @@ export async function reconcileMissingBootstraps(
       }
 
       // How many outcomes this condition has
-      const nOutcomes: number = await conditionalTokens.getOutcomeSlotCount(conditionId);
+      const outcomeSlotCountBig: bigint = await conditionalTokens.getOutcomeSlotCount(conditionId);
+      const nOutcomes = Number(outcomeSlotCountBig);
       if (nOutcomes < 2) {
         console.warn(`Reconcile: invalid outcome count (${nOutcomes}) for condition ${conditionId}`);
         continue;
@@ -137,6 +138,7 @@ export async function reconcileMissingBootstraps(
 
       // Build partition / outcome slots
       const outcomeSlots = Array.from({ length: nOutcomes }, (_, i) => 1 << i); // [1,2,4,...]
+
 
       // Check current inventory: does the bot hold at least some of each outcome token?
       const walletAddress = await signer.getAddress();
