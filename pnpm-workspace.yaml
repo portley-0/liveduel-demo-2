@@ -2,5 +2,4 @@ packages:
   - "frontend"
   - "backend"
   - "contracts"
-  - "subgraph"
-  - "privy"  
+  - "subgraph"  

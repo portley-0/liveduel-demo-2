@@ -1,33 +1,48 @@
-import { useReadContract } from "wagmi";
+// src/hooks/useTournamentNetCost.ts
+import { useState, useEffect } from "react";
+import { ethers } from "ethers";
 import TournamentMarketABI from "@/abis/TournamentMarket.json" with { type: "json" };
-import { Address } from "viem";
+
+const AVALANCHE_FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
 
 export function useTournamentNetCost(
-  marketAddress: Address | null,
+  marketAddress: string | null,
   outcome: number | null,
   amount: bigint | null,
   tradeType: "buy" | "sell",
   marketStatus: "loading" | "deploying" | "not_deployed" | "ready"
 ) {
-  const result = useReadContract({
-    address: marketAddress ?? undefined,
-    abi: TournamentMarketABI.abi,
-    functionName: "getNetCost",
-    args: outcome !== null && amount !== null ? [outcome, tradeType === "sell" ? -amount : amount] : undefined,
-    query: {
-      enabled: !!marketAddress && outcome !== null && amount !== null && amount > 0n && marketStatus === "ready",
-    },
-  });
+  const [netCost, setNetCost] = useState<bigint | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const netCost = result.data
-    ? tradeType === "sell"
-      ? BigInt(result.data.toString()) * -1n 
-      : BigInt(result.data.toString())
-    : null;
+  useEffect(() => {
+    if (!marketAddress || outcome === null || !amount || amount <= 0n || marketStatus !== "ready") {
+      setNetCost(null);
+      setIsLoading(false);
+      return;
+    }
 
-  return {
-    data: netCost,
-    isLoading: result.isLoading,
-    error: result.error?.message ?? null,
-  };
+    const provider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
+
+    const fetchNetCost = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const contract = new ethers.Contract(marketAddress, TournamentMarketABI.abi, provider);
+        const raw = await contract.getNetCost(outcome, tradeType === "sell" ? -amount : amount);
+        const cost = BigInt(raw.toString());
+        setNetCost(tradeType === "sell" ? cost * -1n : cost);
+      } catch (err) {
+        console.error("Error fetching tournament net cost:", err);
+        setError("Failed to fetch net cost");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void fetchNetCost();
+  }, [marketAddress, outcome, amount, tradeType, marketStatus]);
+
+  return { data: netCost, isLoading, error };
 }

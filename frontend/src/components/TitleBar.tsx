@@ -1,15 +1,13 @@
 "use client";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { NavLink } from "react-router-dom";
-import { FaChartLine, FaFutbol, FaCreditCard, FaCoins } from "react-icons/fa";
-import { IoIosCloseCircleOutline } from "react-icons/io";
-import { FaRegMoneyBillAlt } from "react-icons/fa";
-import { MdAccountBalanceWallet } from "react-icons/md";
+import { FaChartLine, FaFutbol, FaRegMoneyBillAlt } from "react-icons/fa";
 import { RiMenuLine } from "react-icons/ri";
-import { useAccount, useReadContract } from "wagmi";
+import { IoIosCloseCircleOutline } from "react-icons/io";
 import { Dialog } from "@headlessui/react";
-import { ethers } from "ethers";
+import { usePrivy } from "@privy-io/react-auth";
+import { UserPill } from "@privy-io/react-auth/ui";
+import { BrowserProvider, Contract, formatUnits, isAddress, JsonRpcProvider } from "ethers";
 
 const mUSDCABI = [
   {
@@ -20,133 +18,217 @@ const mUSDCABI = [
     type: "function",
   },
 ];
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 const mUSDCAddress = "0x78FD2A3454A4F37C5518FE7E8AB07001DC0572Ce";
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 const SUBGRAPH_URL = import.meta.env.VITE_SUBGRAPH_URL;
 
-const TitleBar = () => {
+const truncateAddress = (addr: string) => {
+  if (addr.length <= 10) return addr;
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+};
+
+const FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
+const FUJI_CHAIN_ID = 43113;
+
+const getInjectedProvider = (): BrowserProvider | null => {
+  if (
+    typeof window !== "undefined" &&
+    (window as any).ethereum &&
+    typeof (window as any).ethereum.request === "function"
+  ) {
+    return new BrowserProvider((window as any).ethereum as any);
+  }
+  return null;
+};
+
+const getProviderForRead = async (): Promise<BrowserProvider | JsonRpcProvider> => {
+  const injected = getInjectedProvider();
+  if (injected) {
+    try {
+      const network = await injected.getNetwork();
+      const chainIdBigInt =
+        typeof network.chainId === "bigint" ? network.chainId : BigInt(network.chainId);
+      if (chainIdBigInt === BigInt(FUJI_CHAIN_ID)) {
+        return injected;
+      }
+    } catch {
+      // ignore and fallback
+    }
+  }
+  return new JsonRpcProvider(FUJI_RPC);
+};
+
+const TitleBar: React.FC = () => {
+  const { ready, authenticated, user } = usePrivy();
   const [isMobile, setIsMobile] = useState(false);
-  const { address } = useAccount();
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [processingUSDC, setProcessingUSDC] = useState(false);
-  const [hasClaimed, setHasClaimed] = useState(false);
   const [totalTxs, setTotalTxs] = useState(0);
+  const [balance, setBalance] = useState<string | null>(null);
+
+  type LinkedAccount = {
+    address?: string;
+    [key: string]: any;
+  };
+
+  const walletAddress = useMemo<string | null>(() => {
+    const linked: any = user?.linkedAccounts;
+    if (!Array.isArray(linked)) return null;
+
+    for (const entry of linked as LinkedAccount[]) {
+      if (
+        entry?.address &&
+        typeof entry.address === "string" &&
+        entry.address.startsWith("0x") &&
+        isAddress(entry.address)
+      ) {
+        return entry.address;
+      }
+    }
+    return null;
+  }, [user]);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    let timeoutId: NodeJS.Timeout;
-    const debouncedResize = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(handleResize, 100);
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    let timeout: number;
+    const debounced = () => {
+      clearTimeout(timeout);
+      // @ts-ignore
+      timeout = window.setTimeout(onResize, 100);
     };
-    handleResize();
-    window.addEventListener("resize", debouncedResize);
-    return () => window.removeEventListener("resize", debouncedResize);
+    onResize();
+    window.addEventListener("resize", debounced);
+    return () => window.removeEventListener("resize", debounced);
   }, []);
 
   useEffect(() => {
     const query = `
       query GetTotalTxs {
-        platformStats(id: "platform-stats") {
-          totalTxs
-        }
+        platformStats(id: "platform-stats") { totalTxs }
       }
     `;
-
-    const fetchTotalTxs = async () => {
-      if (!SUBGRAPH_URL) {
-        console.error("Subgraph URL is not configured.");
-        return;
-      }
+    const fetchTotal = async () => {
+      if (!SUBGRAPH_URL) return;
       try {
-        const response = await fetch(SUBGRAPH_URL, {
+        const resp = await fetch(SUBGRAPH_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query }),
         });
-        
-        const { data } = await response.json();
-        
-        if (data && data.platformStats) {
-          setTotalTxs(Number(data.platformStats.totalTxs));
-        }
-
-      } catch (error) {
-        console.error("Failed to fetch total transactions:", error);
+        const { data } = await resp.json();
+        if (data?.platformStats) setTotalTxs(Number(data.platformStats.totalTxs));
+      } catch (e) {
+        console.error("Failed to fetch total txs", e);
       }
     };
-
-    fetchTotalTxs();
-    const intervalId = setInterval(fetchTotalTxs, 30000);
-
-    return () => clearInterval(intervalId);
+    fetchTotal();
+    const id = setInterval(fetchTotal, 30000);
+    return () => clearInterval(id);
   }, []);
 
-  const closeDrawer = () => {
-    const drawerToggle = document.getElementById("my-drawer") as HTMLInputElement | null;
-    if (drawerToggle) drawerToggle.checked = false;
-  };
-
   useEffect(() => {
-    if (address && !sessionStorage.getItem("claimedModalShown")) {
+    if (authenticated && !sessionStorage.getItem("claimedModalShown")) {
       setShowClaimModal(true);
       sessionStorage.setItem("claimedModalShown", "true");
     }
-  }, [address]);
+  }, [authenticated]);
+
+  useEffect(() => {
+    if (!walletAddress) {
+      setBalance(null);
+      return;
+    }
+
+    const updateBalance = async () => {
+      if (!walletAddress) return;
+      try {
+        const provider = await getProviderForRead();
+
+        // ensure contract exists at address
+        const code = await provider.getCode(mUSDCAddress);
+        if (code === "0x") {
+          console.warn("No contract code at mUSDC address on current provider; cannot fetch balance.", {
+            contractAddress: mUSDCAddress,
+            provider: provider instanceof BrowserProvider ? "BrowserProvider" : "JsonRpcProvider",
+          });
+          setBalance(null);
+          return;
+        }
+
+        const contract = new Contract(mUSDCAddress, mUSDCABI, provider);
+        const bal: bigint = await contract.balanceOf(walletAddress);
+        setBalance(parseFloat(formatUnits(bal, 6)).toFixed(2));
+      } catch (e) {
+        console.error("Failed fetching on-chain mUSDC balance", e);
+        setBalance(null);
+      }
+    };
+
+    updateBalance();
+    const id = setInterval(updateBalance, 15000);
+    return () => clearInterval(id);
+  }, [walletAddress]);
 
   const handleMintUSDC = async () => {
-    if (!ethers.isAddress(address)) {
-      alert("Invalid wallet address.");
+    if (!authenticated || !user || !walletAddress) {
+      alert("Log in and connect wallet first");
       return;
     }
     setProcessingUSDC(true);
     try {
-      const response = await fetch(`${SERVER_URL}/mint-usdc/${address}`, {
+      const resp = await fetch(`${SERVER_URL}/mint-usdc/${user.id}`, {
         method: "POST",
+        credentials: "include",
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Minting mUSDC failed");
+      const json = await resp.json();
+      if (!resp.ok) throw new Error(json.error || "Mint failed");
+
+      const provider = await getProviderForRead();
+      const contract = new Contract(mUSDCAddress, mUSDCABI, provider);
+      const bal: bigint = await contract.balanceOf(walletAddress);
+      setBalance(parseFloat(formatUnits(bal, 6)).toFixed(2));
+
       setShowClaimModal(false);
-    } catch (err: any) {
-      console.error(err);
-      alert(`Minting mUSDC failed: ${err.message || "Unknown error"}`);
+    } catch (e: any) {
+      console.error(e);
+      alert(`Claim failed: ${e.message}`);
     } finally {
       setProcessingUSDC(false);
     }
   };
 
+  const closeDrawer = () => {
+    const chk = document.getElementById("my-drawer") as HTMLInputElement | null;
+    if (chk) chk.checked = false;
+  };
+
   const navItems = [
-    { path: "/dashboard/matches", label: "Markets", icon: FaChartLine, activePaths: ["/dashboard/matches", "/dashboard/tournaments"] },
-    { path: "/dashboard/predictions", label: "Predictions", icon: FaFutbol },
-    { path: "/dashboard/get-funds", label: "Get Funds", icon: FaRegMoneyBillAlt },
+    {
+      path: "/dashboard/matches",
+      label: "Markets",
+      icon: FaChartLine,
+      activePaths: ["/dashboard/matches", "/dashboard/tournaments"],
+    },
+    { path: "/dashboard/predictions", label: "Predictions", icon: FaFutbol, activePaths: [] },
+    { path: "/dashboard/get-funds", label: "Get Funds", icon: FaRegMoneyBillAlt, activePaths: [] },
   ];
 
-  const { data: balance, isError, isLoading, refetch } = useReadContract({
-    address: mUSDCAddress,
-    abi: mUSDCABI,
-    functionName: "balanceOf",
-    args: [address],
-  });
-
-  useEffect(() => {
-    if (!address) return;
-    const intervalId = setInterval(() => {
-      refetch();
-    }, 15000);
-    return () => clearInterval(intervalId);
-  }, [address, refetch]);
-
-  const formattedBalance =
-    !isLoading && !isError && balance
-      ? (parseFloat(balance.toString()) / 1000000).toFixed(2)
-      : null;
+  const logoImageElement = (
+    <img
+      src="/images/Liveduel-Logo.png"
+      alt="Liveduel Logo"
+      width={200}
+      height={62}
+      className="object-contain select-none sm:h-[50px] sx:h-[50px] xxs:h-[48px] xxs:-ml-4"
+    />
+  );
 
   return (
     <>
       <div className="drawer">
         <input id="my-drawer" type="checkbox" className="drawer-toggle" />
         <div className="drawer-content">
-          <header className="flex items-center justify-between px-4 py-2 bg-darkblue h-[84px] shadow-md z-50 select-none">
+          <header className="flex items-center justify-between px-4 py-2 bg-darkblue h-[84px] z-50 select-none">
             <div className="flex items-center space-x-2 select-none">
               <label
                 htmlFor="my-drawer"
@@ -154,20 +236,10 @@ const TitleBar = () => {
               >
                 <RiMenuLine className="!text-3xl !sm:text-2xl" />
               </label>
-              <NavLink
-                to="/"
-                className="btn bg-transparent border-none hover:bg-transparent select-none p-0 hover:opacity-80"
-              >
-                <img
-                  src="/images/Liveduel-Logo.png"
-                  alt="Liveduel Logo"
-                  width={200}
-                  height={62}
-                  className="object-contain select-none sm:h-[50px] sx:h-[50px] xxs:h-[48px] xxs:-ml-4"
-                />
+              <NavLink to="/" className="btn bg-transparent border-none hover:bg-transparent select-none p-0 hover:opacity-80">
+                {logoImageElement}
               </NavLink>
             </div>
-
             <div className="flex items-center space-x-4 lg:space-x-6">
               {!isMobile && (
                 <div className="flex items-center gap-4 select-none">
@@ -208,88 +280,28 @@ const TitleBar = () => {
                 </div>
               )}
 
-              <ConnectButton.Custom>
-                {({
-                  account,
-                  openConnectModal,
-                  openAccountModal,
-                  mounted,
-                  connector,
-                }: {
-                  account: { address: string } | null;
-                  openConnectModal: () => void;
-                  openAccountModal: () => void;
-                  mounted: boolean;
-                  connector: { icon: string; name: string } | null;
-                })  => {
-                  const ready = mounted;
-                  const connected = ready && account;
-
-                  return (
-                    <button
-                      onClick={connected ? openAccountModal : openConnectModal}
-                      className={`
-                        btn text-white w-auto
-                        px-3 h-[28px] sm:px-3 sm:h-[28px]
-                        md:px-4 md:h-[30px] lg:px-5 lg:h-[34px]
-                        text-md sm:text-sm rounded-full select-none
-                        flex items-center justify-center gap-2 whitespace-nowrap
-                        transition-all bg-darkblue border-2 border-white
-                        hover:text-gray-300 hover:border-gray-300 xxs:-mr-2
-                        ${connected
-                          ? "[@media(max-width:350px)]:px-1.5 [@media(max-width:350px)]:!h-[10px] [@media(max-width:350px)]:text-sm [@media(max-width:350px)]:gap-1"
-                          : ""
-                        }
-                      `}
-                    >
-                      {connected ? (
-                        <>
-                          <MdAccountBalanceWallet
-                            className={`
-                              text-lg sm:text-md
-                              max-[350px]:text-sm
-                            `}
-                          />
-                          <span className="hidden sm:inline">
-                            {account.address.slice(0, 6)}…{account.address.slice(-4)}
-                          </span>
-                          <span
-                            className="
-                              sm:hidden hidden
-                              [@media(min-width:330px)_and_(max-width:350px)]:inline
-                              [@media(min-width:330px)_and_(max-width:350px)]:text-xs
-                            "
-                          >
-                            {account.address.slice(0, 3)}…
-                          </span>
-                          <span
-                            className="
-                              sm:hidden inline
-                              [@media(min-width:330px)_and_(max-width:350px)]:hidden
-                              text-xs
-                            "
-                          >
-                            {account.address.slice(0, 4)}…
-                          </span>
-                          {connector?.icon && (
-                            <img
-                              src={connector.icon}
-                              alt={connector.name}
-                              className={`
-                                w-4 h-4 sm:w-3 sm:h-3
-                                max-[350px]:w-2 max-[350px]:h-2
-                              `}
-                              onError={(e) => (e.currentTarget.style.display = "none")}
-                            />
-                          )}
-                        </>
-                      ) : (
-                        "Log in"
-                      )}
-                    </button>
-                  );
-                }}
-              </ConnectButton.Custom>
+              <div className="flex items-center gap-2 relative z-[3000] overflow-visible">
+                {authenticated && walletAddress ? (
+                  <UserPill
+                    action={{ type: "connectWallet" }}
+                    size={32}
+                    label={
+                      <div className="btn text-white px-3 h-[28px] sm:px-3 sm:h-[28px] md:px-4 md:h-[30px] lg:px-5 lg:h-[34px] text-md sm:text-sm rounded-full select-none flex items-center justify-center gap-2 whitespace-nowrap transition-all bg-darkblue border-2 border-white hover:text-gray-300 hover:border-gray-300">
+                        <span className="hidden sm:inline">{truncateAddress(walletAddress)}</span>
+                        <span className="inline sm:hidden text-xs">{truncateAddress(walletAddress)}</span>
+                      </div>
+                    }
+                  />
+                ) : (
+                  <NavLink
+                    to="/login"
+                    replace
+                    className="btn text-white px-4 py-2 rounded-full bg-darkblue border-2 border-white hover:text-gray-300 hover:border-gray-300 select-none"
+                  >
+                    Log in
+                  </NavLink>
+                )}
+              </div>
             </div>
           </header>
 
@@ -316,11 +328,7 @@ const TitleBar = () => {
                             : "text-white group-hover:text-gray-300"
                         }`}
                       />
-                      <span
-                        className={`w-full text-center text-xs lg:text-sm capitalize whitespace-nowrap`}
-                      >
-                        {label}
-                      </span>
+                      <span className="w-full text-center text-xs lg:text-sm capitalize whitespace-nowrap">{label}</span>
                     </>
                   )}
                 </NavLink>
@@ -330,40 +338,21 @@ const TitleBar = () => {
         </div>
 
         <div className="drawer-side z-50">
-          <label htmlFor="my-drawer" className="drawer-overlay fixed z-50"></label>
-          <ul className="menu bg-gray-900 text-base-content min-h-full w-80 p-4 z-50">
-            <ConnectButton.Custom>
-              {({
-                account,
-                openConnectModal,
-                openAccountModal,
-                mounted,
-              }: {
-                account: { address: string } | null;
-                openConnectModal: () => void;
-                openAccountModal: () => void;
-                mounted: boolean;
-              }) => {
-                const ready = mounted;
-                const connected = ready && account;
-                const displayBalance = isLoading
-                  ? "Loading..."
-                  : (formattedBalance || "0.00");
-                return (
-                  <li
-                    className="mb-4 cursor-pointer"
-                    onClick={() => {
-                      connected ? openAccountModal() : openConnectModal();
-                      closeDrawer();
-                    }}
-                  >
-                    <p className="font-[Lato-Bold] text-lg text-white">
-                      Balance: ${displayBalance} mUSDC
-                    </p>
-                  </li>
-                );
-              }}
-            </ConnectButton.Custom>
+          <label htmlFor="my-drawer" className="drawer-overlay fixed" />
+          <ul className="menu bg-gray-900 text-base-content min-h-full w-80 p-4">
+            {!(authenticated && walletAddress) ? (
+              <li className="mb-4">
+                <NavLink to="/login" onClick={closeDrawer} className="font-[Lato-Bold] text-lg text-white hover:text-gray-300">
+                  Log in
+                </NavLink>
+              </li>
+            ) : (
+              <li className="mb-4">
+                <p className="font-[Lato-Bold] text-lg text-white">
+                  Balance: ${balance ?? "0.00"} mUSDC
+                </p>
+              </li>
+            )}
             <hr className="border-gray-700 my-2" />
             {navItems.map(({ path, label, activePaths }) => (
               <li key={path}>
@@ -371,7 +360,7 @@ const TitleBar = () => {
                   to={path}
                   onClick={closeDrawer}
                   className={({ isActive }) =>
-                    `font-[Lato-Bold] text-lg text-white mb-4 ${
+                    `font-[Lato-Bold] text-lg mb-4 ${
                       isActive || (activePaths && activePaths.some(p => window.location.pathname.startsWith(p)))
                         ? "!text-redmagenta"
                         : "text-white hover:text-gray-300"
@@ -390,13 +379,18 @@ const TitleBar = () => {
           </ul>
         </div>
       </div>
-      <Dialog open={showClaimModal} onClose={() => setShowClaimModal(false)} className="fixed inset-0 flex items-center justify-center z-50">
-        <div className="fixed inset-0 bg-black opacity-50"></div>
+
+      <Dialog
+        open={showClaimModal}
+        onClose={() => setShowClaimModal(false)}
+        className="fixed inset-0 flex items-center justify-center z-50"
+      >
+        <div className="fixed inset-0 bg-black opacity-50" />
         <div className="bg-greyblue p-6 rounded-xl shadow-lg w-full max-w-sm sm:max-w-[280px] mx-auto text-center relative z-50">
           <button
             onClick={() => setShowClaimModal(false)}
             className="absolute top-2 right-2 text-white hover:text-gray-300 transition"
-            aria-label="Close modal"
+            aria-label="Close"
           >
             <IoIosCloseCircleOutline className="text-2xl sm:text-xl text-white" />
           </button>

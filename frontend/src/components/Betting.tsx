@@ -1,6 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Dialog } from "@headlessui/react";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
+import {
+  useSignTypedData,
+  useSendTransaction,
+  useWallets,
+} from "@privy-io/react-auth";
 import { MatchData } from "@/types/MatchData.ts";
 import { useMarketFactory } from "@/hooks/useMarketFactory.ts";
 import { useNetCost } from "@/hooks/useNetCost.ts";
@@ -13,14 +17,19 @@ import ConditionalTokensABI from "@/abis/ConditionalTokens.json" with { type: "j
 import MarketFactoryABI from "@/abis/MarketFactory.json" with { type: "json" };
 import MockUSDCABI from "@/abis/MockUSDC.json" with { type: "json" };
 import { ethers } from "ethers";
-import { useWalletClient } from "wagmi";
-import { Spinner } from './Spinner.tsx';
+import { Spinner } from "./Spinner.tsx";
 
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
+const DEFAULT_PROB = 0.3333333;
+const USDC_ADDRESS = "0x78FD2A3454A4F37C5518FE7E8AB07001DC0572Ce";
+const CONDITIONAL_TOKENS_ADDRESS = "0xfd16C758285877B88F2C30B66686dc8515EaE1CA";
+const MARKET_FACTORY_ADDRESS = "0x16c6de1080DFF475F7F248D63db60eB93563DD8F";
+const USDC_ABI = MockUSDCABI.abi;
+const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
+const MARKET_FACTORY_ABI = MarketFactoryABI.abi;
+const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+const AVALANCHE_FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
+
+const SHARE_SCALE = 1000000n;
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -30,18 +39,6 @@ function useDebounce<T>(value: T, delay: number): T {
   }, [value, delay]);
   return debouncedValue;
 }
- 
-const DEFAULT_PROB = 0.3333333; 
-const USDC_ADDRESS = "0x78FD2A3454A4F37C5518FE7E8AB07001DC0572Ce";
-const CONDITIONAL_TOKENS_ADDRESS = "0xfd16C758285877B88F2C30B66686dc8515EaE1CA";
-const MARKET_FACTORY_ADDRESS = "0x16c6de1080DFF475F7F248D63db60eB93563DD8F";
-const USDC_ABI = MockUSDCABI.abi;
-const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
-const MARKET_FACTORY_ABI = MarketFactoryABI.abi;
-const SERVER_URL = import.meta.env.VITE_SERVER_URL;
-const AVALANCHE_FUJI_RPC = 'https://api.avax-test.network/ext/bc/C/rpc';
-
-const SHARE_SCALE = 1000000n; 
 
 const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [selectedBet, setSelectedBet] = useState<"home" | "draw" | "away" | null>(null);
@@ -55,21 +52,26 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [isTxPending, setIsTxPending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const { data: walletClient } = useWalletClient();
-  const { openConnectModal } = useConnectModal();
+  const { wallets, ready: walletsReady } = useWallets();
+  const { signTypedData } = useSignTypedData();
+  const { sendTransaction } = useSendTransaction();
   const [refreshKey, setRefreshKey] = useState(0);
   const [homePrice, setHomePrice] = useState<number>(DEFAULT_PROB);
   const [drawPrice, setDrawPrice] = useState<number>(DEFAULT_PROB);
   const [awayPrice, setAwayPrice] = useState<number>(DEFAULT_PROB);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState({ shares: 0, cost: 0 });
-  const [outcomeBalances, setOutcomeBalances] = useState<{ [key in "home" | "draw" | "away"]: number }>({ home: 0, draw: 0, away: 0 });
+  const [outcomeBalances, setOutcomeBalances] = useState<{ [key in "home" | "draw" | "away"]: number }>({
+    home: 0,
+    draw: 0,
+    away: 0,
+  });
   const [isBalanceLoading, setIsBalanceLoading] = useState(false);
   const [conditionId, setConditionId] = useState<string | null>(null);
   const [outcomeTokenIds, setOutcomeTokenIds] = useState<{ [key: number]: string }>({});
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastAddress, setToastAddress] = useState<string | null>(null);
-  
+
   const [calculatedSharesScaled, setCalculatedSharesScaled] = useState<bigint | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
@@ -79,11 +81,51 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const areButtonsDisabled = isResolved || match.marketAvailable !== true;
   const closeModal = () => setIsModalOpen(false);
 
-  const fetchConditionId = async (): Promise<void> => {
-    if (!walletClient || !match.matchId || !marketAddress) return;
+  const embeddedWallet = useMemo(() => {
+    if (!wallets) return null;
+    return wallets.find((w: any) => w.walletClientType === "privy");
+  }, [wallets]);
+
+  const getPrivySigner = async (): Promise<ethers.Signer | null> => {
+    if (!embeddedWallet) {
+      console.error("No Privy embedded wallet available");
+      return null;
+    }
     try {
-      const provider = new ethers.BrowserProvider(walletClient as any);
-      const signer = await provider.getSigner();
+      // Ensure on Fuji
+      if (embeddedWallet.switchChain) {
+        try {
+          await embeddedWallet.switchChain(43113);
+        } catch {
+          // ignore if already or fails
+        }
+      }
+      const eip1193Provider = await embeddedWallet.getEthereumProvider();
+      if (!eip1193Provider || typeof (eip1193Provider as any).request !== "function") {
+        console.error("Invalid EIP-1193 provider from Privy wallet", eip1193Provider);
+        return null;
+      }
+      const ethersProvider = new ethers.BrowserProvider(eip1193Provider as any);
+      const signer = await ethersProvider.getSigner();
+      // sanity check
+      await signer.getAddress();
+      return signer;
+    } catch (e) {
+      console.error("Failed to get Privy signer:", e);
+      return null;
+    }
+  };
+
+  const getPrivyAddress = async (): Promise<string | null> => {
+    if (!embeddedWallet) return null;
+    return embeddedWallet.address || null;
+  };
+
+  const fetchConditionId = async (): Promise<void> => {
+    if (!match.matchId || !marketAddress) return;
+    try {
+      const signer = await getPrivySigner();
+      if (!signer) return;
       const marketFactory = new ethers.Contract(MARKET_FACTORY_ADDRESS, MARKET_FACTORY_ABI, signer);
       const fetchedId = await marketFactory.matchConditionIds(match.matchId);
       if (fetchedId !== conditionId) {
@@ -104,26 +146,23 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   };
 
   useEffect(() => {
-    fetchConditionId();
-  }, [walletClient, match.matchId, marketAddress]);
+    void fetchConditionId();
+  }, [match.matchId, marketAddress]);
 
   useEffect(() => {
-    // Trigger the fetch when the user enters sell mode AND all dependencies are ready
-    if (tradeType === "sell" && marketAddress && walletClient && conditionId && Object.keys(outcomeTokenIds).length === 3) {
-      fetchOutcomeBalances();
+    if (tradeType === "sell" && marketAddress && conditionId && Object.keys(outcomeTokenIds).length === 3) {
+      void fetchOutcomeBalances();
     } else {
-      // Clear balances when not in sell mode
       setOutcomeBalances({ home: 0, draw: 0, away: 0 });
     }
-    // Add `outcomeTokenIds` to the dependency array
-  }, [tradeType, walletClient, marketAddress, conditionId, outcomeTokenIds]);
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tradeType, marketAddress, conditionId, outcomeTokenIds]);
 
   useEffect(() => {
     if (isResolved) {
-      setExpanded(false); 
+      setExpanded(false);
     }
-  }, [isResolved, setExpanded]);
+  }, [isResolved]);
 
   useEffect(() => {
     if (isLoading) {
@@ -161,44 +200,15 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
   const publicProvider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
 
-  const getSigner = async () => {
-    if (!walletClient) {
-      console.log("No walletClient available");
-      return null;
-    }
-    let provider;
-    const anyClient = walletClient as any;
-    if (anyClient.provider) {
-      console.log("Using walletClient.provider for BrowserProvider");
-      provider = new ethers.BrowserProvider(anyClient.provider);
-    } else if (typeof window !== "undefined" && window.ethereum) {
-      console.log("Using window.ethereum for BrowserProvider");
-      provider = new ethers.BrowserProvider(window.ethereum);
-    } else {
-      console.log("Falling back to walletClient directly for BrowserProvider");
-      provider = new ethers.BrowserProvider(walletClient as any);
-    }
-    const signer = await provider.getSigner();
-    console.log("Signer obtained:", signer);
-    return signer;
-  };
-
-  // Binary search helper: inverts getNetCost to determine the share amount (scaled by SHARE_SCALE)
   const getNetCostForShares = async (shares: bigint): Promise<bigint> => {
-    if (!marketAddress || selectedBet === null)
-      throw new Error("Missing prerequisites for net cost calculation");
-    const provider = publicProvider;
-    const predictionMarket = new ethers.Contract(marketAddress, PredictionMarketABI.abi, provider);
+    if (!marketAddress || selectedBet === null) throw new Error("Missing prerequisites for net cost calculation");
+    const predictionMarket = new ethers.Contract(marketAddress, PredictionMarketABI.abi, publicProvider);
     const outcomeIndex = betMapping[selectedBet];
     const netCost: bigint = await predictionMarket.getNetCost(outcomeIndex, shares);
     return netCost;
   };
 
-  async function findSharesForCost(
-    targetCost: bigint,
-    tolerance: bigint = 1n,
-    maxIterations: number = 50
-  ): Promise<bigint> {
+  async function findSharesForCost(targetCost: bigint, tolerance: bigint = 1n, maxIterations: number = 50): Promise<bigint> {
     let initialGuess = BigInt(Math.round(numericBetAmount * 3)) * SHARE_SCALE;
     let lower = 0n;
     let upper = initialGuess;
@@ -227,7 +237,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
   useEffect(() => {
     setCalculatedSharesScaled(null);
-
     calcTokenRef.current++;
 
     if (tradeType !== "buy" || !debouncedBetAmount || debouncedBetAmount === "" || !marketAddress || selectedBet === null) {
@@ -247,81 +256,37 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       } catch (error) {
         console.error("Error calculating shares for cost:", error);
       } finally {
-        // Only clear calculation status if this is the latest call.
         if (currentToken === calcTokenRef.current) {
           setIsCalculating(false);
         }
       }
     };
 
-    calculateOutcomeShares();
+    void calculateOutcomeShares();
   }, [debouncedBetAmount, selectedBet, marketAddress, tradeType, numericBetAmount]);
 
-  
-  const sendTransaction = async (
-    contractAddress: string,
-    functionName: string,
-    args: any[],
-    signer: ethers.Signer,
-    options: { gasLimit?: ethers.BigNumberish } = {}
-  ): Promise<any> => {
+  const buyShares = async () => {
+    if (!marketAddress || !selectedBet || calculatedSharesScaled === null) return;
     try {
       setIsTxPending(true);
-      setIsSuccess(false);
-      const contract = new ethers.Contract(contractAddress, PredictionMarketABI.abi, signer);
-      const gasEstimate = await contract[functionName].estimateGas(...args);
-      
-      // Apply 20% buffer using bigint arithmetic
-      const gasLimit = (gasEstimate * BigInt(12)) / BigInt(10); // 20% buffer (1.2x)
-      
-      // Execute transaction with estimated gas
-      const tx = await contract[functionName](...args, {
-        gasLimit,
-        ...options,
-      });
-      setTxHash(tx.hash);
-      console.log(`Transaction sent: ${tx.hash}`);
-      const receipt = await tx.wait(1); // Single confirmation for speed
-      console.log("Transaction confirmed:", receipt);
-      if (receipt.status !== 1) {
-        throw new Error("Transaction failed");
+      const signer = await getPrivySigner();
+      const fromAddress = await getPrivyAddress();
+      if (!signer || !fromAddress) {
+        console.error("No Privy signer/address available for buyShares");
+        return;
       }
-      setIsSuccess(true);
-      refetch();
-      return receipt;
-    } catch (error) {
-      console.error("Transaction failed:", error);
-      throw error;
-    } finally {
-      setIsTxPending(false);
-    }
-  };
 
-  const buyShares = async () => {
-    if (!walletClient) {
-      console.error("No wallet connected. Opening connect modal.");
-      openConnectModal?.();
-      return;
-    }
-    if (!marketAddress || !selectedBet || calculatedSharesScaled === null) return;
-
-    try {
-      const provider = new ethers.BrowserProvider(walletClient as any);
-      const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
-
       const approvalAmount = BigInt(Math.round(parseFloat(betAmount) * 1_000_000));
       const deadline = Math.floor(Date.now() / 1000) + 60 * 60; // 1 hour
 
-      // EIP-712 Permit signature
-      const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
-      const nonce = await usdcContract.nonces(userAddress);
       const domain = {
         name: "Mock USDC",
         version: "1",
         chainId: 43113,
         verifyingContract: USDC_ADDRESS,
       };
+
       const types = {
         Permit: [
           { name: "owner", type: "address" },
@@ -331,99 +296,219 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
           { name: "deadline", type: "uint256" },
         ],
       };
+
+      const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
+      const nonceBN = await usdcContract.nonces(userAddress);
       const value = {
         owner: userAddress,
         spender: marketAddress,
         value: approvalAmount,
-        nonce: nonce,
-        deadline: deadline,
+        nonce: nonceBN.toString(),
+        deadline,
       };
-      const signature = await signer.signTypedData(domain, types, value);
-      const { v, r, s } = ethers.Signature.from(signature);
 
-      // Single transaction with permit
-      const receipt = await sendTransaction(
-        marketAddress,
-        "buySharesWithPermit",
-        [
-          betMapping[selectedBet],
-          calculatedSharesScaled,
-          approvalAmount,
-          deadline,
-          v,
-          r,
-          s,
-        ],
-        signer
+      const { signature } = await signTypedData(
+        {
+          domain,
+          types,
+          primaryType: "Permit",
+          message: value,
+        },
+        {
+          uiOptions: {
+            showWalletUIs: false,
+          },
+          address: fromAddress,
+        }
       );
 
+      const sig = ethers.Signature.from(signature);
+      const { v, r, s } = sig;
+
+      const iface = new ethers.Interface(PredictionMarketABI.abi);
+      const data = iface.encodeFunctionData("buySharesWithPermit", [
+        betMapping[selectedBet],
+        calculatedSharesScaled,
+        approvalAmount,
+        deadline,
+        v,
+        r,
+        s,
+      ]);
+
+      const txInput = {
+        to: marketAddress,
+        data,
+      };
+
+      const txResult = await sendTransaction(
+        txInput,
+        {
+          uiOptions: {
+            description: `Buying shares for ${betAmount} USDC`,
+            buttonText: "Confirm",
+            showWalletUIs: true,
+            transactionInfo: {
+              title: "Buy Shares",
+              action: "buySharesWithPermit",
+              contractInfo: {
+                name: "PredictionMarket",
+                url: "",
+                imgSize: "sm",
+                imgAltText: "Market",
+                imgUrl: "",
+              },
+            },
+          },
+          address: fromAddress,
+        }
+      );
+
+      const hash = (txResult as any).hash;
+      if (!hash) throw new Error("No transaction hash returned");
+
+      setTxHash(hash);
+      console.log("Transaction sent:", hash);
+
+      const provider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
+      const receipt = await provider.waitForTransaction(hash, 1, 60000);
+
       if (receipt && receipt.status === 1) {
+        setIsSuccess(true);
+        refetch();
         const displayShares = Number(calculatedSharesScaled) / Number(SHARE_SCALE);
         setModalData({ shares: displayShares, cost: parseFloat(betAmount) });
         setIsModalOpen(true);
+      } else {
+        throw new Error("Buy shares transaction failed");
       }
-    } catch (error) {
-      console.error("Buy shares failed:", error);
+    } catch (err) {
+      console.error("Buy shares failed:", err);
+    } finally {
+      setIsTxPending(false);
     }
   };
 
   const sellShares = async (): Promise<void> => {
-    if (!walletClient) {
-      console.error("No wallet connected. Opening connect modal.");
-      openConnectModal?.();
-      return;
-    }
-    if (!marketAddress || !isValidBet) return;
-
+    if (!marketAddress || !selectedBet || !isValidBet) return;
     try {
-      const provider = new ethers.BrowserProvider(walletClient as any);
-      const signer = await provider.getSigner();
-      const userAddress = await signer.getAddress();
-
-      // Check if approval is already set
-      const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
-      const isApproved = await conditionalTokensContract.isApprovedForAll(userAddress, marketAddress);
-
-      if (!isApproved) {
-        const approveTx = await conditionalTokensContract.setApprovalForAll(marketAddress, true);
-        await approveTx.wait();
-        console.log("Approval for Conditional Tokens set");
+      setIsTxPending(true);
+      const signer = await getPrivySigner();
+      const fromAddress = await getPrivyAddress();
+      if (!signer || !fromAddress) {
+        console.error("No Privy signer/address available for sellShares");
+        return;
       }
 
-      // Send sellShares transaction
-      const receipt = await sendTransaction(
-        marketAddress,
-        "sellShares",
-        [betMapping[selectedBet!], betAmountBigInt],
-        signer
+      const userAddress = await signer.getAddress();
+
+      const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
+      const isApproved = await conditionalTokensContract.isApprovedForAll(userAddress, marketAddress!);
+
+      if (!isApproved) {
+        const approveData = new ethers.Interface(ConditionalTokensABI.abi).encodeFunctionData("setApprovalForAll", [
+          marketAddress,
+          true,
+        ]);
+        await sendTransaction(
+          {
+            to: CONDITIONAL_TOKENS_ADDRESS,
+            data: approveData,
+          },
+          {
+            uiOptions: {
+              description: "Approve market to manage your conditional outcome tokens",
+              buttonText: "Approve",
+              showWalletUIs: true,
+              transactionInfo: {
+                title: "Approve Conditional Tokens",
+                action: "setApprovalForAll",
+                contractInfo: {
+                  name: "ConditionalTokens",
+                  url: "",
+                  imgSize: "sm",
+                  imgAltText: "ConditionalTokens",
+                  imgUrl: "",
+                },
+              },
+            },
+            address: fromAddress,
+          }
+        );
+      }
+
+      const iface = new ethers.Interface(PredictionMarketABI.abi);
+      const amountBigInt = BigInt(Math.round(numericBetAmount * 1_000_000)); // token amount
+      const data = iface.encodeFunctionData("sellShares", [betMapping[selectedBet], amountBigInt]);
+
+      const txResult = await sendTransaction(
+        {
+          to: marketAddress,
+          data,
+        },
+        {
+          uiOptions: {
+            description: `Selling ${betAmount} of outcome ${selectedBet}`,
+            buttonText: "Confirm",
+            showWalletUIs: true,
+            transactionInfo: {
+              title: "Sell Shares",
+              action: "sellShares",
+              contractInfo: {
+                name: "PredictionMarket",
+                url: "",
+                imgSize: "sm",
+                imgAltText: "Market",
+                imgUrl: "",
+              },
+            },
+          },
+          address: fromAddress!,
+        }
       );
 
+      const hash = (txResult as any).hash;
+      if (!hash) throw new Error("No transaction hash returned");
+
+      setTxHash(hash);
+      console.log("Sell transaction sent:", hash);
+
+      const provider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
+      const receipt = await provider.waitForTransaction(hash, 1, 60000);
+
       if (receipt && receipt.status === 1) {
+        setIsSuccess(true);
+        refetch();
         setModalData({ shares: numericBetAmount, cost: Number(netCost) / 1e6 });
         setIsModalOpen(true);
+      } else {
+        throw new Error("Sell shares transaction failed");
       }
     } catch (error) {
       console.error("Sell shares failed:", error);
+    } finally {
+      setIsTxPending(false);
     }
   };
-  
+
   const fetchOutcomeBalances = async () => {
-    if (!walletClient || !marketAddress || !conditionId || Object.keys(outcomeTokenIds).length < 3) return;
+    if (!marketAddress || !conditionId || Object.keys(outcomeTokenIds).length < 3) return;
     setIsBalanceLoading(true);
     try {
-      const provider = new ethers.BrowserProvider(walletClient as any);
-      const signer = await provider.getSigner();
+      const signer = await getPrivySigner();
+      if (!signer) {
+        setOutcomeBalances({ home: 0, draw: 0, away: 0 });
+        return;
+      }
       const userAddress = await signer.getAddress();
       const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
 
       const balances = { home: 0, draw: 0, away: 0 };
-      // Loop through each outcome to fetch its balance
       for (const outcome of ["home", "draw", "away"] as const) {
         const outcomeIndex = betMapping[outcome];
         const tokenId = outcomeTokenIds[outcomeIndex];
         if (tokenId) {
           const balance = await conditionalTokensContract.balanceOf(userAddress, tokenId);
-          // Store the numeric balance
           balances[outcome] = Number(balance) / 1e6;
         }
       }
@@ -435,10 +520,9 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       setIsBalanceLoading(false);
     }
   };
-  
+
   useEffect(() => {
     if (isSuccess) {
-      console.log("Transaction confirmed. Refetching market data...");
       refetch();
     }
   }, [isSuccess, refetch]);
@@ -455,7 +539,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     if (isDeploying || marketAddress || deployedMarket) return;
     setIsDeploying(true);
     try {
-      console.log(`Deploying market for match ${match.matchId}...`);
       const response = await fetch(`${SERVER_URL}/deploy`, {
         method: "POST",
         body: JSON.stringify({ matchId: match.matchId, matchTimestamp: match.matchTimestamp }),
@@ -473,7 +556,6 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
         console.error("Deployment failed:", data);
         throw new Error(data?.message || "Deployment failed");
       }
-      console.log("Market Deployed:", data.newMarketAddress);
       setDeployedMarket(data.newMarketAddress);
       refetch();
       setToastMessage("Market Deployment Success");
@@ -582,7 +664,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                 flex-shrink-0 flex items-center justify-center sm:space-x-2 xs:space-x-1.5 xxs:space-x-1 transition-all rounded-full focus:outline-none focus:ring-0 ${
                   isButtonDisabled ? "opacity-50 cursor-not-allowed" : isSelected ? "bg-hovergreyblue" : "bg-greyblue hover:bg-hovergreyblue"
                 }`}
-              onClick={() => !isButtonDisabled && handleSelectBet(outcome)} 
+              onClick={() => !isButtonDisabled && handleSelectBet(outcome)}
             >
               {outcome === "draw" ? (
                 <TbCircleLetterDFilled className="text-gray-400 text-[35px] md:text-[31px] sm:text-[29px] xs:text-[27px] xxs:text-[23px]" />
@@ -694,25 +776,23 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
                         <Spinner />
                       </span>
                     ) : (
-                      <>
-                        <span className="inline-flex items-center space-x-1 whitespace-nowrap">
-                          <span>
-                            You will receive: {(Number(calculatedSharesScaled) / Number(SHARE_SCALE)).toFixed(2)}{" "}
-                          </span>
-                          <span
-                            className={
-                              selectedBet === "home"
-                                ? "text-blue-400 font-semibold"
-                                : selectedBet === "draw"
-                                ? "text-gray-400 font-semibold"
-                                : "text-redmagenta font-semibold"
-                            }
-                          >
-                            ${selectedBet.toUpperCase()}
-                          </span>{" "}
-                          <span className="text-white">Tokens</span>
+                      <span className="inline-flex items-center space-x-1 whitespace-nowrap">
+                        <span>
+                          You will receive: {(Number(calculatedSharesScaled) / Number(SHARE_SCALE)).toFixed(2)}{" "}
                         </span>
-                      </>
+                        <span
+                          className={
+                            selectedBet === "home"
+                              ? "text-blue-400 font-semibold"
+                              : selectedBet === "draw"
+                              ? "text-gray-400 font-semibold"
+                              : "text-redmagenta font-semibold"
+                          }
+                        >
+                          ${selectedBet.toUpperCase()}
+                        </span>{" "}
+                        <span className="text-white">Tokens</span>
+                      </span>
                     )}
                   </p>
                 )
@@ -767,15 +847,12 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
             <div>
               <span className="text-blue-500 font-semibold">{toastMessage}</span>
               {toastAddress && (
-                <span className="block text-xs mt-1 font-medium">
-                  {toastAddress}
-                </span>
+                <span className="block text-xs mt-1 font-medium">{toastAddress}</span>
               )}
             </div>
           </div>
         </div>
       )}
-
       <Dialog open={isModalOpen} onClose={closeModal} className="fixed inset-0 flex items-center justify-center z-50">
         <div className="fixed inset-0 bg-black opacity-50"></div>
         <div className="bg-greyblue p-6 rounded-lg shadow-lg w-80 max-w-md sm:max-w-xs mx-auto text-center relative z-50">

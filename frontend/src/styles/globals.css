@@ -27,6 +27,44 @@ html, body {
   --b3: rgb(0, 0, 30) !important;
 }
 
+.PillButton-sc-3e1103b4-0 {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  min-width: 0 !important;
+  box-shadow: none !important;
+}
+
+.PillButton-sc-3e1103b4-0 > * {
+  all: unset;
+}
+
+.MenuContainer-sc-29acee9f-0 {
+  z-index: 11000 !important;
+}
+
+.MenuContainer-sc-29acee9f-0 *,
+.MenuHeader-sc-29acee9f-3,
+.Screen-sc-588aefc2-0,
+.MenuContent-sc-29acee9f-5 {
+  z-index: 12000 !important;
+}
+
+[data-floating-ui-focusable],
+[data-floating-ui-portal] .MenuContainer-sc-29acee9f-0 {
+  z-index: 13000 !important;
+}
+
+.MenuContainer-sc-29acee9f-0,
+.MenuContainer-sc-29acee9f-0 * {
+  z-index: 13000 !important;
+}
+
+.MenuCloseContainer-sc-29acee9f-8.egbDVO {
+  display: none !important;
+}
+
+
 html, body {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;

@@ -1,66 +1,68 @@
-import "@rainbow-me/rainbowkit/styles.css";
-import {
-  RainbowKitProvider,
-  darkTheme,
-  connectorsForWallets,
-} from "@rainbow-me/rainbowkit";
-import {
-  metaMaskWallet,
-  injectedWallet,
-  coreWallet,
-  rabbyWallet,
-  trustWallet,
-  walletConnectWallet,
-} from "@rainbow-me/rainbowkit/wallets";
-import { toPrivyWallet } from '@privy-io/cross-app-connect/rainbow-kit';
-import { createConfig, http, WagmiProvider } from "wagmi";
-import { avalancheFuji } from "wagmi/chains";
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
-import { ReactNode } from "react";
+import React, { ReactNode } from "react";
+import { PrivyProvider } from "@privy-io/react-auth";
+import { defineChain } from "viem";
 
-const connectors = connectorsForWallets(
-  [
-    {
-      groupName: "Recommended",
-      wallets: [
-        //metaMaskWallet,
-        toPrivyWallet({
-          id: 'cm9hex1d0018sjs0m6lw158w8',
-          name: 'Privy (Google/Email)',
-          iconUrl: '/images/privy.jpg'
-        }),
-        //coreWallet,
-        //rabbyWallet,
-        //trustWallet,
-        //walletConnectWallet,
-        //injectedWallet,
-      ],
+const avalancheFuji = defineChain({
+  id: 43113,
+  name: "Avalanche Fuji",
+  network: "avalanche-fuji",
+  nativeCurrency: {
+    decimals: 18,
+    name: "Avalanche",
+    symbol: "AVAX",
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://api.avax-test.network/ext/bc/C/rpc"],
+      webSocket: ["wss://api.avax-test.network/ext/bc/C/ws"],
     },
-  ],
-  {
-    appName: "LiveDuel Demo 2",
-    projectId: "e87d4bfd159146fc8d6fb15484d62a2c",
-  }
-);
-
-const config = createConfig({
-  chains: [avalancheFuji],
-  connectors,
-  transports: {
-    [avalancheFuji.id]: http('https://api.avax-test.network/ext/bc/C/rpc'),
+  },
+  blockExplorers: {
+    default: {
+      name: "SnowTrace",
+      url: "https://testnet.snowtrace.io",
+    },
   },
 });
 
-const queryClient = new QueryClient();
-
-export default function WalletProvider({ children }: { children: ReactNode }) {
-  return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider chains={[avalancheFuji]} theme={darkTheme()}>
-          {children}
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
-  );
-}
+export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) => (
+  <PrivyProvider
+    appId="cm9hex1d0018sjs0m6lw158w8"
+    config={{
+      defaultChain: avalancheFuji,
+      supportedChains: [avalancheFuji],
+      appearance: {
+        theme: '#1E293C',
+        showWalletLoginFirst: false,
+        logo: "/Liveduel-Logo.png",
+        walletChainType: "ethereum-only",  
+        walletList: [
+          "detected_ethereum_wallets",
+          "metamask",
+          "rabby_wallet",
+          "wallet_connect",
+          "coinbase_wallet"
+        ],
+      },
+      loginMethods: ["email", "google", "wallet"],
+      fundingMethodConfig: {
+        moonpay: {
+          useSandbox: true,
+        },
+      },
+      embeddedWallets: {
+        requireUserPasswordOnCreate: false,
+        showWalletUIs: true,
+        ethereum: {
+          createOnLogin: "users-without-wallets",
+        },
+      },
+      mfa: {
+        noPromptOnMfaRequired: false,
+      },
+    }}
+  >
+    {children}
+  </PrivyProvider>
+);
+export default WalletProvider;
