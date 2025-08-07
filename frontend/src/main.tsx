@@ -20,18 +20,18 @@ const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
-    <QueryClientProvider client={queryClient}>
-      <WalletProvider> 
-        <AuthTransitionProvider>
+    <AuthTransitionProvider>
+      <QueryClientProvider client={queryClient}>
+        <WalletProvider> 
           <FilterProvider>
             <MatchProvider>
-            <TournamentProvider>
-              <App />
-            </TournamentProvider>
+              <TournamentProvider>
+                <App />
+              </TournamentProvider>
             </MatchProvider>
           </FilterProvider>
-        </AuthTransitionProvider>
-      </WalletProvider>
-    </QueryClientProvider>
+        </WalletProvider>
+      </QueryClientProvider>
+    </AuthTransitionProvider>
   </BrowserRouter>
 );
