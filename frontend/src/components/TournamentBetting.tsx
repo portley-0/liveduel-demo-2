@@ -30,8 +30,8 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 const DEFAULT_PROB = 0.25;
-const USDC_ADDRESS = "0x4b4f41792c7CCa808C14551f887a1d3215F559dF";
-const CONDITIONAL_TOKENS_ADDRESS = "0x8944a02e78e880B289f42004eb4c32B0C25e67C9";
+const USDC_ADDRESS = "0xD6B448d652077A4fbf32672272eE7bBbc559fDfb";
+const CONDITIONAL_TOKENS_ADDRESS = "0xCF27A9c88633DeDAA711b9758BCc6A7A62d874d1";
 const USDC_ABI = MockUSDCABI.abi;
 const CONDITIONAL_TOKENS_ABI = ConditionalTokensABI.abi;
 const AVALANCHE_FUJI_RPC = 'https://api.avax-test.network/ext/bc/C/rpc';

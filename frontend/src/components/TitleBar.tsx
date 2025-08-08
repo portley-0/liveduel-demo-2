@@ -21,7 +21,7 @@ const mUSDCABI = [
   },
 ];
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
-const mUSDCAddress = "0x4b4f41792c7CCa808C14551f887a1d3215F559dF";
+const mUSDCAddress = "0xD6B448d652077A4fbf32672272eE7bBbc559fDfb";
 const SUBGRAPH_URL = import.meta.env.VITE_SUBGRAPH_URL;
 
 const TitleBar = () => {
