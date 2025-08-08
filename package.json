@@ -1,11 +1,39 @@
 {
-    "name": "liveduel-demo-2",
-    "private": true,
-    "workspaces": ["frontend", "backend", "contracts", "subgraph", "privy"],
-    "pnpm": {
-      "overrides": {
-        "chai": "4.3.7"
-      }
+  "name": "liveduel-demo-2",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "contracts",
+    "subgraph",
+    "privy"
+  ],
+  "pnpm": {
+    "overrides": {
+      "chai": "4.3.7"
+    },
+    "ignoredBuiltDependencies": [
+      "@arbitrum/nitro-contracts",
+      "@trufflesuite/bigint-buffer",
+      "bcrypto",
+      "bufferutil",
+      "core-js-pure",
+      "eccrypto",
+      "esbuild",
+      "keccak",
+      "secp256k1",
+      "unrs-resolver",
+      "utf-8-validate"
+    ],
+    "allowScripts": {
+      "bcrypto": "true",
+      "secp256k1": "true",
+      "bcrypt": "true",
+      "node-gyp": "true"
+    },
+    "patchedDependencies": {
+      "bcrypto@5.5.2": "patches/bcrypto@5.5.2.patch"
     }
-  }
-  
+  },
+  "scripts": {}
+}
