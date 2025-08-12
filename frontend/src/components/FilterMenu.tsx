@@ -17,7 +17,7 @@ const LEAGUES = [
   //{ id: 2, name: "UEFA Champions League" },
   //{ id: 3, name: "UEFA Europa League" },
   //{ id: 848, name: "UEFA Conference League" },
-  //{ id: 39, name: "Premier League" },
+  { id: 39, name: "Premier League" },
   //{ id: 140, name: "La Liga" },
   //{ id: 78, name: "Bundesliga" },
   //{ id: 61, name: "Ligue 1" },
