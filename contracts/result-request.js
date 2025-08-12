@@ -19,22 +19,28 @@ const baseUrl = "https://v3.football.api-sports.io";
 const endpoint = "/fixtures";
 
 const fetchGameData = async (gameId) => {
-  const url = `${baseUrl}${endpoint}?id=${gameId}${salt ? `&_=${salt}` : ""}`;
+  const url = `${baseUrl}${endpoint}?id=${gameId}`;
   const response = await Functions.makeHttpRequest({
     url,
     headers: {
       "x-apisports-key": secrets.apiKey,
-      // These may be ignored by the API/CDN, but don't hurt:
-      "Cache-Control": "no-cache",
+      "Cache-Control": "no-store",
       "Pragma": "no-cache",
+      ...(salt ? { "X-Request-Nonce": String(salt) } : {}),
     },
   });
 
+  if (response.error) {
+    throw new Error(`HTTP error: ${JSON.stringify(response.error)}`);
+  }
   if (response.status !== 200) {
     throw new Error(`HTTP Request failed with status ${response.status}`);
   }
   if (response.data.results === 0) {
-    throw new Error(`Game ${gameId} not found`);
+    throw new Error(
+      `Game ${gameId} not found; details=` +
+      JSON.stringify({ errors: response.data.errors, parameters: response.data.parameters })
+    );
   }
   return response.data.response[0];
 };
@@ -49,7 +55,8 @@ const getGameResult = async (gameId) => {
 
   const homeGoals = data.goals.home;
   const awayGoals = data.goals.away;
-  const outcome = homeGoals === awayGoals ? Result.None : (homeGoals > awayGoals ? Result.Home : Result.Away);
+  const outcome =
+    homeGoals === awayGoals ? Result.None : (homeGoals > awayGoals ? Result.Home : Result.Away);
 
   const flat = [outcome, data.teams.home.id, data.teams.away.id];
 
