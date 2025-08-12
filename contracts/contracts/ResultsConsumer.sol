@@ -14,6 +14,9 @@ contract ResultsConsumer is FunctionsClient, ConfirmedOwner {
     bytes   private secrets;
     uint64  private subscriptionId;
 
+    // Minimal: unique salt counter
+    uint256 public requestNonce;
+
     mapping(bytes32 => uint256) public pendingRequests;
 
     struct MatchResult {
@@ -51,8 +54,10 @@ contract ResultsConsumer is FunctionsClient, ConfirmedOwner {
     }
 
     function requestMatchResult(uint256 matchId) external {
-        string [] memory args = new string[](1);
+        string[] memory args = new string[](2);
         args[0] = Strings.toString(matchId);
+        unchecked { requestNonce++; }
+        args[1] = Strings.toString(requestNonce); // cheap unique salt
 
         bytes32 requestId = _executeRequest(args);
         pendingRequests[requestId] = matchId;
@@ -92,7 +97,7 @@ contract ResultsConsumer is FunctionsClient, ConfirmedOwner {
         uint32 rawAwayId;
 
         assembly ("memory-safe") {
-            let dataPtr := add(response, 32) 
+            let dataPtr := add(response, 32)
 
             // Load outcome (first 4 bytes)
             rawOutcome := shr(224, mload(dataPtr))
@@ -116,7 +121,7 @@ contract ResultsConsumer is FunctionsClient, ConfirmedOwner {
         matchResolved[matchId] = true;
 
         emit ResultReceived(matchId, outcome, homeId, awayId);
-    } 
+    }
 
     /// @return outcome 0=home,1=draw,2=away
     /// @return homeId  API’s home team ID
