@@ -65,9 +65,9 @@ async function deploy() {
         }
     }
 
-    //setEnvVar("RESULTS_CONSUMER_ADDRESS", resultsConsumer.address);
+    setEnvVar("RESULTS_CONSUMER_ADDRESS", resultsConsumer.address);
 
-    //fs.writeFileSync(envPath, envContent, "utf8");
+    fs.writeFileSync(envPath, envContent, "utf8");
     console.log("\nDeployment addresses added to .env!");
 }
 
