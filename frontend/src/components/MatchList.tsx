@@ -168,7 +168,7 @@ const MatchList: React.FC = () => {
   // Exclude finalized matches
   filteredMatches = filteredMatches.filter(
     (match) =>
-      match.statusShort && !["FT", "AET", "PEN"].includes(match.statusShort)
+      match.statusShort && !["FT", "AET", "PEN"].includes(match.statusShort) && !match.resolvedAt
   );
   filteredMatches = filteredMatches.filter((match) => match.marketAvailable === true);
   // Selected only filter
