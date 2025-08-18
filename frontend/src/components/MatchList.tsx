@@ -168,9 +168,11 @@ const MatchList: React.FC = () => {
   // Exclude finalized matches
   filteredMatches = filteredMatches.filter(
     (match) =>
-      match.statusShort && !["FT", "AET", "PEN"].includes(match.statusShort) && !match.resolvedAt
+      match.statusShort && !["FT", "AET", "PEN"].includes(match.statusShort)
   );
   filteredMatches = filteredMatches.filter((match) => match.marketAvailable === true);
+  filteredMatches = filteredMatches.filter(m => !(m.resolvedAt && +m.resolvedAt > 0));
+
   // Selected only filter
   if (selectedOnly) {
     const leagueIds = defaultSelections
