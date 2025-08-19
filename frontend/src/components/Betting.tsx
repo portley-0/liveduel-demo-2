@@ -3,13 +3,15 @@ import { Dialog } from "@headlessui/react";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { MatchData } from "@/types/MatchData.ts";
 import { useMarketFactory } from "@/hooks/useMarketFactory.ts";
-import { useNetCost } from "@/hooks/useNetCost.ts";
+import { useNetCostLocal } from "@/hooks/useNetCostLocal.ts";
+import { solveBuySharesForCostMicro } from "@/lib/lmsr-local.ts";
 import { BsArrowDownUp } from "react-icons/bs";
 import { PiCaretUpDownBold } from "react-icons/pi";
 import { GoArrowUpRight, GoArrowDownRight } from "react-icons/go";
 import { TbCircleLetterDFilled } from "react-icons/tb";
 import PredictionMarketABI from "@/abis/PredictionMarket.json" with { type: "json" };
 import ConditionalTokensABI from "@/abis/ConditionalTokens.json" with { type: "json" };
+import LMSRMarketMakerABI from "@/abis/LMSRMarketMaker.json" with { type: "json" };
 import MarketFactoryABI from "@/abis/MarketFactory.json" with { type: "json" };
 import MockUSDCABI from "@/abis/MockUSDC.json" with { type: "json" };
 import { ethers } from "ethers";
@@ -66,9 +68,11 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [outcomeBalances, setOutcomeBalances] = useState<{ [key in "home" | "draw" | "away"]: number }>({ home: 0, draw: 0, away: 0 });
   const [isBalanceLoading, setIsBalanceLoading] = useState(false);
   const [conditionId, setConditionId] = useState<string | null>(null);
-  const [outcomeTokenIds, setOutcomeTokenIds] = useState<{ [key: number]: string }>({});
+  const [outcomeTokenIds, setOutcomeTokenIds] = useState<{ [key: number]: bigint }>({});
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastAddress, setToastAddress] = useState<string | null>(null);
+  const [marketState, setMarketState] = useState<{ qMicro: [bigint, bigint, bigint] | null; bMicro: bigint | null }>({qMicro: null, bMicro: null,});
+
   
   const [calculatedSharesScaled, setCalculatedSharesScaled] = useState<bigint | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -80,16 +84,14 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const closeModal = () => setIsModalOpen(false);
 
   const fetchConditionId = async (): Promise<void> => {
-    if (!walletClient || !match.matchId || !marketAddress) return;
+    if ( !match.matchId || !marketAddress) return;
     try {
-      const provider = new ethers.BrowserProvider(walletClient as any);
-      const signer = await provider.getSigner();
-      const marketFactory = new ethers.Contract(MARKET_FACTORY_ADDRESS, MARKET_FACTORY_ABI, signer);
+      const marketFactory = new ethers.Contract(MARKET_FACTORY_ADDRESS, MARKET_FACTORY_ABI, publicProvider);
       const fetchedId = await marketFactory.matchConditionIds(match.matchId);
       if (fetchedId !== conditionId) {
         setConditionId(fetchedId);
-        const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
-        const tokens: { [key: number]: string } = {};
+        const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, publicProvider);
+        const tokens: { [key: number]: bigint } = {};
         for (let i = 0; i < 3; i++) {
           const indexSet = 1 << i;
           const collectionId = await conditionalTokensContract.getCollectionId(ethers.ZeroHash, fetchedId, indexSet);
@@ -105,7 +107,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
 
   useEffect(() => {
     fetchConditionId();
-  }, [walletClient, match.matchId, marketAddress]);
+  }, [match.matchId, marketAddress]);
 
   useEffect(() => {
     // Trigger the fetch when the user enters sell mode AND all dependencies are ready
@@ -151,15 +153,53 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const numericBetAmount = parseFloat(betAmount || "0");
   const betAmountBigInt = isValidBet ? BigInt(Math.round(numericBetAmount * 1_000_000)) : null;
 
-  const { data: netCost, isLoading: isFetchingNetCost } = useNetCost(
-    marketAddress,
-    isValidBet ? betMapping[selectedBet!] : null,
-    betAmountBigInt,
+  const publicProvider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
+
+  useEffect(() => {
+    if (marketStatus !== "ready" || !marketAddress || !conditionId) {
+      setMarketState({ qMicro: null, bMicro: null });
+      return;
+    }
+    // need all three outcome token IDs
+    if (!outcomeTokenIds[0] || !outcomeTokenIds[1] || !outcomeTokenIds[2]) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        // LMSR address & funding b
+        const pm = new ethers.Contract(marketAddress, PredictionMarketABI.abi, publicProvider);
+        const lmsrAddr: string = await pm.marketMaker();
+        const lmsr = new ethers.Contract(lmsrAddr, LMSRMarketMakerABI.abi, publicProvider);
+        const b: bigint = await lmsr.funding();
+
+        // AMM balances q for each positionId
+        const ct = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, publicProvider);
+        const [q0, q1, q2] = await Promise.all([
+          ct.balanceOf(lmsrAddr, outcomeTokenIds[0]),
+          ct.balanceOf(lmsrAddr, outcomeTokenIds[1]),
+          ct.balanceOf(lmsrAddr, outcomeTokenIds[2]),
+        ]);
+
+        if (!cancelled) setMarketState({ qMicro: [q0, q1, q2], bMicro: b });
+      } catch (e) {
+        console.error("fetch market state failed:", e);
+        if (!cancelled) setMarketState({ qMicro: null, bMicro: null });
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [marketStatus, marketAddress, conditionId, outcomeTokenIds, publicProvider]);
+
+
+  const { data: netCost, isLoading: isFetchingNetCost } = useNetCostLocal(
+    marketState,                         // { qMicro, bMicro } you loaded once
+    marketAddress as any,
+    isValidBet ? (betMapping[selectedBet!] as 0|1|2) : null,
+    // BUY: amount = shares? No — your SELL section inputs token amount; BUY uses solver below
+    tradeType === "sell" && betAmountBigInt ? betAmountBigInt : null,
     tradeType,
     marketStatus
   );
-
-  const publicProvider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
 
   const getSigner = async () => {
     if (!walletClient) {
@@ -183,79 +223,59 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
     return signer;
   };
 
-  // Binary search helper: inverts getNetCost to determine the share amount (scaled by SHARE_SCALE)
-  const getNetCostForShares = async (shares: bigint): Promise<bigint> => {
-    if (!marketAddress || selectedBet === null)
-      throw new Error("Missing prerequisites for net cost calculation");
-    const provider = publicProvider;
-    const predictionMarket = new ethers.Contract(marketAddress, PredictionMarketABI.abi, provider);
-    const outcomeIndex = betMapping[selectedBet];
-    const netCost: bigint = await predictionMarket.getNetCost(outcomeIndex, shares);
-    return netCost;
-  };
-
-  async function findSharesForCost(
-    targetCost: bigint,
-    tolerance: bigint = 1n,
-    maxIterations: number = 50
-  ): Promise<bigint> {
-    let initialGuess = BigInt(Math.round(numericBetAmount * 3)) * SHARE_SCALE;
-    let lower = 0n;
-    let upper = initialGuess;
-    while ((await getNetCostForShares(upper)) < targetCost) {
-      lower = upper;
-      upper *= 2n;
-    }
-    let bestGuess = lower;
-    for (let i = 0; i < maxIterations; i++) {
-      const mid = (lower + upper) / 2n;
-      const cost = await getNetCostForShares(mid);
-      if (cost >= targetCost - tolerance && cost <= targetCost + tolerance) {
-        return mid;
-      }
-      if (cost > targetCost) {
-        upper = mid;
-      } else {
-        lower = mid;
-      }
-      bestGuess = mid;
-    }
-    return bestGuess;
-  }
-
   const debouncedBetAmount = useDebounce(betAmount, 300);
+
 
   useEffect(() => {
     setCalculatedSharesScaled(null);
 
-    calcTokenRef.current++;
-
-    if (tradeType !== "buy" || !debouncedBetAmount || debouncedBetAmount === "" || !marketAddress || selectedBet === null) {
+    if (
+      tradeType !== "buy" ||
+      marketStatus !== "ready" ||
+      !debouncedBetAmount ||
+      debouncedBetAmount === "" ||
+      selectedBet === null ||
+      !marketState.qMicro ||
+      !marketState.bMicro
+    ) {
       return;
     }
-    const currentToken = calcTokenRef.current;
 
-    const calculateOutcomeShares = async () => {
-      try {
-        setIsCalculating(true);
-        const userTotalCost = BigInt(Math.round(parseFloat(debouncedBetAmount) * 1_000_000));
-        const targetNetCost = (userTotalCost * 100n) / 104n;
-        const shares = await findSharesForCost(targetNetCost);
-        if (currentToken === calcTokenRef.current) {
-          setCalculatedSharesScaled(shares);
-        }
-      } catch (error) {
-        console.error("Error calculating shares for cost:", error);
-      } finally {
-        // Only clear calculation status if this is the latest call.
-        if (currentToken === calcTokenRef.current) {
-          setIsCalculating(false);
-        }
+    const currentToken = ++calcTokenRef.current;
+    setIsCalculating(true);
+
+    try {
+      const userTotalCostMicro = BigInt(Math.round(parseFloat(debouncedBetAmount) * 1_000_000));
+      // remove 4% fee (your contract side fee): target is net-to-AMM
+      const targetNetCostMicro = (userTotalCostMicro * 100n) / 104n;
+      const k = betMapping[selectedBet] as 0 | 1 | 2;
+
+      let sharesMicro = solveBuySharesForCostMicro(
+        marketState.qMicro,
+        marketState.bMicro,
+        k,
+        targetNetCostMicro
+      );
+
+      // optional tiny shave to avoid rounding reverts:
+      // sharesMicro = (sharesMicro * 999n) / 1000n;
+
+      if (currentToken === calcTokenRef.current) {
+        setCalculatedSharesScaled(sharesMicro); // still 1e6 scale
       }
-    };
-
-    calculateOutcomeShares();
-  }, [debouncedBetAmount, selectedBet, marketAddress, tradeType, numericBetAmount]);
+    } catch (e) {
+      console.error("LMSR solve error:", e);
+    } finally {
+      if (currentToken === calcTokenRef.current) setIsCalculating(false);
+    }
+  }, [
+    tradeType,
+    marketStatus,
+    debouncedBetAmount,
+    selectedBet,
+    marketState.qMicro,
+    marketState.bMicro,
+  ]);
 
   
   const sendTransaction = async (
@@ -269,13 +289,13 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       setIsTxPending(true);
       setIsSuccess(false);
       const contract = new ethers.Contract(contractAddress, PredictionMarketABI.abi, signer);
-      const gasEstimate = await contract[functionName].estimateGas(...args);
+      const gasEstimate = await (contract.estimateGas as Record<string, any>)[functionName](...args);
       
       // Apply 20% buffer using bigint arithmetic
       const gasLimit = (gasEstimate * BigInt(12)) / BigInt(10); // 20% buffer (1.2x)
       
       // Execute transaction with estimated gas
-      const tx = await contract[functionName](...args, {
+      const tx = await (contract as Record<string, any>)[functionName](...args, {
         gasLimit,
         ...options,
       });
