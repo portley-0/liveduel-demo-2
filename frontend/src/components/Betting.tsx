@@ -15,7 +15,8 @@ import LMSRMarketMakerABI from "@/abis/LMSRMarketMaker.json" with { type: "json"
 import MarketFactoryABI from "@/abis/MarketFactory.json" with { type: "json" };
 import MockUSDCABI from "@/abis/MockUSDC.json" with { type: "json" };
 import { ethers } from "ethers";
-import { useWalletClient } from "wagmi";
+import { useWalletClient, usePublicClient } from "wagmi";
+import type { Hex } from "viem";
 import { Spinner } from './Spinner.tsx';
 
 declare global {
@@ -58,6 +59,7 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   const [isTxPending, setIsTxPending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
   const { openConnectModal } = useConnectModal();
   const [refreshKey, setRefreshKey] = useState(0);
   const [homePrice, setHomePrice] = useState<number>(DEFAULT_PROB);
@@ -278,154 +280,155 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
   ]);
 
   
-  const sendTransaction = async (
-    contractAddress: string,
+  const sendContractTx = async (
+    address: `0x${string}`,
+    abi: any,
     functionName: string,
     args: any[],
-    signer: ethers.Signer,
-    options: { gasLimit?: ethers.BigNumberish } = {}
-  ): Promise<any> => {
-    try {
-      setIsTxPending(true);
-      setIsSuccess(false);
-      const contract = new ethers.Contract(contractAddress, PredictionMarketABI.abi, signer);
-      const gasEstimate = await (contract.estimateGas as Record<string, any>)[functionName](...args);
-      
-      // Apply 20% buffer using bigint arithmetic
-      const gasLimit = (gasEstimate * BigInt(12)) / BigInt(10); // 20% buffer (1.2x)
-      
-      // Execute transaction with estimated gas
-      const tx = await (contract as Record<string, any>)[functionName](...args, {
-        gasLimit,
-        ...options,
-      });
-      setTxHash(tx.hash);
-      console.log(`Transaction sent: ${tx.hash}`);
-      const receipt = await tx.wait(1); // Single confirmation for speed
-      console.log("Transaction confirmed:", receipt);
-      if (receipt.status !== 1) {
-        throw new Error("Transaction failed");
-      }
-      setIsSuccess(true);
-      refetch();
-      return receipt;
-    } catch (error) {
-      console.error("Transaction failed:", error);
-      throw error;
-    } finally {
-      setIsTxPending(false);
+  ) => {
+    if (!walletClient || !publicClient) {
+      openConnectModal?.();
+      throw new Error("No wallet/public client");
     }
+    const account = walletClient.account!.address as `0x${string}`;
+
+    // simulate to get gas & calldata
+    const { request } = await publicClient.simulateContract({
+      account,
+      address,
+      abi,
+      functionName,
+      args,
+    });
+
+    // gas buffer (+20%)
+    const gas = request.gas ? (request.gas * 12n) / 10n : undefined;
+
+    // send via the wagmi/viem wallet client (NOT ethers)
+    const hash = await walletClient.writeContract({ ...request, gas });
+    setTxHash(hash);
+
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    if (receipt.status !== "success") throw new Error("Transaction failed");
+    setIsSuccess(true);
+    refetch();
+    return receipt;
   };
 
-  const buyShares = async () => {
-    if (!walletClient) {
-      console.error("No wallet connected. Opening connect modal.");
-      openConnectModal?.();
-      return;
-    }
-    if (!marketAddress || !selectedBet || calculatedSharesScaled === null) return;
+
+  const buyShares = async (): Promise<void> => {
+    if (!walletClient || !publicClient) { openConnectModal?.(); return; }
+    if (!marketAddress || !selectedBet || calculatedSharesScaled === null || !betAmount) return;
 
     try {
-      const provider = new ethers.BrowserProvider(walletClient as any);
-      const signer = await provider.getSigner();
-      const userAddress = await signer.getAddress();
-
+      const account = walletClient.account!.address as `0x${string}`;
       const approvalAmount = BigInt(Math.round(parseFloat(betAmount) * 1_000_000));
-      const deadline = Math.floor(Date.now() / 1000) + 60 * 60; // 1 hour
+      const k = betMapping[selectedBet] as 0 | 1 | 2;
 
-      // EIP-712 Permit signature
-      const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
-      const nonce = await usdcContract.nonces(userAddress);
+      // Read nonce (bigint)
+      const nonce = (await publicClient.readContract({
+        address: USDC_ADDRESS as `0x${string}`,
+        abi: USDC_ABI,
+        functionName: "nonces",
+        args: [account],
+      })) as bigint;
+
+      // EIP-712 domain/types/message (uint256 fields as bigint)
+      const deadline = BigInt(Math.floor(Date.now() / 1000)) + 3600n; // +1h
+
       const domain = {
         name: "Mock USDC",
         version: "1",
-        chainId: 43113,
-        verifyingContract: USDC_ADDRESS,
-      };
+        chainId: walletClient.chain!.id,
+        verifyingContract: USDC_ADDRESS as `0x${string}`,
+      } as const;
+
       const types = {
         Permit: [
-          { name: "owner", type: "address" },
-          { name: "spender", type: "address" },
-          { name: "value", type: "uint256" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
+          { name: "owner",    type: "address"  },
+          { name: "spender",  type: "address"  },
+          { name: "value",    type: "uint256"  },
+          { name: "nonce",    type: "uint256"  },
+          { name: "deadline", type: "uint256"  },
         ],
-      };
-      const value = {
-        owner: userAddress,
-        spender: marketAddress,
-        value: approvalAmount,
-        nonce: nonce,
-        deadline: deadline,
-      };
-      const signature = await signer.signTypedData(domain, types, value);
-      const { v, r, s } = ethers.Signature.from(signature);
+      } as const;
 
-      // Single transaction with permit
-      const receipt = await sendTransaction(
-        marketAddress,
+      const message = {
+        owner: account,
+        spender: marketAddress as `0x${string}`,
+        value: approvalAmount,
+        nonce,
+        deadline,
+      } as const;
+
+      // Sign typed data with viem wallet client
+      const sigHex = await walletClient.signTypedData({
+        account,
+        domain,
+        types,
+        primaryType: "Permit",
+        message,
+      });
+
+      // Split signature (ethers v6)
+      const { v, r, s } = ethers.Signature.from(sigHex);
+
+      // Single-call buy with permit via viem
+      const receipt = await sendContractTx(
+        marketAddress as `0x${string}`,
+        PredictionMarketABI.abi,
         "buySharesWithPermit",
-        [
-          betMapping[selectedBet],
-          calculatedSharesScaled,
-          approvalAmount,
-          deadline,
-          v,
-          r,
-          s,
-        ],
-        signer
+        [k, calculatedSharesScaled, approvalAmount, deadline, v, r as `0x${string}`, s as `0x${string}`],
       );
 
-      if (receipt && receipt.status === 1) {
+      if (receipt) {
         const displayShares = Number(calculatedSharesScaled) / Number(SHARE_SCALE);
         setModalData({ shares: displayShares, cost: parseFloat(betAmount) });
         setIsModalOpen(true);
       }
-    } catch (error) {
-      console.error("Buy shares failed:", error);
+    } catch (err) {
+      console.error("Buy shares failed:", err);
     }
   };
 
-  const sellShares = async (): Promise<void> => {
-    if (!walletClient) {
-      console.error("No wallet connected. Opening connect modal.");
-      openConnectModal?.();
-      return;
-    }
+  const sellShares = async () => {
+    if (!walletClient || !publicClient) { openConnectModal?.(); return; }
     if (!marketAddress || !isValidBet) return;
 
-    try {
-      const provider = new ethers.BrowserProvider(walletClient as any);
-      const signer = await provider.getSigner();
-      const userAddress = await signer.getAddress();
+    const account = walletClient.account!.address as `0x${string}`;
+    const k = betMapping[selectedBet!] as 0 | 1 | 2;
 
-      // Check if approval is already set
-      const conditionalTokensContract = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, CONDITIONAL_TOKENS_ABI, signer);
-      const isApproved = await conditionalTokensContract.isApprovedForAll(userAddress, marketAddress);
+    // check approval via viem
+    const isApproved = await publicClient.readContract({
+      address: CONDITIONAL_TOKENS_ADDRESS as `0x${string}`,
+      abi: CONDITIONAL_TOKENS_ABI,
+      functionName: "isApprovedForAll",
+      args: [account, marketAddress],
+    });
 
-      if (!isApproved) {
-        const approveTx = await conditionalTokensContract.setApprovalForAll(marketAddress, true);
-        await approveTx.wait();
-        console.log("Approval for Conditional Tokens set");
-      }
-
-      // Send sellShares transaction
-      const receipt = await sendTransaction(
-        marketAddress,
-        "sellShares",
-        [betMapping[selectedBet!], betAmountBigInt],
-        signer
+    if (!isApproved) {
+      await sendContractTx(
+        CONDITIONAL_TOKENS_ADDRESS as `0x${string}`,
+        CONDITIONAL_TOKENS_ABI,
+        "setApprovalForAll",
+        [marketAddress, true],
       );
+    }
 
-      if (receipt && receipt.status === 1) {
-        setModalData({ shares: numericBetAmount, cost: Number(netCost) / 1e6 });
-        setIsModalOpen(true);
-      }
-    } catch (error) {
-      console.error("Sell shares failed:", error);
+    const receipt = await sendContractTx(
+      marketAddress as `0x${string}`,
+      PredictionMarketABI.abi,
+      "sellShares",
+      [k, betAmountBigInt],
+    );
+
+    if (receipt) {
+      setModalData({ shares: numericBetAmount, cost: Number(netCost) / 1e6 });
+      setIsModalOpen(true);
     }
   };
+
+  
   
   const fetchOutcomeBalances = async () => {
     if (!walletClient || !marketAddress || !conditionId || Object.keys(outcomeTokenIds).length < 3) return;
