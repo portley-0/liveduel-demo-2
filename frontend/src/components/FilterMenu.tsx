@@ -14,7 +14,7 @@ const LEAGUES = [
   //{ id: 239, name: "Categoría Primera A (Colombia)" },
   //{ id: 265, name: "Chilean Primera División" }
   //{ id: "uefa", name: "UEFA Leagues" },
-  //{ id: 2, name: "UEFA Champions League" },
+  { id: 2, name: "UEFA Champions League" },
   //{ id: 3, name: "UEFA Europa League" },
   //{ id: 848, name: "UEFA Conference League" },
   { id: 39, name: "Premier League" },
