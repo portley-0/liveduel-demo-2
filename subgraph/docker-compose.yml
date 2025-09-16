@@ -20,7 +20,7 @@ services:
 
       ipfs: 'ipfs:5001'
 
-      ethereum: 'fuji:https://rpc.ankr.com/avalanche_fuji/4cbdab618b80e040d0be91c1205716c87746d74d52548039944d18c28609789d'
+      ethereum: 'fuji:https://api.avax-test.network/ext/bc/C/rpc'
 
       GRAPH_LOG: info
 

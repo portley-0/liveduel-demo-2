@@ -50,6 +50,8 @@ import { getMatchbookOdds } from './matchbook.api';
 const LEAGUES = [15, 743, 71, 39];
 const SEASONS = [2024, 2025, 2026];
 
+const NON_LIVE_REFRESH_MS = 60 * 60 * 1000;
+
 let dataUpdateInterval: NodeJS.Timeout | undefined;
 let matchCacheInterval: NodeJS.Timeout | undefined;
 let subgraphRefreshInterval: NodeJS.Timeout | undefined;
@@ -137,24 +139,12 @@ export function startTournamentCachePolling() {
 
 export function startStandingsPolling() {
   let intervalTime = 24 * 60 * 60 * 1000; // 24 hours default
-  const MAX_RETRIES = 3;
+  const MAX_RETRIES = 1;
   const RETRY_DELAY = 5000;
   const INITIAL_STANDINGS_POLL_DELAY = 15000; // Delay for 15 seconds
 
   async function updateStandings() {
     console.log('[StandingsPolling] updateStandings function called.'); // Added for clarity
-    const allMatches = getAllMatches();
-    const hasLiveMatches = allMatches.some(
-      (match) => match.statusShort && match.statusShort !== 'NS'
-    );
-
-    if (hasLiveMatches) {
-      console.log('[StandingsPolling] Live matches detected, adjusting next interval if it was 24 hours.');
-      intervalTime = 60 * 60 * 1000; // 1 hour if live matches
-    } else {
-      intervalTime = 24 * 60 * 60 * 1000; // Back to 24 hours if no live matches
-    }
-
 
     for (const leagueId of LEAGUES) {
       for (const season of SEASONS) {
@@ -444,6 +434,7 @@ async function checkMatchbookMarketAvailability(matchId: number): Promise<boolea
 
 async function updateCachedMatches() {
   const allMatches = getAllMatches();
+  const now = Date.now();
 
   for (const match of allMatches) {
     if (match.resolvedAt) {
@@ -468,8 +459,18 @@ async function updateCachedMatches() {
 
     const isLive = !!match.statusShort && match.statusShort !== 'NS';
     if (isLive) {
+      // keep your current (fast) cadence for live matches
       console.log(`Refreshing data for live match ${match.matchId}`);
       await refreshFootballData(match.matchId);
+      updateMatchData(match.matchId, { lastFootballRefreshAt: now });
+    } else {
+      // only refresh football API about once per hour for non-live
+      const last = (match as any).lastFootballRefreshAt ?? 0;
+      if (now - last >= NON_LIVE_REFRESH_MS) {
+        console.log(`Hourly refresh for non-live match ${match.matchId}`);
+        await refreshFootballData(match.matchId);
+        updateMatchData(match.matchId, { lastFootballRefreshAt: now });
+      }
     }
   }
 }

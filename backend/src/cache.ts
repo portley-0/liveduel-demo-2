@@ -163,7 +163,8 @@ export interface MatchData {
   statusShort?: string; 
   resolvedAt?: number;  
   outcome?: number,
-  elapsed?: number;    
+  elapsed?: number;
+  lastFootballRefreshAt?: number;   
   matchTimestamp?: number;
   marketAvailable: boolean;
 
