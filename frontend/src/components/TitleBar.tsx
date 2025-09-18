@@ -146,7 +146,7 @@ const TitleBar = () => {
       <div className="drawer">
         <input id="my-drawer" type="checkbox" className="drawer-toggle" />
         <div className="drawer-content">
-          <header className="flex items-center justify-between px-4 py-2 bg-darkblue h-[84px] shadow-md z-50 select-none">
+          <header className="flex items-center justify-between px-4 py-2 bg-darkblue h-[84px] z-50 select-none">
             <div className="flex items-center space-x-2 select-none">
               <label
                 htmlFor="my-drawer"

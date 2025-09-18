@@ -96,7 +96,7 @@ const FilterMenu: React.FC = () => {
   }, [selectedLeague]);
 
   return (
-    <div className="sticky top-0 z-20 bg-darkblue py-1 px-4 flex flex-col space-y-2 shadow-xl">
+    <div className="sticky top-0 z-20 bg-darkblue py-1 px-4 flex flex-col space-y-2">
       <h1 className="text-xs font-bold text-white">Markets</h1>
 
       <div className="flex items-center justify-between space-x-2 pb-1">
