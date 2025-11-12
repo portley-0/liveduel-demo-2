@@ -55,19 +55,22 @@ export interface TournamentQueryParams {
   season?: number;
 }
 
-export async function getFixtures(params: GetFixtureParams) {
+export async function getFixtures(params: GetFixtureParams & { fixture?: number }) {
+  const normalized: Record<string, any> = { ...params };
+  if (normalized.fixture !== undefined && normalized.id === undefined) {
+    normalized.id = normalized.fixture;
+    delete normalized.fixture;
+  }
   const cleanedParams = Object.fromEntries(
-    Object.entries(params).filter(([_, val]) => val !== undefined)
+    Object.entries(normalized).filter(([, val]) => val !== undefined)
   );
-
   const response = await apiClient.get('/fixtures', { params: cleanedParams });
   if (response.status !== 200) {
     throw new Error(`[FootballService] getFixtures failed with status ${response.status}`);
   }
-
-  const data = response.data?.response ?? [];
-  return data; 
+  return response.data?.response ?? [];
 }
+
 
 export async function getStatistics(matchId: number, teamId: number) {
   const response = await apiClient.get('/fixtures/statistics', {
