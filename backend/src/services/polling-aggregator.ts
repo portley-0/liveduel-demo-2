@@ -115,7 +115,7 @@ export function startMatchCachePolling() {
     } catch (error) {
       console.error('[MatchCachePolling] Error in poll cycle:', error);
     }
-  }, 6 * 60 * 60 * 1000); 
+  }, 48 * 60 * 60 * 1000); 
 }
 
 export function startTournamentCachePolling() {
@@ -141,7 +141,7 @@ export function startStandingsPolling() {
   let intervalTime = 24 * 60 * 60 * 1000; // 24 hours default
   const MAX_RETRIES = 1;
   const RETRY_DELAY = 5000;
-  const INITIAL_STANDINGS_POLL_DELAY = 15000; // Delay for 15 seconds
+  const INITIAL_STANDINGS_POLL_DELAY = 30000; // Delay for 15 seconds
 
   async function updateStandings() {
     console.log('[StandingsPolling] updateStandings function called.'); // Added for clarity
@@ -274,74 +274,56 @@ export function stopPollingAggregator() {
 
 async function addUpcomingMatchesToCache() {
   const today = new Date();
-  const initialRangeDays = 6;
-  const rangeIncreaseDays = 7;
-  const maxRangeWeeks = 4; // Set a maximum search range (e.g., 4 weeks)
-  const statuses = ['NS', '1H', 'HT', '2H', 'ET', 'P', 'LIVE'];
+  const fromDate = today.toISOString().split('T')[0];
+
+  const future = new Date(today);
+  future.setDate(today.getDate() + 21); // single 21-day window
+  const toDate = future.toISOString().split('T')[0];
 
   for (const leagueId of LEAGUES) {
     for (const season of SEASONS) {
-      let currentRangeDays = initialRangeDays;
-      let fixturesFoundForTournament = false;
+      console.log(`[DataPolling] Fetching (SIMPLE) league ${leagueId}, season ${season}, ${fromDate} -> ${toDate}`);
 
-      while (currentRangeDays <= maxRangeWeeks * 7 && !fixturesFoundForTournament) {
-        const fromDate = today.toISOString().split('T')[0];
-        const futureDate = new Date();
-        futureDate.setDate(today.getDate() + currentRangeDays);
-        const toDate = futureDate.toISOString().split('T')[0];
+      const fixtures = await getFixtures({
+        league: leagueId,
+        season,
+        from: fromDate,
+        to: toDate,
+        status: 'NS'
+      });
 
-        console.log(`[DataPolling] Fetching for league ${leagueId}, season ${season} with range ${currentRangeDays} days.`);
-
-        for (const status of statuses) {
-          const fixtures = await getFixtures({
-            league: leagueId,
-            season,
-            from: fromDate,
-            to: toDate,
-            status: status 
-          });
-
-          for (const fixture of fixtures) {
-            const matchId = fixture.fixture.id;
-            if (getMatchData(matchId)) continue;
-
-            const newMatchObject = {
-              matchId,
-              leagueId,
-              leagueName: fixture.league.name,
-              season,
-              matchTimestamp: fixture.fixture.timestamp,
-              homeTeamName: fixture.teams.home.name,
-              homeTeamLogo: fixture.teams.home.logo,
-              awayTeamName: fixture.teams.away.name,
-              awayTeamLogo: fixture.teams.away.logo,
-              homeScore: fixture.goals.home,
-              awayScore: fixture.goals.away,
-              statusShort: fixture.fixture.status.short,
-              elapsed: fixture.fixture.status.elapsed,
-              marketAvailable: false,
-            };
-
-            console.log(`[addUpcomingMatchesToCache] PREPARING TO CREATE MATCH ${matchId}:`, JSON.stringify(newMatchObject, null, 2));
-            updateMatchData(matchId, newMatchObject);
-
-            console.log(`[DataPolling] Added match ${matchId} to cache (league ${leagueId}, season ${season}, status ${status} - range ${currentRangeDays} days).`);
-            fixturesFoundForTournament = true;
-          }
-        }
-
-        if (!fixturesFoundForTournament) {
-          currentRangeDays += rangeIncreaseDays;
-          console.log(`[DataPolling] No new fixtures found for league ${leagueId}, season ${season}. Increasing range to ${currentRangeDays} days.`);
-        }
+      if (!fixtures || fixtures.length === 0) {
+        console.warn(`[DataPolling] No fixtures for league ${leagueId}, season ${season} in window.`);
+        continue;
       }
 
-      if (!fixturesFoundForTournament) {
-        console.warn(`[DataPolling] No new fixtures found for league ${leagueId}, season ${season} within the maximum range of ${maxRangeWeeks} weeks.`);
+      for (const fixture of fixtures) {
+        const matchId = fixture.fixture.id;
+        if (getMatchData(matchId)) continue;
+
+        updateMatchData(matchId, {
+          matchId,
+          leagueId,
+          leagueName: fixture.league.name,
+          season,
+          matchTimestamp: fixture.fixture.timestamp,
+          homeTeamName: fixture.teams.home.name,
+          homeTeamLogo: fixture.teams.home.logo,
+          awayTeamName: fixture.teams.away.name,
+          awayTeamLogo: fixture.teams.away.logo,
+          homeScore: fixture.goals.home,
+          awayScore: fixture.goals.away,
+          statusShort: fixture.fixture.status.short,
+          elapsed: fixture.fixture.status.elapsed,
+          marketAvailable: false,
+        });
+
+        console.log(`[DataPolling] Added match ${matchId} (league ${leagueId}, season ${season}).`);
       }
     }
   }
 }
+
 
 async function addUpcomingTournamentsToCache() {
   console.log('[TournamentCachePolling] Starting to add/update specific season tournaments for defined leagues.');
