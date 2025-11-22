@@ -167,6 +167,8 @@ export interface MatchData {
   lastFootballRefreshAt?: number;   
   matchTimestamp?: number;
   marketAvailable: boolean;
+  lastMatchbookCheckAt?: number; 
+  matchbookCheckFailures?: number;
 
   oddsHistory?: {
     timestamps: number[];

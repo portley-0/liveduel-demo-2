@@ -23,6 +23,11 @@ const idCache = new Map<number, CachedMapping>();
 const CACHE_TTL = 1 * 60 * 60 * 1000;
 const MIN_SIMILARITY_SCORE = 70; 
 
+// IDs that we know will fail (no fixture in API Football, etc.)
+const failedIdCache = new Map<number, number>(); // id -> expiry
+const FAILED_TTL = 6 * 60 * 60 * 1000; 
+
+
 async function getApiFootballMatchDetails(apiFootballId: number): Promise<ApiFootballMatchDetails | null> {
     console.log(`ID MAPPER: Fetching details for API-Football ID: ${apiFootballId} from football-service.`);
     await new Promise(resolve => setTimeout(resolve, 5000));
@@ -46,6 +51,12 @@ async function getApiFootballMatchDetails(apiFootballId: number): Promise<ApiFoo
 }
 
 export async function findMatchbookId(apiFootballId: number): Promise<MappingResult | null> {
+    const failedExpiry = failedIdCache.get(apiFootballId);
+    if (failedExpiry && Date.now() < failedExpiry) {
+        console.log(`ID MAPPER: Known failing ID ${apiFootballId}. Skipping API-Football lookup.`);
+        return null;
+    }
+
     const cachedItem = idCache.get(apiFootballId);
     if (cachedItem && Date.now() < cachedItem.expiry) {
         console.log(`ID MAPPER: Cache HIT for API-Football ID ${apiFootballId}.`);
@@ -61,8 +72,11 @@ export async function findMatchbookId(apiFootballId: number): Promise<MappingRes
     try {
         const footballMatch = await getApiFootballMatchDetails(apiFootballId);
         if (!footballMatch) {
+            console.log(`ID MAPPER: Marking API-Football ID ${apiFootballId} as failed (no fixture).`);
+            failedIdCache.set(apiFootballId, Date.now() + FAILED_TTL);
             return null;
         }
+
 
         const matchbookEvents = await getMatchbookUpcomingEvents(footballMatch.kickoffTime);
         if (!matchbookEvents || matchbookEvents.length === 0) {

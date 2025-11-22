@@ -250,7 +250,7 @@ export function startDataPolling() {
     } catch (error) {
       console.error('[PollingAggregator] Error in poll cycle:', error);
     }
-  }, 40_000); // Every 40 seconds
+  }, 60_000); // Every 40 seconds
 }
 
 export function stopPollingAggregator() {
@@ -423,10 +423,28 @@ async function updateCachedMatches() {
       continue;
     }
 
-    if (match.marketAvailable !== true) {
-      const isNowAvailable = await checkMatchbookMarketAvailability(match.matchId);
-      if (isNowAvailable) {
-        updateMatchData(match.matchId, { marketAvailable: true });
+     if (match.marketAvailable !== true) {
+      const lastCheck = (match as any).lastMatchbookCheckAt ?? 0;
+      const failures = (match as any).matchbookCheckFailures ?? 0;
+
+      const CHECK_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+      const MAX_FAILURES = 6; // e.g. give up after 6 tries
+
+      if (failures < MAX_FAILURES && now - lastCheck > CHECK_COOLDOWN_MS) {
+        const isNowAvailable = await checkMatchbookMarketAvailability(match.matchId);
+
+        if (isNowAvailable) {
+          updateMatchData(match.matchId, {
+            marketAvailable: true,
+            lastMatchbookCheckAt: now,
+            matchbookCheckFailures: failures,
+          });
+        } else {
+          updateMatchData(match.matchId, {
+            lastMatchbookCheckAt: now,
+            matchbookCheckFailures: failures + 1,
+          });
+        }
       }
     }
 
