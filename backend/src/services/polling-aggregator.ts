@@ -440,8 +440,8 @@ async function updateCachedMatches() {
     }
   }
 
-  const allMatches = getAllMatches().filter(m =>
-   isLiveShort(m.statusShort) || !!m.contract || isSoonNS(m, now)
+   const allMatches = getAllMatches().filter(m =>
+   isLiveShort(m.statusShort) || !!m.contract || m.statusShort === 'NS'
   );
 
   for (const match of allMatches) {
@@ -456,7 +456,7 @@ async function updateCachedMatches() {
       const CHECK_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
       const MAX_FAILURES = 6; // e.g. give up after 6 tries
 
-      if (failures < MAX_FAILURES && now - lastCheck > CHECK_COOLDOWN_MS) {
+      if (now - lastCheck > CHECK_COOLDOWN_MS)  {
         const isNowAvailable = await checkMatchbookMarketAvailability(match.matchId);
 
         if (isNowAvailable) {
