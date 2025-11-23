@@ -427,6 +427,19 @@ async function checkMatchbookMarketAvailability(matchId: number): Promise<boolea
 
 async function updateCachedMatches() {
   const now = Date.now();
+
+  const forContractCheck = getAllMatches().filter(m =>
+    !m.contract && !m.resolvedAt && (m.statusShort === 'NS' || isSoonNS(m, now))
+  );
+
+  for (const m of forContractCheck) {
+    const pm = await getPredictionMarketByMatchId(m.matchId);
+    if (pm) {
+      console.log(`[updateCachedMatches] Setting contract for match ${m.matchId}: ${pm.id}`);
+      updateMatchData(m.matchId, { contract: pm.id });
+    }
+  }
+
   const allMatches = getAllMatches().filter(m =>
    isLiveShort(m.statusShort) || !!m.contract || isSoonNS(m, now)
   );
@@ -461,16 +474,7 @@ async function updateCachedMatches() {
       }
     }
 
-    const predictionMarket = await getPredictionMarketByMatchId(match.matchId);
-    const hasPredictionMarket = !!predictionMarket;
-
-    if (hasPredictionMarket && !match.contract) {
-      console.log(`[updateCachedMatches] Setting contract for match ${match.matchId}: ${predictionMarket.id}`);
-      updateMatchData(match.matchId, { contract: predictionMarket.id });
-      await refreshFootballData(match.matchId);
-    }
-
-    const isLive = !isMatchFinished(match.statusShort);
+    const isLive = isLiveShort(match.statusShort);
     if (isLive) {
       // keep your current (fast) cadence for live matches
       console.log(`Refreshing data for live match ${match.matchId}`);
