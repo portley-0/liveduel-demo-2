@@ -93,10 +93,10 @@ async function main() {
   app.use(express.json());
 
   initCache();
-  initTournamentCache();
+  //initTournamentCache();
   initSocket(io);
   startMatchCachePolling();
-  startTournamentCachePolling();
+  //startTournamentCachePolling();
   startStandingsPolling();
   startDataPolling();
   startFastSubgraphPolling();

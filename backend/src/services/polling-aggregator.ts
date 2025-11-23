@@ -50,6 +50,17 @@ import { getMatchbookOdds } from './matchbook.api';
 const LEAGUES = [39, 34, 2];
 const SEASONS = [2024, 2025, 2026];
 
+const LIVE_STATUSES = new Set(["1H", "2H", "INT", "BT", "HT", "LIVE", "ET", "P"]);
+const isLiveShort = (s?: string) => !!s && LIVE_STATUSES.has(s);
+const SOON_WINDOW_MS = 6 * 60 * 60 * 1000;
+
+function isSoonNS(m: any, now: number) {
+  if (m.statusShort !== 'NS') return false;
+  if (!m.matchTimestamp) return false;
+  const kickoffMs = m.matchTimestamp * 1000;
+  return kickoffMs >= now - 15*60*1000 && kickoffMs <= now + SOON_WINDOW_MS; // allow slight early/late drift
+}
+
 const NON_LIVE_REFRESH_MS = 60 * 60 * 1000;
 
 let dataUpdateInterval: NodeJS.Timeout | undefined;
@@ -415,8 +426,10 @@ async function checkMatchbookMarketAvailability(matchId: number): Promise<boolea
 
 
 async function updateCachedMatches() {
-  const allMatches = getAllMatches();
   const now = Date.now();
+  const allMatches = getAllMatches().filter(m =>
+   isLiveShort(m.statusShort) || !!m.contract || isSoonNS(m, now)
+  );
 
   for (const match of allMatches) {
     if (match.resolvedAt) {
@@ -457,7 +470,7 @@ async function updateCachedMatches() {
       await refreshFootballData(match.matchId);
     }
 
-    const isLive = !!match.statusShort && match.statusShort !== 'NS';
+    const isLive = !isMatchFinished(match.statusShort);
     if (isLive) {
       // keep your current (fast) cadence for live matches
       console.log(`Refreshing data for live match ${match.matchId}`);
