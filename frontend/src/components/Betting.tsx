@@ -498,9 +498,10 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       }
       console.log("Market Deployed:", data.newMarketAddress);
       setDeployedMarket(data.newMarketAddress);
+      setTxHash(data.txHash);
       refetch();
       setToastMessage("Market Deployment Success");
-      setToastAddress(data.newMarketAddress);
+      setToastAddress(data.txHash);
       setTimeout(() => {
         setToastMessage(null);
         setToastAddress(null);

@@ -112,5 +112,5 @@ export async function deployMarket(matchId: number, matchTimestamp: number) {
   
   const newMarketAddress = await factory.predictionMarkets(matchId);
 
-  return newMarketAddress;
+  return { newMarketAddress, txHash: tx.hash };
 }

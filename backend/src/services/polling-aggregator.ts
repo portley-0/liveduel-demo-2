@@ -43,6 +43,7 @@ import {
 } from './subgraph-service';
 
 import { unwindPositions, reconcileMissingBootstraps } from './portfolio-manager';
+import { getActiveMatchIds } from './onchain-reader';
 import { findMatchbookId } from './id-mapper';
 import { getMatchbookOdds } from './matchbook.api';
 
@@ -67,6 +68,8 @@ let dataUpdateInterval: NodeJS.Timeout | undefined;
 let matchCacheInterval: NodeJS.Timeout | undefined;
 let subgraphRefreshInterval: NodeJS.Timeout | undefined;
 let tournamentPollInterval: NodeJS.Timeout | undefined;
+let lastReconcileAt = 0;
+const RECONCILE_INTERVAL_MS = 60_000; // Only reconcile every 60 seconds
 
 export function startFastSubgraphPolling() {
   if (subgraphRefreshInterval) return;
@@ -75,20 +78,23 @@ export function startFastSubgraphPolling() {
 
   subgraphRefreshInterval = setInterval(async () => {
     try {
-      // Refresh match data
-      const allMatches = getAllMatches();
-
-      const candidates = allMatches
-       .filter(m => m.contract && !m.resolvedAt && m.marketAvailable)
-       .map(m => m.matchId);
-      
-      if (candidates.length > 0) {
+      // Reconcile missing bootstraps using on-chain active matches (not cache).
+      // Throttled to once per minute to avoid excessive RPC calls.
+      const now = Date.now();
+      if (now - lastReconcileAt >= RECONCILE_INTERVAL_MS) {
+        lastReconcileAt = now;
         try {
-          await reconcileMissingBootstraps(candidates, 15000);
+          const onChainActiveIds = await getActiveMatchIds();
+          if (onChainActiveIds.length > 0) {
+            await reconcileMissingBootstraps(onChainActiveIds, 15000);
+          }
         } catch (err) {
           console.error('FAST POLLER: Error reconciling missing bootstraps:', err);
         }
       }
+
+      // Refresh match data
+      const allMatches = getAllMatches();
 
       for (const match of allMatches) {
         if (match.resolvedAt) continue;

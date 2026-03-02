@@ -107,9 +107,9 @@ async function main() {
     try {
       const { matchId, matchTimestamp } = req.body;
   
-      const newMarketAddress = await deployMarket(matchId, matchTimestamp);
-      
-      res.json({ success: true, newMarketAddress });
+      const { newMarketAddress, txHash } = await deployMarket(matchId, matchTimestamp);
+
+      res.json({ success: true, newMarketAddress, txHash });
     } catch (error: any) {
       console.error('Error in /deploy route:', error);
       res.status(500).json({ error: error.message });
