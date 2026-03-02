@@ -290,22 +290,34 @@ const Betting: React.FC<{ match: MatchData }> = ({ match }) => {
       openConnectModal?.();
       throw new Error("No wallet/public client");
     }
-    const account = walletClient.account!.address as `0x${string}`;
 
-    // simulate to get gas & calldata
-    const { request } = await publicClient.simulateContract({
-      account,
+    // Best-effort simulation for early error detection
+    try {
+      const account = walletClient.account!.address as `0x${string}`;
+      await publicClient.simulateContract({
+        account,
+        address,
+        abi,
+        functionName,
+        args,
+      });
+    } catch (simErr: any) {
+      // If simulation gives a clear revert reason, surface it
+      if (simErr?.cause?.reason || simErr?.shortMessage?.includes('revert')) {
+        throw simErr;
+      }
+      console.warn("Simulation failed (non-revert), proceeding with tx:", simErr?.shortMessage ?? simErr);
+    }
+
+    // Send directly with clean parameters (avoid spreading simulation request
+    // which can include fields that break cross-app wallet providers)
+    const hash = await walletClient.writeContract({
       address,
       abi,
       functionName,
       args,
+      chain: walletClient.chain,
     });
-
-    // gas buffer (+20%)
-    const gas = request.gas ? (request.gas * 12n) / 10n : undefined;
-
-    // send via the wagmi/viem wallet client (NOT ethers)
-    const hash = await walletClient.writeContract({ ...request, gas });
     setTxHash(hash);
 
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
