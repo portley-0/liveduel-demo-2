@@ -5,6 +5,7 @@ import cors from "cors";
 import { Server as SocketIOServer } from 'socket.io';
 import { deployMarket } from './services/deploy-market';
 import { getUserPredictions } from './services/get-predictions';
+import { bootstrapInventory } from './services/portfolio-manager';
 import { startRebalancerPolling } from './services/rebalancer';
 import { startDataPolling, startFastSubgraphPolling, startMatchCachePolling, startStandingsPolling, startTournamentCachePolling } from './services/polling-aggregator';
 import { initCache, initTournamentCache, getMatchData, getTournamentData } from './cache';
@@ -139,6 +140,38 @@ async function main() {
     const tournamentId = Number(req.params.tournamentId);
     const tournament = getTournamentData(tournamentId);
     res.json({ success: true, data: tournament });
+  });
+
+  app.post('/bootstrap/:matchId', async (req: Request<{ matchId: string }>, res: Response): Promise<void> => {
+    const matchId = Number(req.params.matchId);
+    if (!matchId || isNaN(matchId)) {
+      res.status(400).json({ error: 'Invalid matchId.' });
+      return;
+    }
+
+    try {
+      const provider = new ethers.JsonRpcProvider(AVALANCHE_FUJI_RPC);
+      const factory = new ethers.Contract(
+        process.env.MARKET_FACTORY_ADDRESS!,
+        [{ inputs: [{ name: '', type: 'uint256' }], name: 'matchConditionIds', outputs: [{ name: '', type: 'bytes32' }], stateMutability: 'view', type: 'function' }],
+        provider
+      );
+
+      const conditionId = await factory.matchConditionIds(matchId);
+      if (!conditionId || conditionId === ethers.ZeroHash) {
+        res.status(404).json({ error: `No conditionId found for matchId ${matchId}` });
+        return;
+      }
+
+      const amount = req.body?.amount ?? 15000;
+      console.log(`MANUAL BOOTSTRAP: matchId=${matchId}, conditionId=${conditionId}, amount=${amount} USDC`);
+      await bootstrapInventory(conditionId, amount);
+
+      res.json({ success: true, matchId, conditionId, bootstrapAmount: amount });
+    } catch (error: any) {
+      console.error('Bootstrap error:', error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.post('/mint/:walletAddress', async (req: Request<{ walletAddress: string }>, res: Response): Promise<void> => {
