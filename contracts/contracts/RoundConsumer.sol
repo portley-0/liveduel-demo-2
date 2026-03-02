@@ -44,6 +44,10 @@ contract RoundConsumer is FunctionsClient, ConfirmedOwner {
         subscriptionId = _subscriptionId;
     }
 
+    function setSecrets(bytes memory _secrets) external onlyOwner {
+        secrets = _secrets;
+    }
+
     function requestNextRound(uint256 tournamentId, uint256 season) external {
         string[] memory args = new string[](2);
         args[0] = Strings.toString(tournamentId);

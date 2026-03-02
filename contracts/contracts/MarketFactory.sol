@@ -107,6 +107,11 @@ contract MarketFactory is Ownable, AutomationCompatibleInterface {
         roundConsumer = RoundConsumer(_roundConsumer);
     }
 
+    function setResultsConsumer(address _resultsConsumer) external onlyOwner {
+        require(_resultsConsumer != address(0), "Invalid ResultsConsumer address");
+        resultsConsumer = IResultsConsumer(_resultsConsumer);
+    }
+
     function setBotAddress(address _botAddress) external onlyOwner {
         require(_botAddress != address(0), "MarketFactory: Bot address cannot be the zero address");
         botAddress = _botAddress;

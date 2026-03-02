@@ -53,6 +53,10 @@ contract ResultsConsumer is FunctionsClient, ConfirmedOwner {
         subscriptionId = _subscriptionId;
     }
 
+    function setSecrets(bytes memory _secrets) external onlyOwner {
+        secrets = _secrets;
+    }
+
     function requestMatchResult(uint256 matchId) external {
         string[] memory args = new string[](2);
         args[0] = Strings.toString(matchId);
