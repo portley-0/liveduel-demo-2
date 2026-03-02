@@ -37,7 +37,7 @@ const Match: React.FC = () => {
             <ul className="flex gap-2 text-xs">
               <li>
                 <Link 
-                  to="/dashboard/markets" 
+                  to="/dashboard/matches"
                   className="hover:underline font-bold text-white"
                 >
                   Markets
@@ -45,7 +45,7 @@ const Match: React.FC = () => {
               </li>
               <li>
                 <Link
-                  to={`/dashboard/markets?league=${match.leagueId}`}
+                  to={`/dashboard/matches?league=${match.leagueId}`}
                   onClick={() => setSelectedLeague(match.leagueId ?? null)}
                   className="hover:underline font-bold text-white"
                 >

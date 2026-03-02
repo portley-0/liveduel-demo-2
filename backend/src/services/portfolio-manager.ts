@@ -1,19 +1,15 @@
 import { ethers } from 'ethers';
-import { RPC_URL, REBALANCER_PRIVATE_KEY } from './rebalancer.config';
+import { RPC_URL, REBALANCER_PRIVATE_KEY, CONDITIONAL_TOKENS_ADDRESS, MARKET_FACTORY_ADDRESS, USDC_ADDRESS } from './rebalancer.config';
 import ConditionalTokensArtifact from '../artifacts/ConditionalTokens.json';
 import UsdcArtifact from '../artifacts/MockUSDC.json';
 import MarketFactoryArtifact from '../artifacts/MarketFactory.json';
-
-const CONDITIONAL_TOKENS_ADDRESS = '0xCF27A9c88633DeDAA711b9758BCc6A7A62d874d1'; 
-const MARKET_FACTORY_ADDRESS = '0x47107c7b5413378282B80cAE60dD49707A0A2E00'; 
-const USDC_ADDRESS = '0xD6B448d652077A4fbf32672272eE7bBbc559fDfb'; 
 
 const provider = new ethers.JsonRpcProvider(RPC_URL);
 const signer = new ethers.Wallet(REBALANCER_PRIVATE_KEY!, provider);
 
 const conditionalTokens = new ethers.Contract(CONDITIONAL_TOKENS_ADDRESS, ConditionalTokensArtifact.abi, signer);
 const usdcContract = new ethers.Contract(USDC_ADDRESS, UsdcArtifact.abi, signer);
-const factoryContract = new ethers.Contract(MARKET_FACTORY_ADDRESS, MarketFactoryArtifact.abi, provider);
+const factoryContract = new ethers.Contract(MARKET_FACTORY_ADDRESS!, MarketFactoryArtifact.abi, provider);
 
 
 /**
